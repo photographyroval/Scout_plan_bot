@@ -6,117 +6,196 @@
     <title>Scout Planner</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        html, body {
-            width: 100%;
-            margin: 0; padding: 0;
-            background-color: var(--tg-theme-bg-color, #f5f5f7);
-            color: var(--tg-theme-text-color, #000000);
-            box-sizing: border-box;
+        html, body { width:100%; margin:0; padding:0; background-color:var(--tg-theme-bg-color,#f5f5f7); color:var(--tg-theme-text-color,#000); box-sizing:border-box; }
+        body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; padding:16px; overflow-x:hidden; overflow-y:auto; -webkit-tap-highlight-color:transparent; }
+        body.sheet-open { overflow:hidden !important; }
+        .app-wrapper { width:100%; box-sizing:border-box; position:relative; z-index:1; }
+
+        /* HEADER */
+        .header { font-size:22px; font-weight:700; margin-bottom:20px; text-align:center; }
+        .subheader { font-size:18px; font-weight:700; color:var(--tg-theme-text-color,#000); text-align:center; margin-top:-12px; margin-bottom:20px; }
+
+        /* TABS */
+        .tabs-container { display:flex; background-color:var(--tg-theme-secondary-bg-color,#e9e9eb); padding:4px; border-radius:12px; margin-bottom:24px; }
+        .tab { flex:1; text-align:center; padding:10px 0; font-size:14px; font-weight:600; color:var(--tg-theme-hint-color,#8e8e93); border-radius:9px; cursor:pointer; }
+        .tab.active { background-color:var(--tg-theme-bg-color,#fff); color:var(--tg-theme-button-color,#2481cc); box-shadow:0 2px 8px rgba(0,0,0,0.08); font-weight:700; }
+
+        .screen { display:none; width:100%; }
+        .screen.active { display:block; }
+
+        /* FORMS */
+        .form-group { margin-bottom:16px; position:relative; width:100%; box-sizing:border-box; }
+        .form-label { display:block; font-size:14px; font-weight:600; margin-bottom:6px; color:var(--tg-theme-text-color,#000); opacity:0.9; }
+        .form-input { width:100%; background-color:var(--tg-theme-secondary-bg-color,#e9e9eb); border:1px solid transparent; padding:12px; border-radius:10px; font-size:16px; color:var(--tg-theme-text-color,#000); box-sizing:border-box; outline:none; display:block; }
+        .form-input:focus { border-color:var(--tg-theme-button-color,#2481cc); }
+        .time-warning { display:none; font-size:12px; color:#d35400; margin-top:4px; font-weight:500; }
+
+        /* SECTION BLOCKS */
+        .section-block { background:var(--tg-theme-bg-color,#fff); border:1px solid var(--tg-theme-secondary-bg-color,#e9e9eb); border-radius:16px; padding:16px; margin-bottom:16px; box-shadow:0 2px 8px rgba(0,0,0,0.04); }
+        .section-block-title { font-size:13px; font-weight:700; color:var(--tg-theme-hint-color,#8e8e93); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:14px; }
+
+        /* BUTTONS */
+        .btn-primary { display:block; width:100%; background-color:var(--tg-theme-button-color,#2481cc); color:var(--tg-theme-button-text-color,#fff); border:none; padding:16px; border-radius:14px; font-size:16px; font-weight:600; text-align:center; cursor:pointer; box-sizing:border-box; transition:opacity 0.2s; }
+        .btn-primary:disabled { opacity:0.5; cursor:not-allowed; }
+        .btn-secondary { background-color:transparent; color:var(--tg-theme-button-color,#2481cc); border:none; padding:12px; font-size:15px; font-weight:600; cursor:pointer; display:block; margin:10px auto 0 auto; }
+
+        .form-row { display:flex; gap:12px; width:100%; box-sizing:border-box; }
+        .form-row .form-group { flex:1; }
+
+        .checkbox-container { display:flex; align-items:center; gap:10px; margin:12px 0; cursor:pointer; }
+        .checkbox-container input { width:20px; height:20px; accent-color:var(--tg-theme-button-color,#2481cc); flex-shrink:0; }
+        .hidden-field { display:none; }
+
+        .file-upload-btn { display:inline-block; background-color:var(--tg-theme-secondary-bg-color,#e9e9eb); color:var(--tg-theme-text-color,#000); padding:10px 14px; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; }
+        .preview-container { position:relative; width:120px; height:120px; margin-top:12px; display:none; }
+        .preview-img { width:100%; height:100%; object-fit:cover; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.12); }
+        .btn-remove-photo { position:absolute; top:-6px; right:-6px; width:22px; height:22px; background-color:#eb5757; color:#fff; border-radius:50%; border:2px solid var(--tg-theme-bg-color,#fff); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+
+        /* DRAFT BANNER */
+        .draft-banner { background-color:#fff3cd; border:1px solid #ffeeba; color:#856404; padding:14px; border-radius:12px; margin-bottom:16px; font-size:14px; display:none; align-items:center; justify-content:space-between; gap:10px; }
+        .draft-banner button { background:#856404; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; }
+
+        /* PROJECT CARDS */
+        .project-card { background:var(--tg-theme-bg-color,#fff); border:1px solid var(--tg-theme-secondary-bg-color,#e9e9eb); padding:16px; border-radius:14px; margin-bottom:12px; box-shadow:0 4px 10px rgba(0,0,0,0.02); }
+        .empty-state { text-align:center; color:var(--tg-theme-hint-color,#8e8e93); margin:40px 0; font-size:15px; }
+
+        /* BUILDER SCREEN */
+        .builder-header-title { font-size:22px; font-weight:800; text-align:center; margin-bottom:4px; }
+        .builder-header-date { font-size:17px; font-weight:600; text-align:center; color:var(--tg-theme-hint-color,#8e8e93); margin-bottom:20px; }
+
+        /* SUMMARY CARD — двухколоночный макет */
+        .summary-section { background:var(--tg-theme-secondary-bg-color,#e9e9eb); border-radius:14px; padding:14px; margin-bottom:12px; }
+        .summary-section-title { font-size:12px; font-weight:700; color:var(--tg-theme-hint-color,#8e8e93); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center; }
+        .summary-two-col { display:flex; gap:10px; }
+        .summary-col { flex:1; display:flex; flex-direction:column; gap:6px; }
+        .summary-col-right { border-left:1px solid rgba(0,0,0,0.08); padding-left:10px; }
+        .summary-item { font-size:13px; line-height:1.4; }
+        .summary-item-label { font-size:11px; font-weight:700; color:var(--tg-theme-hint-color,#8e8e93); text-transform:uppercase; letter-spacing:0.3px; margin-bottom:2px; }
+        .summary-item-value { font-size:14px; font-weight:600; color:var(--tg-theme-text-color,#000); }
+        .summary-return { text-align:center; margin-top:10px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.08); font-size:15px; font-weight:700; color:var(--tg-theme-button-color,#2481cc); }
+
+        /* ROUTE LIST */
+        .route-list-container { border:2px solid var(--tg-theme-secondary-bg-color,#e9e9eb); border-radius:14px; padding:10px; min-height:60px; transition:min-height 0.3s ease; }
+        #route-points-list { width:100%; display:flex; flex-direction:column; }
+        .route-item {
+            background:var(--tg-theme-bg-color,#fff);
+            border:1px solid var(--tg-theme-secondary-bg-color,#e9e9eb);
+            padding:14px; border-radius:12px; margin-bottom:8px;
+            display:flex; justify-content:space-between; align-items:center;
+            user-select:none; -webkit-user-select:none;
+            position:relative; box-sizing:border-box;
+            transition:box-shadow 0.2s, transform 0.15s;
+            cursor:grab;
         }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            padding: 16px;
-            overflow-x: hidden;
-            overflow-y: auto;
-            -webkit-tap-highlight-color: transparent;
+        .route-item:last-child { margin-bottom:0; }
+        .route-item .drag-handle {
+            width:32px; height:40px; display:flex; flex-direction:column;
+            align-items:center; justify-content:center; gap:4px;
+            flex-shrink:0; cursor:grab; padding-right:4px;
+            pointer-events:all;
         }
-        body.sheet-open { overflow: hidden !important; }
-        .app-wrapper { width: 100%; box-sizing: border-box; position: relative; z-index: 1; }
-        .header { font-size: 22px; font-weight: 700; margin-bottom: 20px; text-align: center; }
-        .subheader { font-size: 16px; font-weight: 700; color: var(--tg-theme-text-color, #000000); text-align: center; margin-top: -12px; margin-bottom: 20px; }
-        .tabs-container { display: flex; background-color: var(--tg-theme-secondary-bg-color, #e9e9eb); padding: 4px; border-radius: 12px; margin-bottom: 24px; }
-        .tab { flex: 1; text-align: center; padding: 10px 0; font-size: 14px; font-weight: 600; color: var(--tg-theme-hint-color, #8e8e93); border-radius: 9px; cursor: pointer; }
-        .tab.active { background-color: var(--tg-theme-bg-color, #ffffff); color: var(--tg-theme-button-color, #2481cc); box-shadow: 0 2px 8px rgba(0,0,0,0.08); font-weight: 700; }
-        .screen { display: none; width: 100%; }
-        .screen.active { display: block; }
-        .form-group { margin-bottom: 18px; position: relative; width: 100%; box-sizing: border-box; }
-        .form-label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--tg-theme-text-color, #000000); opacity: 0.9; }
-        .form-input { width: 100%; background-color: var(--tg-theme-secondary-bg-color, #e9e9eb); border: 1px solid transparent; padding: 12px; border-radius: 10px; font-size: 16px; color: var(--tg-theme-text-color, #000000); box-sizing: border-box; outline: none; display: block; }
-        .form-input:focus { border-color: var(--tg-theme-button-color, #2481cc); }
-        .time-warning { display: none; font-size: 12px; color: #d35400; margin-top: 4px; font-weight: 500; }
-        .btn-primary { display: block; width: 100%; background-color: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #ffffff); border: none; padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 600; text-align: center; cursor: pointer; box-sizing: border-box; transition: opacity 0.2s; }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-secondary { background-color: transparent; color: var(--tg-theme-button-color, #2481cc); border: none; padding: 12px; font-size: 15px; font-weight: 600; cursor: pointer; display: block; margin: 10px auto 0 auto; }
-        .form-row { display: flex; gap: 12px; width: 100%; box-sizing: border-box; }
-        .form-row .form-group { flex: 1; }
-        .checkbox-container { display: flex; align-items: center; gap: 10px; margin: 14px 0; cursor: pointer; }
-        .checkbox-container input { width: 20px; height: 20px; accent-color: var(--tg-theme-button-color, #2481cc); }
-        .hidden-field { display: none; }
-        .file-upload-btn { display: inline-block; background-color: var(--tg-theme-secondary-bg-color, #e9e9eb); color: var(--tg-theme-text-color, #000000); padding: 10px 14px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
-        .preview-container { position: relative; width: 120px; height: 120px; margin-top: 12px; display: none; }
-        .preview-img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
-        .btn-remove-photo { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; background-color: #eb5757; color: #fff; border-radius: 50%; border: 2px solid var(--tg-theme-bg-color, #fff); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .draft-banner { background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 14px; border-radius: 12px; margin-bottom: 16px; font-size: 14px; display: none; align-items: center; justify-content: space-between; gap: 10px; }
-        .draft-banner button { background: #856404; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
-        .constructor-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
-        .btn-add { background-color: var(--tg-theme-secondary-bg-color, #e9e9eb); color: var(--tg-theme-text-color, #000000); border: 1px dashed var(--tg-theme-hint-color, #8e8e93); padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
-        .empty-state { text-align: center; color: var(--tg-theme-hint-color, #8e8e93); margin: 40px 0; font-size: 15px; }
-        .project-card { background: var(--tg-theme-bg-color, #ffffff); border: 1px solid var(--tg-theme-secondary-bg-color, #e9e9eb); padding: 16px; border-radius: 14px; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
-        .summary-card { background-color: var(--tg-theme-secondary-bg-color, #e9e9eb); padding: 14px; border-radius: 12px; margin-bottom: 12px; font-size: 14px; line-height: 1.6; }
-        .summary-line-space { margin-bottom: 6px; display: block; }
-        #route-points-list { width: 100%; display: flex; flex-direction: column; }
-        .route-item { background: var(--tg-theme-bg-color, #ffffff); border: 1px solid var(--tg-theme-secondary-bg-color, #e9e9eb); padding: 14px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; user-select: none; -webkit-user-select: none; position: relative; box-sizing: border-box; }
-        .route-item.dragging { transform: scale(1.04); box-shadow: 0 12px 30px rgba(0,0,0,0.15); border-color: var(--tg-theme-button-color, #2481cc); z-index: 9999; animation: iosWiggle 0.28s ease-in-out infinite alternate; }
-        .route-text-block { flex: 1; pointer-events: none; }
-        .route-item-title { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
-        .route-item-time { color: var(--tg-theme-button-color, #2481cc); font-family: monospace; font-size: 14px; font-weight: 600; }
-        .route-item-sub { font-size: 13px; color: var(--tg-theme-hint-color, #8e8e93); }
-        .btn-delete-point { background: none; border: none; color: var(--tg-theme-hint-color, #8e8e93); font-size: 16px; font-weight: 600; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
-        .bottom-sheet-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 99999; display: none; }
-        .bottom-sheet { position: fixed; bottom: 0; left: 0; right: 0; background: var(--tg-theme-bg-color, #ffffff); border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; box-sizing: border-box; max-height: 85vh; overflow-y: auto; }
-        .sheet-handle { width: 40px; height: 5px; background: #ccc; border-radius: 3px; margin: -10px auto 15px auto; }
-        .send-status { margin-top: 12px; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 600; text-align: center; display: none; }
-        .send-status.loading { background: #e8f4fd; color: #2481cc; display: block; }
-        .send-status.success { background: #d4edda; color: #155724; display: block; }
-        .send-status.error { background: #f8d7da; color: #721c24; display: block; }
-        @keyframes iosWiggle { 0% { transform: scale(1.04) rotate(-0.5deg); } 100% { transform: scale(1.04) rotate(0.5deg); } }
+        .drag-handle span { display:block; width:18px; height:2px; background:var(--tg-theme-hint-color,#c0c0c8); border-radius:2px; }
+        .route-item.dragging {
+            box-shadow:0 16px 40px rgba(0,0,0,0.18);
+            border-color:var(--tg-theme-button-color,#2481cc);
+            z-index:9999; opacity:0.95;
+            cursor:grabbing;
+        }
+        .route-item.drag-over { border-color:var(--tg-theme-button-color,#2481cc); background:rgba(36,129,204,0.04); }
+        .route-text-block { flex:1; pointer-events:none; min-width:0; }
+        .route-item-title { font-weight:700; font-size:15px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .route-item-time { color:var(--tg-theme-button-color,#2481cc); font-family:monospace; font-size:13px; font-weight:600; }
+        .route-item-sub { font-size:12px; color:var(--tg-theme-hint-color,#8e8e93); margin-top:2px; }
+        .btn-delete-point { background:none; border:none; color:var(--tg-theme-hint-color,#8e8e93); font-size:18px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer; border-radius:50%; transition:background 0.15s; }
+        .btn-delete-point:hover { background:rgba(235,87,87,0.1); color:#eb5757; }
+
+        /* ROUTE type colours */
+        .route-item.type-location { border-left:3px solid var(--tg-theme-button-color,#2481cc); }
+        .route-item.type-transit { border-left:3px solid #e67e22; }
+        .route-item.type-lunch { border-left:3px solid #27ae60; }
+
+        /* ADD BUTTONS */
+        .constructor-buttons { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+        .btn-add { background-color:var(--tg-theme-secondary-bg-color,#e9e9eb); color:var(--tg-theme-text-color,#000); border:1px dashed var(--tg-theme-hint-color,#8e8e93); padding:13px 14px; border-radius:12px; font-size:14px; font-weight:600; text-align:left; cursor:pointer; transition:background 0.15s; }
+        .btn-add:hover { background:rgba(36,129,204,0.07); }
+
+        /* SECTION LABEL */
+        .section-label { font-size:13px; font-weight:700; color:var(--tg-theme-hint-color,#8e8e93); text-transform:uppercase; letter-spacing:0.5px; margin:18px 0 10px; text-align:center; }
+
+        /* BOTTOM SHEETS */
+        .bottom-sheet-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.45); z-index:99999; display:none; }
+        .bottom-sheet { position:fixed; bottom:0; left:0; right:0; background:var(--tg-theme-bg-color,#fff); border-top-left-radius:22px; border-top-right-radius:22px; padding:20px; box-sizing:border-box; max-height:88vh; overflow-y:auto; }
+        .sheet-handle { width:40px; height:5px; background:#ccc; border-radius:3px; margin:-10px auto 16px; }
+
+        /* STATUS */
+        .send-status { margin-top:12px; padding:12px; border-radius:10px; font-size:14px; font-weight:600; text-align:center; display:none; }
+        .send-status.loading { background:#e8f4fd; color:#2481cc; display:block; }
+        .send-status.success { background:#d4edda; color:#155724; display:block; }
+        .send-status.error { background:#f8d7da; color:#721c24; display:block; }
+
+        /* DRAG ANIMATIONS */
+        @keyframes itemDrop { 0%{transform:scale(1.03)} 60%{transform:scale(0.98)} 100%{transform:scale(1)} }
+        .item-dropped { animation:itemDrop 0.28s ease; }
     </style>
 </head>
 <body>
-
 <div class="app-wrapper">
-    <div id="screen-main" class="screen active">
-        <div class="header">Scout Planner</div>
-        <div class="tabs-container">
-            <div class="tab active" id="tab-active">Активные</div>
-            <div class="tab" id="tab-archive">Архив</div>
-            <div class="tab" id="tab-trash">Корзина</div>
-        </div>
-        <div id="content-active">
-            <div class="draft-banner" id="main-draft-banner">
-                <span>У вас есть несохраненный проект!</span>
-                <button id="btn-restore-draft">Восстановить</button>
-            </div>
-            <div class="empty-state" id="main-empty-state">У вас пока нет активных планов маршрута</div>
-            <div id="projects-list-container"></div>
-            <button class="btn-primary" id="btn-create-project" style="margin-top: 15px;">+ Создать новый проект</button>
-        </div>
-        <div id="content-archive" style="display: none;"><div class="empty-state">Архив пуст</div></div>
-        <div id="content-trash" style="display: none;"><div class="empty-state">Корзина пуста</div></div>
-    </div>
 
-    <div id="screen-create" class="screen">
-        <div class="header">What's the plan?</div>
+<!-- ═══════════════════ ГЛАВНЫЙ ЭКРАН ═══════════════════ -->
+<div id="screen-main" class="screen active">
+    <div class="header">Scout Planner</div>
+    <div class="tabs-container">
+        <div class="tab active" id="tab-active">Активные</div>
+        <div class="tab" id="tab-archive">Архив</div>
+        <div class="tab" id="tab-trash">Корзина</div>
+    </div>
+    <div id="content-active">
+        <div class="draft-banner" id="main-draft-banner">
+            <span>У вас есть несохраненный проект!</span>
+            <button id="btn-restore-draft">Восстановить</button>
+        </div>
+        <div class="empty-state" id="main-empty-state">У вас пока нет активных планов маршрута</div>
+        <div id="projects-list-container"></div>
+        <button class="btn-primary" id="btn-create-project" style="margin-top:15px;">+ Создать новый проект</button>
+    </div>
+    <div id="content-archive" style="display:none;"><div class="empty-state">Архив пуст</div></div>
+    <div id="content-trash" style="display:none;"><div class="empty-state">Корзина пуста</div></div>
+</div>
+
+<!-- ═══════════════════ ШАГ 1: СОЗДАНИЕ ═══════════════════ -->
+<div id="screen-create" class="screen">
+    <div class="header">Что планируем?</div>
+
+    <!-- БЛОК 1: основное -->
+    <div class="section-block">
+        <div class="section-block-title">Основное</div>
         <div class="form-group">
             <label class="form-label">Название проекта</label>
-            <input type="text" id="project-title" class="form-input" placeholder="Проект">
+            <input type="text" id="project-title" class="form-input" placeholder="Например: Скаут Тбилиси">
         </div>
-        <div class="form-group">
-            <label class="form-label">Дата просмотра</label>
-            <input type="text" id="project-date" class="form-input" placeholder="ДД.ММ.ГГ" inputmode="numeric" maxlength="8">
+        <div class="form-row">
+            <div class="form-group" style="flex:1">
+                <label class="form-label">Дата</label>
+                <input type="text" id="project-date" class="form-input" placeholder="ДД.ММ.ГГ" inputmode="numeric" maxlength="8">
+            </div>
         </div>
         <div class="form-row">
             <div class="form-group">
                 <label class="form-label">Время сбора</label>
-                <input type="text" id="time-meeting" class="form-input time-mask" placeholder="10:00" inputmode="numeric" maxlength="5">
-                <div id="warn-time-meeting" class="time-warning">Вы не дописали минуты, мы выставили :00. Всё верно?</div>
+                <input type="text" id="time-meeting" class="form-input time-mask" placeholder="ЧЧ:ММ" inputmode="numeric" maxlength="5">
+                <div id="warn-time-meeting" class="time-warning">Выставили :00 — всё верно?</div>
             </div>
             <div class="form-group">
                 <label class="form-label">Время выезда</label>
-                <input type="text" id="time-departure" class="form-input time-mask" placeholder="10:15" inputmode="numeric" maxlength="5">
-                <div id="warn-time-departure" class="time-warning">Вы не дописали минуты, мы выставили :00. Всё верно?</div>
+                <input type="text" id="time-departure" class="form-input time-mask" placeholder="ЧЧ:ММ" inputmode="numeric" maxlength="5">
+                <div id="warn-time-departure" class="time-warning">Выставили :00 — всё верно?</div>
             </div>
         </div>
+    </div>
+
+    <!-- БЛОК 2: место сбора -->
+    <div class="section-block">
+        <div class="section-block-title">Место сбора</div>
         <div class="form-group">
             <label class="form-label">Место сбора (кратко)</label>
             <input type="text" id="meeting-place" class="form-input" placeholder="Например: Метро Руставели">
@@ -129,26 +208,27 @@
             <label class="form-label">Ссылка на место сбора (карта)</label>
             <input type="url" id="meeting-map" class="form-input" placeholder="Google / Yandex Maps">
         </div>
-        <div class="form-group">
-            <label class="form-label">Все точки на карте</label>
-            <input type="url" id="all-points-map" class="form-input" placeholder="Ссылка на общую карту маршрута">
-        </div>
         <label class="checkbox-container">
             <input type="checkbox" id="check-coords">
-            <span class="form-label" style="margin: 0;">Добавить точные координаты GPS места сбора</span>
+            <span class="form-label" style="margin:0;">Добавить GPS координаты места сбора</span>
         </label>
         <div id="coords-field" class="form-group hidden-field">
             <label class="form-label">Координаты GPS</label>
             <input type="text" id="meeting-coords" class="form-input" placeholder="41.7151, 44.7932">
         </div>
+    </div>
+
+    <!-- БЛОК 3: транспорт -->
+    <div class="section-block">
+        <div class="section-block-title">Транспорт</div>
         <label class="checkbox-container">
             <input type="checkbox" id="check-transport">
-            <span class="form-label" style="margin: 0;">Добавить данные транспорта</span>
+            <span class="form-label" style="margin:0;">Добавить данные транспорта</span>
         </label>
         <div id="transport-fields" class="hidden-field">
-            <div class="form-group">
+            <div class="form-group" style="margin-top:10px;">
                 <label class="form-label">Номер авто</label>
-                <input type="text" id="car-number" class="form-input" placeholder="AA-123-AA">
+                <input type="text" id="car-number" class="form-input" placeholder="AA-123-BB">
             </div>
             <div class="form-row">
                 <div class="form-group">
@@ -157,47 +237,84 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Телефон водителя</label>
-                    <input type="tel" id="driver-phone" class="form-input" placeholder="+995...">
+                    <input type="tel" id="driver-phone" class="form-input" placeholder="+995 (555) 00-00-00">
                 </div>
             </div>
             <div class="form-group">
                 <label class="form-label">Фото автомобиля</label>
                 <label class="file-upload-btn" for="car-photo-input">📁 Выбрать фото из галереи</label>
-                <input type="file" id="car-photo-input" accept="image/*" style="display: none;">
+                <input type="file" id="car-photo-input" accept="image/*" style="display:none;">
                 <div id="car-photo-preview-wrap" class="preview-container">
                     <img id="car-photo-preview" class="preview-img" alt="Превью авто">
                     <div id="btn-delete-photo" class="btn-remove-photo">✕</div>
                 </div>
             </div>
         </div>
-        <button class="btn-primary" style="margin-top: 15px;" id="btn-submit-step1">Далее →</button>
-        <button class="btn-secondary" id="btn-cancel-step1">Отмена</button>
     </div>
 
-    <div id="screen-builder" class="screen">
-        <div class="header" id="builder-title">Название проекта</div>
-        <div class="subheader" id="builder-date">00.00.00</div>
-        <div class="summary-card" id="block-meeting-summary"></div>
-        <div class="summary-card" id="block-transport-summary" style="display: none;"></div>
-        <div class="form-label" style="margin-top: 15px; font-weight: 700;">Маршрутный лист</div>
-        <div id="route-points-list">
-            <div class="empty-state" id="builder-empty-state" style="margin: 20px 0;">Точки маршрута еще не добавлены</div>
-        </div>
-        <div class="constructor-buttons">
-            <button class="btn-add" id="btn-add-location">📍 + Добавить локацию</button>
-            <button class="btn-add" id="btn-add-transit">🚗 + Добавить переезд</button>
-            <button class="btn-add" id="btn-add-lunch">🍽️ + Добавить ланч</button>
-        </div>
-        <button class="btn-primary" style="margin-top: 30px;" id="btn-generate">Сохранить и отправить план 🎉</button>
-        <div id="send-status" class="send-status"></div>
-        <button class="btn-secondary" id="btn-back-to-step1">← Назад</button>
-    </div>
+    <button class="btn-primary" id="btn-submit-step1">Далее →</button>
+    <button class="btn-secondary" id="btn-cancel-step1">Отмена</button>
 </div>
 
+<!-- ═══════════════════ ШАГ 2: МАРШРУТ ═══════════════════ -->
+<div id="screen-builder" class="screen">
+    <div class="builder-header-title" id="builder-title">Название проекта</div>
+    <div class="builder-header-date" id="builder-date">00.00.00</div>
+
+    <!-- Блок: Информация о сборе -->
+    <div class="section-label">Информация о сборе</div>
+    <div class="summary-section" id="block-meeting-summary">
+        <div class="summary-two-col">
+            <div class="summary-col" id="summary-col-left"></div>
+            <div class="summary-col summary-col-right" id="summary-col-right"></div>
+        </div>
+        <div class="summary-return" id="summary-return">🏁 Возвращение: —</div>
+    </div>
+
+    <!-- Блок: Транспорт (если добавлен) -->
+    <div id="block-transport-summary" style="display:none;">
+        <div class="section-label">Транспорт</div>
+        <div class="summary-section" id="block-transport-inner"></div>
+    </div>
+
+    <!-- Блок: Маршрутный лист -->
+    <div class="section-label">Маршрутный лист</div>
+
+    <!-- Чекбокс: Все точки на карте -->
+    <div class="section-block" style="margin-bottom:12px; padding:12px 16px;">
+        <label class="checkbox-container" style="margin:0;">
+            <input type="checkbox" id="check-all-points-map">
+            <span class="form-label" style="margin:0;">🗺 Добавить ссылку «Все точки на карте»</span>
+        </label>
+        <div id="all-points-map-field" class="form-group hidden-field" style="margin-top:10px; margin-bottom:0;">
+            <input type="url" id="all-points-map" class="form-input" placeholder="Ссылка на общую карту маршрута">
+        </div>
+    </div>
+
+    <div class="route-list-container">
+        <div id="route-points-list">
+            <div class="empty-state" id="builder-empty-state" style="margin:20px 0;">Точки маршрута ещё не добавлены</div>
+        </div>
+    </div>
+
+    <div class="constructor-buttons">
+        <button class="btn-add" id="btn-add-location">📍 + Добавить локацию</button>
+        <button class="btn-add" id="btn-add-transit">🚗 + Добавить переезд</button>
+        <button class="btn-add" id="btn-add-lunch">🍽️ + Добавить ланч</button>
+    </div>
+
+    <button class="btn-primary" style="margin-top:24px;" id="btn-generate">Сохранить и отправить план 🎉</button>
+    <div id="send-status" class="send-status"></div>
+    <button class="btn-secondary" id="btn-back-to-step1">← Назад</button>
+</div>
+
+</div><!-- /app-wrapper -->
+
+<!-- ══════════ ШТОРКА: ЛОКАЦИЯ ══════════ -->
 <div class="bottom-sheet-overlay" id="overlay-location">
     <div class="bottom-sheet">
         <div class="sheet-handle"></div>
-        <div class="header" id="sheet-loc-header" style="font-size:18px; margin-bottom:15px;">📍 Новая локация</div>
+        <div class="header" id="sheet-loc-header" style="font-size:18px;margin-bottom:15px;">📍 Новая локация</div>
         <div class="form-group">
             <label class="form-label">Название локации</label>
             <input type="text" id="sheet-loc-title" class="form-input" placeholder="Например: Загородный дом">
@@ -212,10 +329,9 @@
         </div>
         <label class="checkbox-container">
             <input type="checkbox" id="sheet-loc-check-coords">
-            <span class="form-label" style="margin: 0;">Добавить GPS координаты точки</span>
+            <span class="form-label" style="margin:0;">Добавить GPS координаты точки</span>
         </label>
         <div id="sheet-loc-coords-field" class="form-group hidden-field">
-            <label class="form-label">Координаты GPS</label>
             <input type="text" id="sheet-loc-coords" class="form-input" placeholder="41.7151, 44.7932">
         </div>
         <div class="form-group">
@@ -230,10 +346,11 @@
     </div>
 </div>
 
+<!-- ══════════ ШТОРКА: ПЕРЕЕЗД ══════════ -->
 <div class="bottom-sheet-overlay" id="overlay-transit">
     <div class="bottom-sheet">
         <div class="sheet-handle"></div>
-        <div class="header" id="sheet-transit-header" style="font-size:18px; margin-bottom:15px;">🚗 Добавить переезд</div>
+        <div class="header" id="sheet-transit-header" style="font-size:18px;margin-bottom:15px;">🚗 Добавить переезд</div>
         <div class="form-group">
             <label class="form-label">Время в пути</label>
             <div class="form-row">
@@ -246,10 +363,11 @@
     </div>
 </div>
 
+<!-- ══════════ ШТОРКА: ЛАНЧ ══════════ -->
 <div class="bottom-sheet-overlay" id="overlay-lunch">
     <div class="bottom-sheet">
         <div class="sheet-handle"></div>
-        <div class="header" id="sheet-lunch-header" style="font-size:18px; margin-bottom:15px;">🍽️ Добавить ланч</div>
+        <div class="header" id="sheet-lunch-header" style="font-size:18px;margin-bottom:15px;">🍽️ Добавить ланч</div>
         <div class="form-group">
             <label class="form-label">Длительность ланча</label>
             <div class="form-row">
@@ -263,94 +381,59 @@
 </div>
 
 <script>
-// ─── КОНФИГ ───────────────────────────────────────────────────────────────────
+// ─── КОНФИГ ───────────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://yonloyevqxcpeqcolbue.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvbmxveWV2cXhjcGVxY29sYnVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMzYyMjYsImV4cCI6MjA5NjkxMjIyNn0.bRpdPSAV6a87feo0zY14vyUmcQEw71SjtyINc0QReA0';
 const BACKEND_URL = 'https://scoutplanbot-production.up.railway.app';
 
-// ─── ИНИЦИАЛИЗАЦИЯ TELEGRAM ───────────────────────────────────────────────────
-const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : { 
-    ready: ()=>{}, expand: ()=>{}, 
-    HapticFeedback: null,
-    initDataUnsafe: {}
-};
-tg.ready();
-tg.expand();
+// ─── TELEGRAM ─────────────────────────────────────────────────────────
+const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : { ready:()=>{}, expand:()=>{}, HapticFeedback:null, initDataUnsafe:{} };
+tg.ready(); tg.expand();
 
-// ─── ИНИЦИАЛИЗАЦИЯ SUPABASE (без внешней библиотеки) ─────────────────────────
-async function supabaseRequest(method, table, body, params) {
-    let url = SUPABASE_URL + '/rest/v1/' + table;
-    if (params) url += '?' + params;
-    const opts = {
-        method: method,
-        headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': 'Bearer ' + SUPABASE_KEY,
-            'Content-Type': 'application/json',
-            'Prefer': method === 'POST' ? 'return=representation' : 'return=representation'
-        }
-    };
-    if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(url, opts);
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || 'Supabase error ' + res.status);
-    }
-    return res.json().catch(() => ([]));
-}
+function haptic(type) { try { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred(type); } catch(e){} }
+function hapticNotify(type) { try { if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred(type); } catch(e){} }
 
-// ─── СОСТОЯНИЕ ────────────────────────────────────────────────────────────────
+// ─── СОСТОЯНИЕ ────────────────────────────────────────────────────────
 let uploadedCarPhotoBase64 = '';
 let routePoints = [];
-let globalProjectTitle = 'Проект';
-let globalProjectDate = '00.00.00';
-let globalMeetingTime = '10:00';
-let globalDepartureTime = '10:15';
-let globalMeetingPlace = 'Не указано';
+let globalProjectTitle = '';
+let globalProjectDate = '';
+let globalMeetingTime = '';
+let globalDepartureTime = '';
+let globalMeetingPlace = '';
 let globalMeetingAddress = '';
 let globalMeetingMap = '';
 let globalAllPointsMap = '';
 let globalMeetingCoords = '';
 let editingIndex = null;
 
-// ─── УТИЛИТЫ ──────────────────────────────────────────────────────────────────
-function haptic(type) {
-    try { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred(type); } catch(e) {}
-}
-
-function formatDurationText(totalMinutes) {
+// ─── УТИЛИТЫ ──────────────────────────────────────────────────────────
+function formatDuration(totalMinutes) {
     if (!totalMinutes || isNaN(totalMinutes)) return '0 мин';
-    const h = Math.floor(totalMinutes / 60);
-    const m = totalMinutes % 60;
+    const h = Math.floor(totalMinutes / 60), m = totalMinutes % 60;
     if (h > 0 && m > 0) return h + ' ч ' + m + ' мин';
     if (h > 0) return h + ' ч';
     return m + ' мин';
 }
 
-function addMinutesToTime(timeStr, totalMins) {
+function addMins(timeStr, mins) {
     if (!timeStr) timeStr = '00:00';
-    const parts = timeStr.split(':').map(Number);
-    const hours = isNaN(parts[0]) ? 0 : parts[0];
-    const minutes = isNaN(parts[1]) ? 0 : parts[1];
-    const total = hours * 60 + minutes + parseInt(totalMins || 0);
-    const h = Math.floor(total / 60) % 24;
-    const m = total % 60;
-    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    const [h, m] = timeStr.split(':').map(Number);
+    const total = (isNaN(h)?0:h)*60 + (isNaN(m)?0:m) + parseInt(mins||0);
+    return String(Math.floor(total/60)%24).padStart(2,'0') + ':' + String(total%60).padStart(2,'0');
 }
 
 function showStatus(type, text) {
     const el = document.getElementById('send-status');
     el.className = 'send-status ' + type;
     el.textContent = text;
-    if (type === 'success' || type === 'error') {
-        setTimeout(() => { el.style.display = 'none'; }, 4000);
-    }
+    if (type !== 'loading') setTimeout(() => { el.style.display = 'none'; }, 4000);
 }
 
-function showScreen(screenId) {
+function showScreen(id) {
     haptic('medium');
     document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
-    document.getElementById(screenId).style.display = 'block';
+    document.getElementById(id).style.display = 'block';
     window.scrollTo(0, 0);
 }
 
@@ -366,7 +449,31 @@ function closeSheet(id) {
     editingIndex = null;
 }
 
-// ─── ЧЕРНОВИК ─────────────────────────────────────────────────────────────────
+// ─── ФОРМАТИРОВАНИЕ НОМЕРА АВТО ───────────────────────────────────────
+// Принимает латиницу и кириллицу, после 2 букв автоматически ставит тире
+document.getElementById('car-number').addEventListener('input', function() {
+    let val = this.value.toUpperCase();
+    // Оставляем буквы (лат+кир), цифры и тире
+    val = val.replace(/[^A-ZА-ЯЁ0-9\-]/g, '');
+    // Убираем двойные тире
+    val = val.replace(/-{2,}/g, '-');
+    // Авто-тире: после первых 2 букв перед цифрами
+    val = val.replace(/^([A-ZА-ЯЁ]{2})([0-9])/, '$1-$2');
+    // Авто-тире: после цифр перед буквами
+    val = val.replace(/([0-9]{1,3})([A-ZА-ЯЁ])/, '$1-$2');
+    this.value = val;
+});
+
+// ─── ФОРМАТИРОВАНИЕ ТЕЛЕФОНА ──────────────────────────────────────────
+document.getElementById('driver-phone').addEventListener('input', function() {
+    // Оставляем только + цифры скобки тире пробел
+    let val = this.value.replace(/[^\d+\-() ]/g, '');
+    // Убираем лишние + (только первый)
+    val = val.replace(/(?!^)\+/g, '');
+    this.value = val;
+});
+
+// ─── ЧЕРНОВИК ─────────────────────────────────────────────────────────
 function saveCurrentToDraft() {
     try {
         localStorage.setItem('scout_draft', JSON.stringify({
@@ -378,6 +485,7 @@ function saveCurrentToDraft() {
             address: document.getElementById('meeting-address').value,
             map: document.getElementById('meeting-map').value,
             allPointsMap: document.getElementById('all-points-map').value,
+            checkAllPointsMap: document.getElementById('check-all-points-map').checked,
             coords: document.getElementById('meeting-coords').value,
             checkCoords: document.getElementById('check-coords').checked,
             checkTransport: document.getElementById('check-transport').checked,
@@ -394,118 +502,52 @@ function clearAllInputs() {
     ['project-title','project-date','time-meeting','time-departure','meeting-place',
      'meeting-address','meeting-map','all-points-map','meeting-coords',
      'car-number','driver-name','driver-phone'].forEach(id => {
-        document.getElementById(id).value = '';
+        const el = document.getElementById(id);
+        if (el) el.value = '';
     });
     uploadedCarPhotoBase64 = '';
     document.getElementById('car-photo-preview-wrap').style.display = 'none';
     document.getElementById('check-coords').checked = false;
     document.getElementById('check-transport').checked = false;
+    document.getElementById('check-all-points-map').checked = false;
     document.getElementById('coords-field').style.display = 'none';
     document.getElementById('transport-fields').style.display = 'none';
+    document.getElementById('all-points-map-field').style.display = 'none';
     routePoints = [];
 }
 
-// ─── ПРОЕКТЫ ──────────────────────────────────────────────────────────────────
-function checkDraftAndProjects() {
-    try {
-        const draft = localStorage.getItem('scout_draft');
-        document.getElementById('main-draft-banner').style.display = draft ? 'flex' : 'none';
-    } catch(e) {}
-    loadProjects();
-}
+// ─── ТРЕКИНГ ИЗМЕНЕНИЙ ────────────────────────────────────────────────
+['project-title','project-date','time-meeting','time-departure','meeting-place',
+ 'meeting-address','meeting-map','all-points-map','meeting-coords',
+ 'car-number','driver-name','driver-phone'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', saveCurrentToDraft);
+});
+['check-coords','check-transport','check-all-points-map'].forEach(id => {
+    document.getElementById(id).addEventListener('change', saveCurrentToDraft);
+});
 
-function loadProjects() {
-    try {
-        const stored = localStorage.getItem('scout_projects');
-        const projects = stored ? JSON.parse(stored) : [];
-        renderProjectCards(projects);
-    } catch(e) {
-        renderProjectCards([]);
-    }
-}
-
-function renderProjectCards(projects) {
-    const listContainer = document.getElementById('projects-list-container');
-    const emptyState = document.getElementById('main-empty-state');
-
-    if (!projects || projects.length === 0) {
-        listContainer.innerHTML = '';
-        emptyState.style.display = 'block';
-        return;
-    }
-    emptyState.style.display = 'none';
-    listContainer.innerHTML = '';
-
-    projects.forEach((proj, idx) => {
-        const card = document.createElement('div');
-        card.className = 'project-card';
-        card.innerHTML =
-            '<div style="font-weight:700;font-size:16px;margin-bottom:4px;">' + (proj.title || 'Без названия') + '</div>' +
-            '<div style="font-size:13px;color:var(--tg-theme-hint-color,#8e8e93);margin-bottom:8px;">🗓️ ' + (proj.date || '—') + '</div>' +
-            '<div style="font-size:14px;">📍 Сбор: ' + (proj.meetingPlace || proj.place || '—') + ' (' + (proj.meetingTime || '—') + ')</div>' +
-            '<div style="font-size:14px;font-weight:600;color:var(--tg-theme-button-color,#2481cc);margin-top:4px;">🏁 Возврат: ~' + (proj.returnTime || '—') + '</div>' +
-            '<button class="btn-primary" style="margin-top:10px;padding:8px;font-size:13px;" data-idx="' + idx + '">📤 Отправить план в чат</button>';
-
-        card.querySelector('button').addEventListener('click', function(e) {
-            e.stopPropagation();
-            sendPlanToTelegram(proj, this);
-        });
-
-        listContainer.appendChild(card);
-    });
-}
-
-async function sendPlanToTelegram(planData, btn) {
-    const userId = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
-    if (!userId) { alert('Откройте приложение через Telegram'); return; }
-
-    const origText = btn.textContent;
-    btn.textContent = '⏳ Отправка...';
-    btn.disabled = true;
-
-    try {
-        const res = await fetch(BACKEND_URL + '/send-plan', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chatId: userId, data: planData })
-        });
-        const result = await res.json();
-        if (result.ok) {
-            btn.textContent = '✅ Отправлено!';
-            btn.style.backgroundColor = '#27ae60';
-            setTimeout(() => { btn.textContent = origText; btn.style.backgroundColor = ''; btn.disabled = false; }, 2000);
-        } else {
-            throw new Error(result.error || 'Ошибка');
-        }
-    } catch(err) {
-        btn.textContent = '❌ ' + err.message;
-        btn.style.backgroundColor = '#e74c3c';
-        setTimeout(() => { btn.textContent = origText; btn.style.backgroundColor = ''; btn.disabled = false; }, 3000);
-    }
-}
-
-// ─── ВОССТАНОВЛЕНИЕ ЧЕРНОВИКА ─────────────────────────────────────────────────
+// ─── ВОССТАНОВЛЕНИЕ ЧЕРНОВИКА ─────────────────────────────────────────
 document.getElementById('btn-restore-draft').addEventListener('click', () => {
     try {
         const raw = localStorage.getItem('scout_draft');
         if (!raw) return;
         const d = JSON.parse(raw);
-        document.getElementById('project-title').value = d.title || '';
-        document.getElementById('project-date').value = d.date || '';
-        document.getElementById('time-meeting').value = d.meetingTime || '';
-        document.getElementById('time-departure').value = d.departureTime || '';
-        document.getElementById('meeting-place').value = d.place || '';
-        document.getElementById('meeting-address').value = d.address || '';
-        document.getElementById('meeting-map').value = d.map || '';
-        document.getElementById('all-points-map').value = d.allPointsMap || '';
-        document.getElementById('meeting-coords').value = d.coords || '';
-        document.getElementById('check-coords').checked = d.checkCoords || false;
+        const set = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
+        set('project-title', d.title); set('project-date', d.date);
+        set('time-meeting', d.meetingTime); set('time-departure', d.departureTime);
+        set('meeting-place', d.place); set('meeting-address', d.address);
+        set('meeting-map', d.map); set('all-points-map', d.allPointsMap);
+        set('meeting-coords', d.coords); set('car-number', d.carNumber);
+        set('driver-name', d.driverName); set('driver-phone', d.driverPhone);
+
+        document.getElementById('check-coords').checked = !!d.checkCoords;
         document.getElementById('coords-field').style.display = d.checkCoords ? 'block' : 'none';
-        document.getElementById('check-transport').checked = d.checkTransport || false;
+        document.getElementById('check-transport').checked = !!d.checkTransport;
         document.getElementById('transport-fields').style.display = d.checkTransport ? 'block' : 'none';
-        document.getElementById('car-number').value = d.carNumber || '';
-        document.getElementById('driver-name').value = d.driverName || '';
-        document.getElementById('driver-phone').value = d.driverPhone || '';
+        document.getElementById('check-all-points-map').checked = !!d.checkAllPointsMap;
+        document.getElementById('all-points-map-field').style.display = d.checkAllPointsMap ? 'block' : 'none';
+
         if (d.carPhoto) {
             uploadedCarPhotoBase64 = d.carPhoto;
             document.getElementById('car-photo-preview').src = d.carPhoto;
@@ -518,28 +560,77 @@ document.getElementById('btn-restore-draft').addEventListener('click', () => {
     } catch(e) {}
 });
 
-// Трекинг изменений
-['project-title','project-date','time-meeting','time-departure','meeting-place',
- 'meeting-address','meeting-map','all-points-map','meeting-coords',
- 'car-number','driver-name','driver-phone'].forEach(id => {
-    document.getElementById(id).addEventListener('input', saveCurrentToDraft);
-});
-document.getElementById('check-coords').addEventListener('change', saveCurrentToDraft);
-document.getElementById('check-transport').addEventListener('change', saveCurrentToDraft);
+// ─── ПРОЕКТЫ ──────────────────────────────────────────────────────────
+function checkDraftAndProjects() {
+    try {
+        const draft = localStorage.getItem('scout_draft');
+        document.getElementById('main-draft-banner').style.display = draft ? 'flex' : 'none';
+    } catch(e) {}
+    loadProjects();
+}
 
-// ─── НАВИГАЦИЯ ────────────────────────────────────────────────────────────────
-document.querySelectorAll('.bottom-sheet-overlay').forEach(overlay => {
-    overlay.addEventListener('click', function(e) { if (e.target === this) closeSheet(this.id); });
+function loadProjects() {
+    try {
+        const stored = localStorage.getItem('scout_projects');
+        renderProjectCards(stored ? JSON.parse(stored) : []);
+    } catch(e) { renderProjectCards([]); }
+}
+
+function renderProjectCards(projects) {
+    const list = document.getElementById('projects-list-container');
+    const empty = document.getElementById('main-empty-state');
+    if (!projects || projects.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none'; list.innerHTML = '';
+    projects.forEach((proj, idx) => {
+        const card = document.createElement('div');
+        card.className = 'project-card';
+        card.innerHTML =
+            '<div style="font-weight:700;font-size:16px;margin-bottom:4px;">' + (proj.title||'Без названия') + '</div>' +
+            '<div style="font-size:13px;color:var(--tg-theme-hint-color,#8e8e93);margin-bottom:8px;">🗓️ ' + (proj.date||'—') + '</div>' +
+            '<div style="font-size:14px;">📍 ' + (proj.meetingPlace||proj.place||'—') + ' · 🕐 ' + (proj.meetingTime||'—') + '</div>' +
+            '<div style="font-size:14px;font-weight:600;color:var(--tg-theme-button-color,#2481cc);margin-top:4px;">🏁 Возврат: ~' + (proj.returnTime||'—') + '</div>' +
+            '<button class="btn-primary" style="margin-top:10px;padding:10px;font-size:13px;">📤 Отправить план в чат</button>';
+        card.querySelector('button').addEventListener('click', function(e) {
+            e.stopPropagation();
+            sendPlanToTelegram(proj, this);
+        });
+        list.appendChild(card);
+    });
+}
+
+async function sendPlanToTelegram(planData, btn) {
+    const userId = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
+    if (!userId) { alert('Откройте приложение через Telegram'); return; }
+    const orig = btn.textContent;
+    btn.textContent = '⏳ Отправка...'; btn.disabled = true;
+    try {
+        const res = await fetch(BACKEND_URL + '/send-plan', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ chatId: userId, data: planData })
+        });
+        const result = await res.json();
+        if (!result.ok) throw new Error(result.error || 'Ошибка');
+        btn.textContent = '✅ Отправлено!'; btn.style.backgroundColor = '#27ae60';
+        setTimeout(() => { btn.textContent = orig; btn.style.backgroundColor = ''; btn.disabled = false; }, 2000);
+    } catch(err) {
+        btn.textContent = '❌ ' + err.message; btn.style.backgroundColor = '#e74c3c';
+        setTimeout(() => { btn.textContent = orig; btn.style.backgroundColor = ''; btn.disabled = false; }, 3000);
+    }
+}
+
+// ─── НАВИГАЦИЯ ────────────────────────────────────────────────────────
+document.querySelectorAll('.bottom-sheet-overlay').forEach(ov => {
+    ov.addEventListener('click', function(e) { if (e.target === this) closeSheet(this.id); });
 });
 
-['active','archive','trash'].forEach(tabName => {
-    document.getElementById('tab-' + tabName).addEventListener('click', function() {
-        ['active','archive','trash'].forEach(t => {
-            document.getElementById('tab-' + t).classList.remove('active');
-            document.getElementById('content-' + t).style.display = 'none';
+['active','archive','trash'].forEach(t => {
+    document.getElementById('tab-' + t).addEventListener('click', function() {
+        ['active','archive','trash'].forEach(x => {
+            document.getElementById('tab-'+x).classList.remove('active');
+            document.getElementById('content-'+x).style.display = 'none';
         });
         this.classList.add('active');
-        document.getElementById('content-' + tabName).style.display = 'block';
+        document.getElementById('content-' + t).style.display = 'block';
     });
 });
 
@@ -547,25 +638,27 @@ document.getElementById('btn-create-project').addEventListener('click', () => sh
 document.getElementById('btn-cancel-step1').addEventListener('click', () => showScreen('screen-main'));
 document.getElementById('btn-back-to-step1').addEventListener('click', () => showScreen('screen-create'));
 
+// Чекбоксы шаг 1
 document.getElementById('check-coords').addEventListener('change', function() {
     document.getElementById('coords-field').style.display = this.checked ? 'block' : 'none';
 });
 document.getElementById('check-transport').addEventListener('change', function() {
     document.getElementById('transport-fields').style.display = this.checked ? 'block' : 'none';
 });
+// Чекбокс «Все точки на карте» (на экране маршрута)
+document.getElementById('check-all-points-map').addEventListener('change', function() {
+    document.getElementById('all-points-map-field').style.display = this.checked ? 'block' : 'none';
+    saveCurrentToDraft();
+});
 document.getElementById('sheet-loc-check-coords').addEventListener('change', function() {
     document.getElementById('sheet-loc-coords-field').style.display = this.checked ? 'block' : 'none';
 });
 
-document.getElementById('car-number').addEventListener('input', function() {
-    this.value = this.value.toUpperCase().replace(/[^A-Z0-9\- ]/g, '');
-});
-
+// Фото авто
 document.getElementById('car-photo-input').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+    const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
-    reader.onload = function(ev) {
+    reader.onload = ev => {
         uploadedCarPhotoBase64 = ev.target.result;
         document.getElementById('car-photo-preview').src = uploadedCarPhotoBase64;
         document.getElementById('car-photo-preview-wrap').style.display = 'block';
@@ -573,7 +666,6 @@ document.getElementById('car-photo-input').addEventListener('change', function(e
     };
     reader.readAsDataURL(file);
 });
-
 document.getElementById('btn-delete-photo').addEventListener('click', function(e) {
     e.preventDefault();
     uploadedCarPhotoBase64 = '';
@@ -583,36 +675,41 @@ document.getElementById('btn-delete-photo').addEventListener('click', function(e
     saveCurrentToDraft();
 });
 
-// ─── ШАГ 1 → ШАГ 2 ───────────────────────────────────────────────────────────
+// ─── ШАГ 1 → ШАГ 2 ───────────────────────────────────────────────────
 document.getElementById('btn-submit-step1').addEventListener('click', () => {
     forceCompleteTime(document.getElementById('time-meeting'));
     forceCompleteTime(document.getElementById('time-departure'));
 
-    globalProjectTitle = document.getElementById('project-title').value || 'Проект';
-    globalProjectDate = document.getElementById('project-date').value || '00.00.00';
-    globalMeetingTime = document.getElementById('time-meeting').value || '10:00';
-    globalDepartureTime = document.getElementById('time-departure').value || '10:15';
-    globalMeetingPlace = document.getElementById('meeting-place').value || 'Не указано';
+    globalProjectTitle   = document.getElementById('project-title').value || 'Проект';
+    globalProjectDate    = document.getElementById('project-date').value || '';
+    globalMeetingTime    = document.getElementById('time-meeting').value || '';
+    globalDepartureTime  = document.getElementById('time-departure').value || '';
+    globalMeetingPlace   = document.getElementById('meeting-place').value || '';
     globalMeetingAddress = document.getElementById('meeting-address').value || '';
-    globalMeetingMap = document.getElementById('meeting-map').value || '';
-    globalAllPointsMap = document.getElementById('all-points-map').value || '';
-    globalMeetingCoords = document.getElementById('meeting-coords').value || '';
+    globalMeetingMap     = document.getElementById('meeting-map').value || '';
+    globalAllPointsMap   = document.getElementById('all-points-map').value || '';
+    globalMeetingCoords  = document.getElementById('meeting-coords').value || '';
 
     document.getElementById('builder-title').innerText = globalProjectTitle;
-    document.getElementById('builder-date').innerText = globalProjectDate;
-    updateTopSummaryCard(globalDepartureTime);
+    document.getElementById('builder-date').innerText  = globalProjectDate || '—';
 
+    updateSummaryCard(globalDepartureTime || '—');
+
+    // Транспорт
     const hasTransport = document.getElementById('check-transport').checked;
     const blockTrans = document.getElementById('block-transport-summary');
+    const blockTransInner = document.getElementById('block-transport-inner');
     if (hasTransport) {
-        const carNum = document.getElementById('car-number').value || 'Не указан';
-        const dName = document.getElementById('driver-name').value || '';
-        const dPhone = document.getElementById('driver-phone').value || '';
-        let html = '<b>🚘 Транспорт:</b><br>Авто: ' + carNum;
-        if (dName) html += '<br>Водитель: ' + dName;
-        if (dPhone) html += ' (' + dPhone + ')';
-        if (uploadedCarPhotoBase64) html += '<br><img src="' + uploadedCarPhotoBase64 + '" style="width:120px;height:120px;object-fit:cover;border-radius:10px;margin-top:8px;display:block;">';
-        blockTrans.innerHTML = html;
+        const carNum  = document.getElementById('car-number').value || 'Не указан';
+        const dName   = document.getElementById('driver-name').value || '';
+        const dPhone  = document.getElementById('driver-phone').value || '';
+        let html = '<div style="font-size:14px;line-height:1.8;">';
+        html += '🚘 <b>' + carNum + '</b>';
+        if (dName)  html += '<br>👤 ' + dName;
+        if (dPhone) html += '<br>📞 ' + dPhone;
+        if (uploadedCarPhotoBase64) html += '<br><img src="' + uploadedCarPhotoBase64 + '" style="width:110px;height:110px;object-fit:cover;border-radius:10px;margin-top:8px;display:block;">';
+        html += '</div>';
+        blockTransInner.innerHTML = html;
         blockTrans.style.display = 'block';
     } else {
         blockTrans.style.display = 'none';
@@ -622,150 +719,330 @@ document.getElementById('btn-submit-step1').addEventListener('click', () => {
     showScreen('screen-builder');
 });
 
-function updateTopSummaryCard(returnTime) {
-    let html = '<span class="summary-line-space"><b>📍 Место встречи:</b> ' + globalMeetingPlace + '</span>';
-    if (globalMeetingAddress) html += '<span class="summary-line-space">📌 ' + globalMeetingAddress + '</span>';
-    html += '<span class="summary-line-space"><b>🟢 Время сбора:</b> ' + globalMeetingTime + '</span>';
-    html += '<span class="summary-line-space"><b>🔴 Выезд:</b> ' + globalDepartureTime + '</span>';
-    html += '<b style="color:#2481cc;">🏁 Время возвращения: ' + returnTime + '</b>';
-    document.getElementById('block-meeting-summary').innerHTML = html;
+// ─── SUMMARY (двухколоночный) ─────────────────────────────────────────
+function updateSummaryCard(returnTime) {
+    const leftCol  = document.getElementById('summary-col-left');
+    const rightCol = document.getElementById('summary-col-right');
+    const ret      = document.getElementById('summary-return');
+
+    // Левый столбик: место + адрес + координаты
+    let leftHtml = '';
+    leftHtml += '<div class="summary-item"><div class="summary-item-label">Место</div><div class="summary-item-value">' + (globalMeetingPlace || '—') + '</div></div>';
+    if (globalMeetingAddress) leftHtml += '<div class="summary-item"><div class="summary-item-label">Адрес</div><div class="summary-item-value" style="font-size:13px;">' + globalMeetingAddress + '</div></div>';
+    if (document.getElementById('check-coords').checked && globalMeetingCoords)
+        leftHtml += '<div class="summary-item"><div class="summary-item-label">GPS</div><div class="summary-item-value" style="font-size:12px;font-family:monospace;">' + globalMeetingCoords + '</div></div>';
+
+    // Правый столбик: время сбора + выезда
+    let rightHtml = '';
+    rightHtml += '<div class="summary-item"><div class="summary-item-label">Сбор</div><div class="summary-item-value" style="font-size:18px;">🟢 ' + (globalMeetingTime || '—') + '</div></div>';
+    rightHtml += '<div class="summary-item"><div class="summary-item-label">Выезд</div><div class="summary-item-value" style="font-size:18px;">🔴 ' + (globalDepartureTime || '—') + '</div></div>';
+
+    leftCol.innerHTML  = leftHtml;
+    rightCol.innerHTML = rightHtml;
+    ret.textContent    = '🏁 Возвращение: ' + returnTime;
 }
 
-// ─── МАРШРУТ ──────────────────────────────────────────────────────────────────
+// ─── МАРШРУТ ──────────────────────────────────────────────────────────
 function renderRoutePoints() {
-    const container = document.getElementById('route-points-list');
+    const container  = document.getElementById('route-points-list');
     const emptyState = document.getElementById('builder-empty-state');
     container.querySelectorAll('.route-item').forEach(el => el.remove());
 
     if (routePoints.length === 0) {
         emptyState.style.display = 'block';
-        updateTopSummaryCard(globalDepartureTime);
+        updateSummaryCard(globalDepartureTime || '—');
         return;
     }
     emptyState.style.display = 'none';
 
-    let runningTime = globalDepartureTime;
-    let locCounter = 1;
+    let runningTime = globalDepartureTime || '00:00';
+    let locCounter  = 1;
 
     routePoints.forEach((point, index) => {
-        const dur = parseInt(point.duration) || 0;
+        const dur  = parseInt(point.duration) || 0;
         const item = document.createElement('div');
-        item.className = 'route-item';
+        item.className = 'route-item type-' + point.type;
         item.setAttribute('data-index', index);
-        item.id = 'point-' + index;
+        item.id = 'rp-' + index;
 
-        let timeText = '', subText = '', displayTitle = '';
+        let timeText = '', subParts = [], displayTitle = '';
 
         if (point.type === 'location') {
-            const end = addMinutesToTime(runningTime, dur);
-            timeText = runningTime + ' – ' + end + ' (' + formatDurationText(dur) + ')';
-            const subs = [];
-            if (point.link) subs.push('<span style="color:#2481cc;">🖼️ Фото</span>');
-            if (point.mapUrl) subs.push('<span style="color:#2481cc;">📍 Карта</span>');
-            if (point.coords) subs.push('📡 ' + point.coords);
-            subText = subs.length ? subs.join(' · ') : 'Нет ссылок';
-            displayTitle = locCounter + '. ' + point.title;
-            locCounter++;
-            runningTime = end;
+            const end = addMins(runningTime, dur);
+            timeText = runningTime + ' – ' + end + ' (' + formatDuration(dur) + ')';
+            if (point.link)   subParts.push('<span style="color:#2481cc;">🖼️ Фото</span>');
+            if (point.mapUrl) subParts.push('<span style="color:#2481cc;">📍 Карта</span>');
+            if (point.coords) subParts.push('<span style="font-family:monospace;font-size:11px;">📡 ' + point.coords + '</span>');
+            displayTitle = locCounter + '. ' + (point.title || 'Локация');
+            locCounter++; runningTime = end;
         } else if (point.type === 'transit') {
-            timeText = '⏱️ в пути ' + formatDurationText(dur);
-            subText = 'Переезд к следующей точке';
+            timeText = '⏱ в пути ' + formatDuration(dur);
+            subParts = ['Переезд к следующей точке'];
             displayTitle = '🚗 Переезд';
-            runningTime = addMinutesToTime(runningTime, dur);
+            runningTime = addMins(runningTime, dur);
         } else if (point.type === 'lunch') {
-            const end = addMinutesToTime(runningTime, dur);
-            timeText = runningTime + ' – ' + end + ' (' + formatDurationText(dur) + ')';
-            subText = 'Перерыв на ланч';
+            const end = addMins(runningTime, dur);
+            timeText = runningTime + ' – ' + end + ' (' + formatDuration(dur) + ')';
+            subParts = ['Перерыв на ланч'];
             displayTitle = '🍽️ Ланч';
             runningTime = end;
         }
 
         item.innerHTML =
+            '<div class="drag-handle"><span></span><span></span><span></span></div>' +
             '<div class="route-text-block">' +
                 '<div class="route-item-title">' + displayTitle + '</div>' +
                 '<div class="route-item-time">' + timeText + '</div>' +
-                '<div class="route-item-sub">' + subText + '</div>' +
+                (subParts.length ? '<div class="route-item-sub">' + subParts.join(' · ') + '</div>' : '') +
             '</div>' +
-            '<button class="btn-delete-point">✕</button>';
+            '<button class="btn-delete-point" title="Удалить">✕</button>';
 
         item.querySelector('.btn-delete-point').addEventListener('click', function(e) {
             e.stopPropagation();
-            routePoints.splice(index, 1);
-            saveCurrentToDraft();
-            renderRoutePoints();
-        });
-        item.addEventListener('click', function(e) {
-            if (!e.target.classList.contains('btn-delete-point')) openEditSheet(index);
+            item.style.transition = 'opacity 0.2s, transform 0.2s';
+            item.style.opacity = '0'; item.style.transform = 'scale(0.95)';
+            setTimeout(() => { routePoints.splice(index, 1); saveCurrentToDraft(); renderRoutePoints(); }, 180);
         });
 
-        setupMobileDragAndDrop(item);
+        item.addEventListener('click', function(e) {
+            if (!e.target.closest('.btn-delete-point') && !e.target.closest('.drag-handle')) openEditSheet(index);
+        });
+
+        setupDragAndDrop(item);
         container.appendChild(item);
     });
 
-    updateTopSummaryCard(runningTime);
+    updateSummaryCard(runningTime);
 }
 
-// ─── ШТОРКИ: РЕДАКТИРОВАНИЕ ───────────────────────────────────────────────────
+// ─── DRAG & DROP (мобиль + десктоп) ──────────────────────────────────
+let activeDragEl = null, startY = 0, startX = 0;
+let touchHoldTimer = null, isDragging = false, dragLock = false;
+let ghostEl = null;
+
+function setupDragAndDrop(el) {
+    // ── TOUCH (мобильный) ──
+    el.addEventListener('touchstart', function(e) {
+        if (e.target.closest('.btn-delete-point') || dragLock) return;
+        const touch = e.touches[0];
+        startY = touch.clientY; startX = touch.clientX;
+        activeDragEl = this;
+        touchHoldTimer = setTimeout(() => {
+            isDragging = true; dragLock = true;
+            haptic('medium');
+            activeDragEl.classList.add('dragging');
+            activeDragEl.style.zIndex = '9999';
+        }, 350);
+    }, { passive: true });
+
+    el.addEventListener('touchmove', function(e) {
+        const touch = e.touches[0];
+        if (!isDragging) {
+            if (Math.abs(touch.clientY - startY) > 8 || Math.abs(touch.clientX - startX) > 8) clearTimeout(touchHoldTimer);
+            return;
+        }
+        if (e.cancelable) e.preventDefault();
+
+        const container = document.getElementById('route-points-list');
+        const bounds    = container.getBoundingClientRect();
+        const clampedY  = Math.max(bounds.top + 10, Math.min(touch.clientY, bounds.bottom - 10));
+
+        activeDragEl.style.transform = 'scale(1.03) translateY(' + (clampedY - startY) + 'px)';
+
+        const overEl = document.elementFromPoint(touch.clientX, clampedY);
+        const overItem = overEl ? overEl.closest('.route-item') : null;
+
+        if (overItem && overItem !== activeDragEl) {
+            const fromIdx = parseInt(activeDragEl.getAttribute('data-index'));
+            const toIdx   = parseInt(overItem.getAttribute('data-index'));
+            if (fromIdx !== toIdx) {
+                // Сохраняем позиции для анимации
+                const oldPositions = {};
+                document.querySelectorAll('.route-item').forEach(i => { oldPositions[i.id] = i.getBoundingClientRect().top; });
+
+                routePoints.splice(toIdx, 0, routePoints.splice(fromIdx, 1)[0]);
+                renderRoutePoints();
+
+                activeDragEl = document.querySelector('.route-item[data-index="' + toIdx + '"]');
+                activeDragEl.classList.add('dragging');
+                activeDragEl.style.zIndex = '9999';
+
+                // Анимируем соседей
+                document.querySelectorAll('.route-item').forEach(i => {
+                    if (i === activeDragEl) return;
+                    const oldTop = oldPositions[i.id];
+                    if (oldTop == null) return;
+                    const newTop = i.getBoundingClientRect().top;
+                    const delta  = oldTop - newTop;
+                    if (Math.abs(delta) > 1) {
+                        i.animate([{ transform:'translateY('+delta+'px)' }, { transform:'translateY(0)' }], { duration: 220, easing:'cubic-bezier(0.25,0.46,0.45,0.94)' });
+                    }
+                });
+
+                startY = clampedY;
+                activeDragEl.style.transform = 'scale(1.03)';
+            }
+        }
+    }, { passive: false });
+
+    const endTouch = function() {
+        clearTimeout(touchHoldTimer);
+        if (isDragging) {
+            isDragging = false; dragLock = false;
+            if (activeDragEl) {
+                activeDragEl.style.transition = 'transform 0.2s, box-shadow 0.2s';
+                activeDragEl.style.transform = '';
+                activeDragEl.classList.remove('dragging');
+                activeDragEl.classList.add('item-dropped');
+                setTimeout(() => { activeDragEl && activeDragEl.classList.remove('item-dropped'); }, 300);
+            }
+            saveCurrentToDraft();
+            setTimeout(() => { renderRoutePoints(); }, 210);
+        }
+        activeDragEl = null;
+    };
+    el.addEventListener('touchend', endTouch);
+    el.addEventListener('touchcancel', endTouch);
+
+    // ── MOUSE (десктоп) ──
+    el.addEventListener('mousedown', function(e) {
+        if (e.target.closest('.btn-delete-point') || dragLock) return;
+        if (e.button !== 0) return;
+
+        const startMouseY = e.clientY;
+        let mouseDragging = false;
+        activeDragEl = el;
+
+        const onMouseMove = (ev) => {
+            if (!mouseDragging && Math.abs(ev.clientY - startMouseY) > 5) {
+                mouseDragging = true; dragLock = true;
+                el.classList.add('dragging');
+                el.style.zIndex = '9999';
+                document.body.style.cursor = 'grabbing';
+            }
+            if (!mouseDragging) return;
+
+            const container = document.getElementById('route-points-list');
+            const bounds    = container.getBoundingClientRect();
+            const clampedY  = Math.max(bounds.top + 10, Math.min(ev.clientY, bounds.bottom - 10));
+
+            el.style.transform = 'scale(1.03) translateY(' + (clampedY - startMouseY) + 'px)';
+
+            const overEl = document.elementFromPoint(ev.clientX, clampedY);
+            const overItem = overEl ? overEl.closest('.route-item') : null;
+            document.querySelectorAll('.route-item').forEach(i => i.classList.remove('drag-over'));
+
+            if (overItem && overItem !== el) {
+                overItem.classList.add('drag-over');
+                const fromIdx = parseInt(el.getAttribute('data-index'));
+                const toIdx   = parseInt(overItem.getAttribute('data-index'));
+                if (fromIdx !== toIdx) {
+                    const oldPos = {};
+                    document.querySelectorAll('.route-item').forEach(i => { oldPos[i.id] = i.getBoundingClientRect().top; });
+
+                    routePoints.splice(toIdx, 0, routePoints.splice(fromIdx, 1)[0]);
+                    renderRoutePoints();
+
+                    activeDragEl = document.querySelector('.route-item[data-index="' + toIdx + '"]');
+                    activeDragEl.classList.add('dragging');
+                    activeDragEl.style.zIndex = '9999';
+
+                    document.querySelectorAll('.route-item').forEach(i => {
+                        if (i === activeDragEl) return;
+                        const delta = (oldPos[i.id] || 0) - i.getBoundingClientRect().top;
+                        if (Math.abs(delta) > 1) i.animate([{transform:'translateY('+delta+'px)'},{transform:'translateY(0)'}],{duration:200,easing:'ease-out'});
+                    });
+
+                    activeDragEl.style.transform = 'scale(1.03)';
+                }
+            }
+        };
+
+        const onMouseUp = () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            document.body.style.cursor = '';
+            document.querySelectorAll('.route-item').forEach(i => i.classList.remove('drag-over'));
+
+            if (mouseDragging) {
+                dragLock = false;
+                if (activeDragEl) {
+                    activeDragEl.style.transition = 'transform 0.2s';
+                    activeDragEl.style.transform = '';
+                    activeDragEl.classList.remove('dragging');
+                    activeDragEl.classList.add('item-dropped');
+                    setTimeout(() => { activeDragEl && activeDragEl.classList.remove('item-dropped'); }, 300);
+                }
+                saveCurrentToDraft();
+                setTimeout(() => renderRoutePoints(), 210);
+            }
+            activeDragEl = null;
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    });
+}
+
+// ─── ШТОРКИ ───────────────────────────────────────────────────────────
 function openEditSheet(index) {
     editingIndex = index;
-    const point = routePoints[index];
-    const totalMins = parseInt(point.duration) || 0;
-    const h = Math.floor(totalMins / 60);
-    const m = totalMins % 60;
+    const p = routePoints[index];
+    const h = Math.floor((parseInt(p.duration)||0) / 60);
+    const m = (parseInt(p.duration)||0) % 60;
 
-    if (point.type === 'location') {
+    if (p.type === 'location') {
         document.getElementById('sheet-loc-header').innerText = '✏️ Изменить локацию';
         document.getElementById('btn-sheet-loc-save').innerText = 'Сохранить изменения';
-        document.getElementById('sheet-loc-title').value = point.title || '';
-        document.getElementById('sheet-loc-link').value = point.link || '';
-        document.getElementById('sheet-loc-map').value = point.mapUrl || '';
-        document.getElementById('sheet-loc-coords').value = point.coords || '';
-        const hasCoords = !!point.coords;
-        document.getElementById('sheet-loc-check-coords').checked = hasCoords;
-        document.getElementById('sheet-loc-coords-field').style.display = hasCoords ? 'block' : 'none';
+        document.getElementById('sheet-loc-title').value  = p.title || '';
+        document.getElementById('sheet-loc-link').value   = p.link  || '';
+        document.getElementById('sheet-loc-map').value    = p.mapUrl|| '';
+        document.getElementById('sheet-loc-coords').value = p.coords|| '';
+        const hc = !!p.coords;
+        document.getElementById('sheet-loc-check-coords').checked = hc;
+        document.getElementById('sheet-loc-coords-field').style.display = hc ? 'block' : 'none';
         document.getElementById('sheet-loc-hours').value = h || '';
-        document.getElementById('sheet-loc-mins').value = m || '';
+        document.getElementById('sheet-loc-mins').value  = m || '';
         openSheet('overlay-location');
-    } else if (point.type === 'transit') {
+    } else if (p.type === 'transit') {
         document.getElementById('sheet-transit-header').innerText = '✏️ Изменить переезд';
         document.getElementById('btn-sheet-transit-save').innerText = 'Сохранить изменения';
         document.getElementById('sheet-transit-hours').value = h || '';
-        document.getElementById('sheet-transit-mins').value = m || '';
+        document.getElementById('sheet-transit-mins').value  = m || '';
         openSheet('overlay-transit');
-    } else if (point.type === 'lunch') {
+    } else if (p.type === 'lunch') {
         document.getElementById('sheet-lunch-header').innerText = '✏️ Изменить ланч';
         document.getElementById('btn-sheet-lunch-save').innerText = 'Сохранить изменения';
         document.getElementById('sheet-lunch-hours').value = h || '';
-        document.getElementById('sheet-lunch-mins').value = m || '';
+        document.getElementById('sheet-lunch-mins').value  = m || '';
         openSheet('overlay-lunch');
     }
 }
 
 document.getElementById('btn-sheet-loc-save').addEventListener('click', () => {
-    const title = document.getElementById('sheet-loc-title').value || 'Локация';
-    const link = document.getElementById('sheet-loc-link').value || '';
-    const mapUrl = document.getElementById('sheet-loc-map').value || '';
-    const coords = document.getElementById('sheet-loc-check-coords').checked ? document.getElementById('sheet-loc-coords').value : '';
-    const h = parseInt(document.getElementById('sheet-loc-hours').value) || 0;
-    const m = parseInt(document.getElementById('sheet-loc-mins').value) || 0;
-    const pd = { type: 'location', title, link, mapUrl, coords, duration: (h*60)+m };
-    if (editingIndex !== null) { routePoints[editingIndex] = pd; } else { routePoints.push(pd); }
+    const pd = {
+        type:'location',
+        title:  document.getElementById('sheet-loc-title').value || 'Локация',
+        link:   document.getElementById('sheet-loc-link').value  || '',
+        mapUrl: document.getElementById('sheet-loc-map').value   || '',
+        coords: document.getElementById('sheet-loc-check-coords').checked ? document.getElementById('sheet-loc-coords').value : '',
+        duration: (parseInt(document.getElementById('sheet-loc-hours').value)||0)*60 + (parseInt(document.getElementById('sheet-loc-mins').value)||0)
+    };
+    if (editingIndex !== null) routePoints[editingIndex] = pd; else routePoints.push(pd);
     closeSheet('overlay-location'); saveCurrentToDraft(); renderRoutePoints();
 });
 
 document.getElementById('btn-sheet-transit-save').addEventListener('click', () => {
-    const h = parseInt(document.getElementById('sheet-transit-hours').value) || 0;
-    const m = parseInt(document.getElementById('sheet-transit-mins').value) || 0;
-    if (editingIndex !== null) { routePoints[editingIndex].duration = (h*60)+m; }
-    else { routePoints.push({ type: 'transit', title: '🚗 Переезд', duration: (h*60)+m }); }
+    const dur = (parseInt(document.getElementById('sheet-transit-hours').value)||0)*60 + (parseInt(document.getElementById('sheet-transit-mins').value)||0);
+    if (editingIndex !== null) routePoints[editingIndex].duration = dur;
+    else routePoints.push({ type:'transit', title:'🚗 Переезд', duration: dur });
     closeSheet('overlay-transit'); saveCurrentToDraft(); renderRoutePoints();
 });
 
 document.getElementById('btn-sheet-lunch-save').addEventListener('click', () => {
-    const h = parseInt(document.getElementById('sheet-lunch-hours').value) || 0;
-    const m = parseInt(document.getElementById('sheet-lunch-mins').value) || 0;
-    if (editingIndex !== null) { routePoints[editingIndex].duration = (h*60)+m; }
-    else { routePoints.push({ type: 'lunch', title: '🍽️ Ланч', duration: (h*60)+m }); }
+    const dur = (parseInt(document.getElementById('sheet-lunch-hours').value)||0)*60 + (parseInt(document.getElementById('sheet-lunch-mins').value)||0);
+    if (editingIndex !== null) routePoints[editingIndex].duration = dur;
+    else routePoints.push({ type:'lunch', title:'🍽️ Ланч', duration: dur });
     closeSheet('overlay-lunch'); saveCurrentToDraft(); renderRoutePoints();
 });
 
@@ -773,9 +1050,7 @@ document.getElementById('btn-add-location').addEventListener('click', () => {
     editingIndex = null;
     document.getElementById('sheet-loc-header').innerText = '📍 Новая локация';
     document.getElementById('btn-sheet-loc-save').innerText = 'Добавить в план';
-    ['sheet-loc-title','sheet-loc-link','sheet-loc-map','sheet-loc-coords'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('sheet-loc-hours').value = '';
-    document.getElementById('sheet-loc-mins').value = '';
+    ['sheet-loc-title','sheet-loc-link','sheet-loc-map','sheet-loc-coords','sheet-loc-hours','sheet-loc-mins'].forEach(id => document.getElementById(id).value='');
     document.getElementById('sheet-loc-check-coords').checked = false;
     document.getElementById('sheet-loc-coords-field').style.display = 'none';
     openSheet('overlay-location');
@@ -784,53 +1059,50 @@ document.getElementById('btn-add-transit').addEventListener('click', () => {
     editingIndex = null;
     document.getElementById('sheet-transit-header').innerText = '🚗 Добавить переезд';
     document.getElementById('btn-sheet-transit-save').innerText = 'Добавить';
-    document.getElementById('sheet-transit-hours').value = '';
-    document.getElementById('sheet-transit-mins').value = '';
+    ['sheet-transit-hours','sheet-transit-mins'].forEach(id => document.getElementById(id).value='');
     openSheet('overlay-transit');
 });
 document.getElementById('btn-add-lunch').addEventListener('click', () => {
     editingIndex = null;
     document.getElementById('sheet-lunch-header').innerText = '🍽️ Добавить ланч';
     document.getElementById('btn-sheet-lunch-save').innerText = 'Добавить';
-    document.getElementById('sheet-lunch-hours').value = '';
-    document.getElementById('sheet-lunch-mins').value = '';
+    ['sheet-lunch-hours','sheet-lunch-mins'].forEach(id => document.getElementById(id).value='');
     openSheet('overlay-lunch');
 });
-
 document.getElementById('btn-sheet-loc-close').addEventListener('click', () => closeSheet('overlay-location'));
 document.getElementById('btn-sheet-transit-close').addEventListener('click', () => closeSheet('overlay-transit'));
 document.getElementById('btn-sheet-lunch-close').addEventListener('click', () => closeSheet('overlay-lunch'));
 
-// ─── СОХРАНИТЬ И ОТПРАВИТЬ ────────────────────────────────────────────────────
+// ─── СОХРАНИТЬ И ОТПРАВИТЬ ────────────────────────────────────────────
 document.getElementById('btn-generate').addEventListener('click', async function() {
-    this.disabled = true;
-    haptic('medium');
+    this.disabled = true; haptic('medium');
     showStatus('loading', '⏳ Отправляем план...');
 
-    let runningTime = globalDepartureTime;
-    routePoints.forEach(p => { runningTime = addMinutesToTime(runningTime, parseInt(p.duration) || 0); });
+    let runningTime = globalDepartureTime || '00:00';
+    routePoints.forEach(p => { runningTime = addMins(runningTime, parseInt(p.duration)||0); });
 
     const hasTransport = document.getElementById('check-transport').checked;
+    const hasAllPoints = document.getElementById('check-all-points-map').checked;
+
     const planData = {
-        title: globalProjectTitle,
-        date: globalProjectDate,
-        meetingTime: globalMeetingTime,
+        title:         globalProjectTitle,
+        date:          globalProjectDate,
+        meetingTime:   globalMeetingTime,
         departureTime: globalDepartureTime,
-        meetingPlace: globalMeetingPlace,
-        meetingAddress: globalMeetingAddress,
+        meetingPlace:  globalMeetingPlace,
+        meetingAddress:globalMeetingAddress,
         meetingMapUrl: globalMeetingMap,
-        allPointsMapUrl: globalAllPointsMap,
-        coordinates: document.getElementById('check-coords').checked ? globalMeetingCoords : '',
-        hasTransport: hasTransport,
-        carNumber: hasTransport ? document.getElementById('car-number').value : '',
-        driverName: hasTransport ? document.getElementById('driver-name').value : '',
-        driverPhone: hasTransport ? document.getElementById('driver-phone').value : '',
-        carPhotoBase64: hasTransport ? uploadedCarPhotoBase64 : '',
-        routePoints: routePoints,
-        returnTime: runningTime
+        allPointsMapUrl: hasAllPoints ? (document.getElementById('all-points-map').value || '') : '',
+        coordinates:   document.getElementById('check-coords').checked ? globalMeetingCoords : '',
+        hasTransport:  hasTransport,
+        carNumber:     hasTransport ? document.getElementById('car-number').value : '',
+        driverName:    hasTransport ? document.getElementById('driver-name').value : '',
+        driverPhone:   hasTransport ? document.getElementById('driver-phone').value : '',
+        carPhotoBase64:hasTransport ? uploadedCarPhotoBase64 : '',
+        routePoints:   routePoints,
+        returnTime:    runningTime
     };
 
-    // Сохраняем локально
     try {
         const stored = localStorage.getItem('scout_projects');
         const projects = stored ? JSON.parse(stored) : [];
@@ -839,97 +1111,32 @@ document.getElementById('btn-generate').addEventListener('click', async function
     } catch(e) {}
 
     const userId = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
-
     if (!userId) {
-        showStatus('success', '✅ Сохранено! (Откройте через Telegram для отправки)');
-        localStorage.removeItem('scout_draft');
-        clearAllInputs();
-        checkDraftAndProjects();
+        showStatus('success', '✅ Сохранено! Откройте через Telegram для отправки.');
+        localStorage.removeItem('scout_draft'); clearAllInputs(); checkDraftAndProjects();
         setTimeout(() => showScreen('screen-main'), 1500);
-        this.disabled = false;
-        return;
+        this.disabled = false; return;
     }
 
     try {
         const res = await fetch(BACKEND_URL + '/send-plan', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({ chatId: userId, data: planData })
         });
         const result = await res.json();
         if (!result.ok) throw new Error(result.error || 'Ошибка сервера');
-
         showStatus('success', '✅ План отправлен в Telegram!');
-        try { if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); } catch(e) {}
-        localStorage.removeItem('scout_draft');
-        clearAllInputs();
-        checkDraftAndProjects();
+        hapticNotify('success');
+        localStorage.removeItem('scout_draft'); clearAllInputs(); checkDraftAndProjects();
         setTimeout(() => showScreen('screen-main'), 1500);
     } catch(err) {
         showStatus('error', '❌ ' + err.message);
-        try { if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error'); } catch(e) {}
+        hapticNotify('error');
     }
-
     this.disabled = false;
 });
 
-// ─── DRAG & DROP ──────────────────────────────────────────────────────────────
-let activeDragEl = null, startY = 0, touchHoldTimer = null;
-let isDraggingActive = false, globalDragLock = false;
-
-function setupMobileDragAndDrop(el) {
-    el.addEventListener('touchstart', function(e) {
-        if (e.target.closest('.btn-delete-point') || globalDragLock) return;
-        startY = e.touches[0].clientY;
-        activeDragEl = this;
-        touchHoldTimer = setTimeout(() => {
-            isDraggingActive = true; globalDragLock = true;
-            haptic('medium');
-            activeDragEl.classList.add('dragging');
-        }, 400);
-    }, { passive: true });
-
-    el.addEventListener('touchmove', function(e) {
-        const touch = e.touches[0];
-        if (!isDraggingActive) { if (Math.abs(touch.clientY - startY) > 6) clearTimeout(touchHoldTimer); return; }
-        if (e.cancelable) e.preventDefault();
-        const bounds = document.getElementById('route-points-list').getBoundingClientRect();
-        const targetY = Math.max(bounds.top, Math.min(touch.clientY, bounds.bottom));
-        activeDragEl.style.transform = 'scale(1.04) translateY(' + (targetY - startY) + 'px)';
-        const overItem = document.elementFromPoint(touch.clientX, targetY)?.closest('.route-item');
-        if (overItem && overItem !== activeDragEl) {
-            const fromIdx = parseInt(activeDragEl.getAttribute('data-index'));
-            const toIdx = parseInt(overItem.getAttribute('data-index'));
-            const rects = {};
-            document.querySelectorAll('.route-item').forEach(i => { rects[i.id] = i.getBoundingClientRect().top; });
-            routePoints.splice(toIdx, 0, routePoints.splice(fromIdx, 1)[0]);
-            renderRoutePoints();
-            activeDragEl = document.querySelector('.route-item[data-index="' + toIdx + '"]');
-            activeDragEl.classList.add('dragging');
-            document.querySelectorAll('.route-item').forEach(i => {
-                if (i === activeDragEl) return;
-                const delta = (rects[i.id] || 0) - i.getBoundingClientRect().top;
-                if (delta) i.animate([{transform:'translateY('+delta+'px)'},{transform:'translateY(0)'}],{duration:200});
-            });
-            startY = targetY;
-            activeDragEl.style.transform = 'scale(1.04) translateY(0px)';
-        }
-    }, { passive: false });
-
-    const endDrag = function() {
-        clearTimeout(touchHoldTimer);
-        if (isDraggingActive) {
-            isDraggingActive = false; globalDragLock = false;
-            if (activeDragEl) { activeDragEl.classList.remove('dragging'); activeDragEl.style.transform = ''; }
-            saveCurrentToDraft(); renderRoutePoints();
-        }
-        activeDragEl = null;
-    };
-    el.addEventListener('touchend', endDrag);
-    el.addEventListener('touchcancel', endDrag);
-}
-
-// ─── МАСКИ ВВОДА ─────────────────────────────────────────────────────────────
+// ─── МАСКИ ВВОДА ──────────────────────────────────────────────────────
 document.getElementById('project-date').addEventListener('input', function() {
     let v = this.value.replace(/\D/g,'').slice(0,6);
     let f = v.slice(0,2);
@@ -945,7 +1152,7 @@ document.querySelectorAll('.time-mask').forEach(function(input) {
         if (v.length >= 1 && parseInt(v[0]) > 2) v = '';
         if (v.length >= 2 && parseInt(v.slice(0,2)) > 23) v = v[0];
         if (v.length >= 3 && parseInt(v[2]) > 5) v = v.slice(0,2);
-        this.value = v.length > 2 ? v.slice(0,2) + ':' + v.slice(2) : v;
+        this.value = v.length > 2 ? v.slice(0,2)+':'+v.slice(2) : v;
         const w = document.getElementById(warnId);
         if (w) w.style.display = 'none';
     });
@@ -958,17 +1165,16 @@ function handleTimeCompletion(input, warningEl) {
     const v = input.value.replace(/\D/g,'');
     if (!v) return;
     if (v.length === 2 || v.length === 3) {
-        input.value = v.slice(0,2) + ':00';
+        input.value = v.slice(0,2)+':00';
         if (warningEl) warningEl.style.display = 'block';
     }
     saveCurrentToDraft();
 }
-
 function forceCompleteTime(input) {
-    handleTimeCompletion(input, document.getElementById('warn-' + input.id));
+    handleTimeCompletion(input, document.getElementById('warn-'+input.id));
 }
 
-// ─── СТАРТ ────────────────────────────────────────────────────────────────────
+// ─── СТАРТ ────────────────────────────────────────────────────────────
 checkDraftAndProjects();
 </script>
 </body>
