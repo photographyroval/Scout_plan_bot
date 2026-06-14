@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Scout Planner</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         html, body {
             width: 100%;
@@ -22,123 +21,60 @@
             -webkit-tap-highlight-color: transparent;
         }
         body.sheet-open { overflow: hidden !important; }
-
         .app-wrapper { width: 100%; box-sizing: border-box; position: relative; z-index: 1; }
-
         .header { font-size: 22px; font-weight: 700; margin-bottom: 20px; text-align: center; }
-        .subheader {
-            font-size: 16px; font-weight: 700;
-            color: var(--tg-theme-text-color, #000000);
-            text-align: center; margin-top: -12px; margin-bottom: 20px;
-        }
-
+        .subheader { font-size: 16px; font-weight: 700; color: var(--tg-theme-text-color, #000000); text-align: center; margin-top: -12px; margin-bottom: 20px; }
         .tabs-container { display: flex; background-color: var(--tg-theme-secondary-bg-color, #e9e9eb); padding: 4px; border-radius: 12px; margin-bottom: 24px; }
         .tab { flex: 1; text-align: center; padding: 10px 0; font-size: 14px; font-weight: 600; color: var(--tg-theme-hint-color, #8e8e93); border-radius: 9px; cursor: pointer; }
         .tab.active { background-color: var(--tg-theme-bg-color, #ffffff); color: var(--tg-theme-button-color, #2481cc); box-shadow: 0 2px 8px rgba(0,0,0,0.08); font-weight: 700; }
-
         .screen { display: none; width: 100%; }
         .screen.active { display: block; }
-
         .form-group { margin-bottom: 18px; position: relative; width: 100%; box-sizing: border-box; }
         .form-label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--tg-theme-text-color, #000000); opacity: 0.9; }
         .form-input { width: 100%; background-color: var(--tg-theme-secondary-bg-color, #e9e9eb); border: 1px solid transparent; padding: 12px; border-radius: 10px; font-size: 16px; color: var(--tg-theme-text-color, #000000); box-sizing: border-box; outline: none; display: block; }
         .form-input:focus { border-color: var(--tg-theme-button-color, #2481cc); }
-
         .time-warning { display: none; font-size: 12px; color: #d35400; margin-top: 4px; font-weight: 500; }
-
         .btn-primary { display: block; width: 100%; background-color: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #ffffff); border: none; padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 600; text-align: center; cursor: pointer; box-sizing: border-box; transition: opacity 0.2s; }
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-secondary { background-color: transparent; color: var(--tg-theme-button-color, #2481cc); border: none; padding: 12px; font-size: 15px; font-weight: 600; cursor: pointer; display: block; margin: 10px auto 0 auto; }
-
         .form-row { display: flex; gap: 12px; width: 100%; box-sizing: border-box; }
         .form-row .form-group { flex: 1; }
-
         .checkbox-container { display: flex; align-items: center; gap: 10px; margin: 14px 0; cursor: pointer; }
         .checkbox-container input { width: 20px; height: 20px; accent-color: var(--tg-theme-button-color, #2481cc); }
         .hidden-field { display: none; }
-
         .file-upload-btn { display: inline-block; background-color: var(--tg-theme-secondary-bg-color, #e9e9eb); color: var(--tg-theme-text-color, #000000); padding: 10px 14px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
-
         .preview-container { position: relative; width: 120px; height: 120px; margin-top: 12px; display: none; }
         .preview-img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
         .btn-remove-photo { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; background-color: #eb5757; color: #fff; border-radius: 50%; border: 2px solid var(--tg-theme-bg-color, #fff); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-
-        .draft-banner {
-            background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404;
-            padding: 14px; border-radius: 12px; margin-bottom: 16px; font-size: 14px;
-            display: none; align-items: center; justify-content: space-between; gap: 10px;
-        }
+        .draft-banner { background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 14px; border-radius: 12px; margin-bottom: 16px; font-size: 14px; display: none; align-items: center; justify-content: space-between; gap: 10px; }
         .draft-banner button { background: #856404; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
-
         .constructor-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
         .btn-add { background-color: var(--tg-theme-secondary-bg-color, #e9e9eb); color: var(--tg-theme-text-color, #000000); border: 1px dashed var(--tg-theme-hint-color, #8e8e93); padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
-
         .empty-state { text-align: center; color: var(--tg-theme-hint-color, #8e8e93); margin: 40px 0; font-size: 15px; }
-
-        .project-card {
-            background: var(--tg-theme-bg-color, #ffffff);
-            border: 1px solid var(--tg-theme-secondary-bg-color, #e9e9eb);
-            padding: 16px; border-radius: 14px; margin-bottom: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
-        }
-
+        .project-card { background: var(--tg-theme-bg-color, #ffffff); border: 1px solid var(--tg-theme-secondary-bg-color, #e9e9eb); padding: 16px; border-radius: 14px; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
         .summary-card { background-color: var(--tg-theme-secondary-bg-color, #e9e9eb); padding: 14px; border-radius: 12px; margin-bottom: 12px; font-size: 14px; line-height: 1.6; }
         .summary-line-space { margin-bottom: 6px; display: block; }
-
         #route-points-list { width: 100%; display: flex; flex-direction: column; }
-        .route-item {
-            background: var(--tg-theme-bg-color, #ffffff); border: 1px solid var(--tg-theme-secondary-bg-color, #e9e9eb);
-            padding: 14px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
-            user-select: none; -webkit-user-select: none; position: relative; box-sizing: border-box;
-        }
-        .route-item.dragging {
-            transform: scale(1.04); box-shadow: 0 12px 30px rgba(0,0,0,0.15);
-            border-color: var(--tg-theme-button-color, #2481cc); z-index: 9999;
-            animation: iosWiggle 0.28s ease-in-out infinite alternate;
-        }
+        .route-item { background: var(--tg-theme-bg-color, #ffffff); border: 1px solid var(--tg-theme-secondary-bg-color, #e9e9eb); padding: 14px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; user-select: none; -webkit-user-select: none; position: relative; box-sizing: border-box; }
+        .route-item.dragging { transform: scale(1.04); box-shadow: 0 12px 30px rgba(0,0,0,0.15); border-color: var(--tg-theme-button-color, #2481cc); z-index: 9999; animation: iosWiggle 0.28s ease-in-out infinite alternate; }
         .route-text-block { flex: 1; pointer-events: none; }
         .route-item-title { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
         .route-item-time { color: var(--tg-theme-button-color, #2481cc); font-family: monospace; font-size: 14px; font-weight: 600; }
         .route-item-sub { font-size: 13px; color: var(--tg-theme-hint-color, #8e8e93); }
-
-        .btn-delete-point {
-            background: none; border: none; color: var(--tg-theme-hint-color, #8e8e93);
-            font-size: 16px; font-weight: 600; width: 40px; height: 40px;
-            display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer;
-        }
-
-        .bottom-sheet-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.4); z-index: 99999; display: none;
-        }
-        .bottom-sheet {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: var(--tg-theme-bg-color, #ffffff);
-            border-top-left-radius: 20px; border-top-right-radius: 20px;
-            padding: 20px; box-sizing: border-box; max-height: 85vh; overflow-y: auto;
-        }
+        .btn-delete-point { background: none; border: none; color: var(--tg-theme-hint-color, #8e8e93); font-size: 16px; font-weight: 600; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
+        .bottom-sheet-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 99999; display: none; }
+        .bottom-sheet { position: fixed; bottom: 0; left: 0; right: 0; background: var(--tg-theme-bg-color, #ffffff); border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; box-sizing: border-box; max-height: 85vh; overflow-y: auto; }
         .sheet-handle { width: 40px; height: 5px; background: #ccc; border-radius: 3px; margin: -10px auto 15px auto; }
-
-        /* Статус отправки */
-        .send-status {
-            margin-top: 12px; padding: 12px; border-radius: 10px;
-            font-size: 14px; font-weight: 600; text-align: center; display: none;
-        }
+        .send-status { margin-top: 12px; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 600; text-align: center; display: none; }
         .send-status.loading { background: #e8f4fd; color: #2481cc; display: block; }
         .send-status.success { background: #d4edda; color: #155724; display: block; }
         .send-status.error { background: #f8d7da; color: #721c24; display: block; }
-
-        @keyframes iosWiggle {
-            0% { transform: scale(1.04) rotate(-0.5deg); }
-            100% { transform: scale(1.04) rotate(0.5deg); }
-        }
+        @keyframes iosWiggle { 0% { transform: scale(1.04) rotate(-0.5deg); } 100% { transform: scale(1.04) rotate(0.5deg); } }
     </style>
 </head>
 <body>
 
 <div class="app-wrapper">
-
-    <!-- ГЛАВНЫЙ ЭКРАН -->
     <div id="screen-main" class="screen active">
         <div class="header">Scout Planner</div>
         <div class="tabs-container">
@@ -159,10 +95,8 @@
         <div id="content-trash" style="display: none;"><div class="empty-state">Корзина пуста</div></div>
     </div>
 
-    <!-- ШАГ 1: СОЗДАНИЕ -->
     <div id="screen-create" class="screen">
         <div class="header">What's the plan?</div>
-
         <div class="form-group">
             <label class="form-label">Название проекта</label>
             <input type="text" id="project-title" class="form-input" placeholder="Проект">
@@ -195,13 +129,10 @@
             <label class="form-label">Ссылка на место сбора (карта)</label>
             <input type="url" id="meeting-map" class="form-input" placeholder="Google / Yandex Maps">
         </div>
-
-        <!-- НОВОЕ ПОЛЕ: все точки на карте -->
         <div class="form-group">
             <label class="form-label">Все точки на карте</label>
             <input type="url" id="all-points-map" class="form-input" placeholder="Ссылка на общую карту маршрута">
         </div>
-
         <label class="checkbox-container">
             <input type="checkbox" id="check-coords">
             <span class="form-label" style="margin: 0;">Добавить точные координаты GPS места сбора</span>
@@ -210,7 +141,6 @@
             <label class="form-label">Координаты GPS</label>
             <input type="text" id="meeting-coords" class="form-input" placeholder="41.7151, 44.7932">
         </div>
-
         <label class="checkbox-container">
             <input type="checkbox" id="check-transport">
             <span class="form-label" style="margin: 0;">Добавить данные транспорта</span>
@@ -240,39 +170,30 @@
                 </div>
             </div>
         </div>
-
         <button class="btn-primary" style="margin-top: 15px;" id="btn-submit-step1">Далее →</button>
         <button class="btn-secondary" id="btn-cancel-step1">Отмена</button>
     </div>
 
-    <!-- ШАГ 2: КОНСТРУКТОР МАРШРУТА -->
     <div id="screen-builder" class="screen">
         <div class="header" id="builder-title">Название проекта</div>
         <div class="subheader" id="builder-date">00.00.00</div>
-
         <div class="summary-card" id="block-meeting-summary"></div>
         <div class="summary-card" id="block-transport-summary" style="display: none;"></div>
-
         <div class="form-label" style="margin-top: 15px; font-weight: 700;">Маршрутный лист</div>
-
         <div id="route-points-list">
             <div class="empty-state" id="builder-empty-state" style="margin: 20px 0;">Точки маршрута еще не добавлены</div>
         </div>
-
         <div class="constructor-buttons">
             <button class="btn-add" id="btn-add-location">📍 + Добавить локацию</button>
             <button class="btn-add" id="btn-add-transit">🚗 + Добавить переезд</button>
             <button class="btn-add" id="btn-add-lunch">🍽️ + Добавить ланч</button>
         </div>
-
         <button class="btn-primary" style="margin-top: 30px;" id="btn-generate">Сохранить и отправить план 🎉</button>
         <div id="send-status" class="send-status"></div>
         <button class="btn-secondary" id="btn-back-to-step1">← Назад</button>
     </div>
-
 </div>
 
-<!-- ШТОРКА: ЛОКАЦИЯ -->
 <div class="bottom-sheet-overlay" id="overlay-location">
     <div class="bottom-sheet">
         <div class="sheet-handle"></div>
@@ -309,7 +230,6 @@
     </div>
 </div>
 
-<!-- ШТОРКА: ПЕРЕЕЗД -->
 <div class="bottom-sheet-overlay" id="overlay-transit">
     <div class="bottom-sheet">
         <div class="sheet-handle"></div>
@@ -326,7 +246,6 @@
     </div>
 </div>
 
-<!-- ШТОРКА: ЛАНЧ -->
 <div class="bottom-sheet-overlay" id="overlay-lunch">
     <div class="bottom-sheet">
         <div class="sheet-handle"></div>
@@ -344,224 +263,233 @@
 </div>
 
 <script>
-    // ─── КОНФИГ ───────────────────────────────────────────────
-    const SUPABASE_URL = 'https://yonloyevqxcpeqcolbue.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvbmxveWV2cXhjcGVxY29sYnVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMzYyMjYsImV4cCI6MjA5NjkxMjIyNn0.bRpdPSAV6a87feo0zY14vyUmcQEw71SjtyINc0QReA0';
-    // ↓ После деплоя на Railway замени на реальный URL
-    const BACKEND_URL = 'scoutplanbot-production.up.railway.app';
+// ─── КОНФИГ ───────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://yonloyevqxcpeqcolbue.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvbmxveWV2cXhjcGVxY29sYnVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMzYyMjYsImV4cCI6MjA5NjkxMjIyNn0.bRpdPSAV6a87feo0zY14vyUmcQEw71SjtyINc0QReA0';
+const BACKEND_URL = 'https://scoutplanbot-production.up.railway.app';
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const tg = window.Telegram.WebApp;
-    tg.ready(); tg.expand();
+// ─── ИНИЦИАЛИЗАЦИЯ TELEGRAM ───────────────────────────────────────────────────
+const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : { 
+    ready: ()=>{}, expand: ()=>{}, 
+    HapticFeedback: null,
+    initDataUnsafe: {}
+};
+tg.ready();
+tg.expand();
 
-    // ─── СОСТОЯНИЕ ────────────────────────────────────────────
-    let uploadedCarPhotoBase64 = '';
-    let routePoints = [];
-    let globalProjectTitle = 'Проект';
-    let globalProjectDate = '00.00.00';
-    let globalMeetingTime = '10:00';
-    let globalDepartureTime = '10:15';
-    let globalMeetingPlace = 'Не указано';
-    let globalMeetingAddress = '';
-    let globalMeetingMap = '';
-    let globalAllPointsMap = '';
-    let globalMeetingCoords = '';
-    let editingIndex = null;
-    let currentProjectId = null; // ID проекта в Supabase
-
-    // ─── УТИЛИТЫ ─────────────────────────────────────────────
-    function formatDurationText(totalMinutes) {
-        if (!totalMinutes || isNaN(totalMinutes)) return '0 мин';
-        const h = Math.floor(totalMinutes / 60);
-        const m = totalMinutes % 60;
-        if (h > 0 && m > 0) return h + ' ч ' + m + ' мин';
-        if (h > 0) return h + ' ч';
-        return m + ' мин';
-    }
-
-    function addMinutesToTime(timeStr, totalMins) {
-        if (!timeStr) timeStr = '00:00';
-        const parts = timeStr.split(':').map(Number);
-        const hours = isNaN(parts[0]) ? 0 : parts[0];
-        const minutes = isNaN(parts[1]) ? 0 : parts[1];
-        const total = hours * 60 + minutes + parseInt(totalMins || 0);
-        const h = Math.floor(total / 60) % 24;
-        const m = total % 60;
-        return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-    }
-
-    function showStatus(type, text) {
-        const el = document.getElementById('send-status');
-        el.className = 'send-status ' + type;
-        el.textContent = text;
-        if (type === 'success' || type === 'error') {
-            setTimeout(() => { el.style.display = 'none'; }, 4000);
+// ─── ИНИЦИАЛИЗАЦИЯ SUPABASE (без внешней библиотеки) ─────────────────────────
+async function supabaseRequest(method, table, body, params) {
+    let url = SUPABASE_URL + '/rest/v1/' + table;
+    if (params) url += '?' + params;
+    const opts = {
+        method: method,
+        headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_KEY,
+            'Content-Type': 'application/json',
+            'Prefer': method === 'POST' ? 'return=representation' : 'return=representation'
         }
+    };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(url, opts);
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Supabase error ' + res.status);
     }
+    return res.json().catch(() => ([]));
+}
 
-    // ─── DRAFT (ЧЕРНОВИК) ─────────────────────────────────────
-    function saveCurrentToDraft() {
-        try {
-            const draftData = {
-                title: document.getElementById('project-title').value,
-                date: document.getElementById('project-date').value,
-                meetingTime: document.getElementById('time-meeting').value,
-                departureTime: document.getElementById('time-departure').value,
-                place: document.getElementById('meeting-place').value,
-                address: document.getElementById('meeting-address').value,
-                map: document.getElementById('meeting-map').value,
-                allPointsMap: document.getElementById('all-points-map').value,
-                coords: document.getElementById('meeting-coords').value,
-                checkCoords: document.getElementById('check-coords').checked,
-                checkTransport: document.getElementById('check-transport').checked,
-                carNumber: document.getElementById('car-number').value,
-                driverName: document.getElementById('driver-name').value,
-                driverPhone: document.getElementById('driver-phone').value,
-                carPhoto: uploadedCarPhotoBase64,
-                routePoints: routePoints
-            };
-            localStorage.setItem('scout_draft', JSON.stringify(draftData));
-        } catch(e) { console.log(e); }
+// ─── СОСТОЯНИЕ ────────────────────────────────────────────────────────────────
+let uploadedCarPhotoBase64 = '';
+let routePoints = [];
+let globalProjectTitle = 'Проект';
+let globalProjectDate = '00.00.00';
+let globalMeetingTime = '10:00';
+let globalDepartureTime = '10:15';
+let globalMeetingPlace = 'Не указано';
+let globalMeetingAddress = '';
+let globalMeetingMap = '';
+let globalAllPointsMap = '';
+let globalMeetingCoords = '';
+let editingIndex = null;
+
+// ─── УТИЛИТЫ ──────────────────────────────────────────────────────────────────
+function haptic(type) {
+    try { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred(type); } catch(e) {}
+}
+
+function formatDurationText(totalMinutes) {
+    if (!totalMinutes || isNaN(totalMinutes)) return '0 мин';
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    if (h > 0 && m > 0) return h + ' ч ' + m + ' мин';
+    if (h > 0) return h + ' ч';
+    return m + ' мин';
+}
+
+function addMinutesToTime(timeStr, totalMins) {
+    if (!timeStr) timeStr = '00:00';
+    const parts = timeStr.split(':').map(Number);
+    const hours = isNaN(parts[0]) ? 0 : parts[0];
+    const minutes = isNaN(parts[1]) ? 0 : parts[1];
+    const total = hours * 60 + minutes + parseInt(totalMins || 0);
+    const h = Math.floor(total / 60) % 24;
+    const m = total % 60;
+    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
+
+function showStatus(type, text) {
+    const el = document.getElementById('send-status');
+    el.className = 'send-status ' + type;
+    el.textContent = text;
+    if (type === 'success' || type === 'error') {
+        setTimeout(() => { el.style.display = 'none'; }, 4000);
     }
+}
 
-    function clearAllInputs() {
-        ['project-title','project-date','time-meeting','time-departure','meeting-place',
-         'meeting-address','meeting-map','all-points-map','meeting-coords',
-         'car-number','driver-name','driver-phone'].forEach(id => {
-            document.getElementById(id).value = '';
-        });
-        uploadedCarPhotoBase64 = '';
-        document.getElementById('car-photo-preview-wrap').style.display = 'none';
-        document.getElementById('check-coords').checked = false;
-        document.getElementById('check-transport').checked = false;
-        document.getElementById('coords-field').style.display = 'none';
-        document.getElementById('transport-fields').style.display = 'none';
-        routePoints = [];
-        currentProjectId = null;
-    }
+function showScreen(screenId) {
+    haptic('medium');
+    document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+    document.getElementById(screenId).style.display = 'block';
+    window.scrollTo(0, 0);
+}
 
-    // ─── ПРОЕКТЫ: ЗАГРУЗКА И ОТОБРАЖЕНИЕ ─────────────────────
-    async function checkDraftAndProjects() {
-        const draftBanner = document.getElementById('main-draft-banner');
+function openSheet(id) {
+    haptic('light');
+    document.body.classList.add('sheet-open');
+    document.getElementById(id).style.display = 'block';
+}
+
+function closeSheet(id) {
+    document.body.classList.remove('sheet-open');
+    document.getElementById(id).style.display = 'none';
+    editingIndex = null;
+}
+
+// ─── ЧЕРНОВИК ─────────────────────────────────────────────────────────────────
+function saveCurrentToDraft() {
+    try {
+        localStorage.setItem('scout_draft', JSON.stringify({
+            title: document.getElementById('project-title').value,
+            date: document.getElementById('project-date').value,
+            meetingTime: document.getElementById('time-meeting').value,
+            departureTime: document.getElementById('time-departure').value,
+            place: document.getElementById('meeting-place').value,
+            address: document.getElementById('meeting-address').value,
+            map: document.getElementById('meeting-map').value,
+            allPointsMap: document.getElementById('all-points-map').value,
+            coords: document.getElementById('meeting-coords').value,
+            checkCoords: document.getElementById('check-coords').checked,
+            checkTransport: document.getElementById('check-transport').checked,
+            carNumber: document.getElementById('car-number').value,
+            driverName: document.getElementById('driver-name').value,
+            driverPhone: document.getElementById('driver-phone').value,
+            carPhoto: uploadedCarPhotoBase64,
+            routePoints: routePoints
+        }));
+    } catch(e) {}
+}
+
+function clearAllInputs() {
+    ['project-title','project-date','time-meeting','time-departure','meeting-place',
+     'meeting-address','meeting-map','all-points-map','meeting-coords',
+     'car-number','driver-name','driver-phone'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    uploadedCarPhotoBase64 = '';
+    document.getElementById('car-photo-preview-wrap').style.display = 'none';
+    document.getElementById('check-coords').checked = false;
+    document.getElementById('check-transport').checked = false;
+    document.getElementById('coords-field').style.display = 'none';
+    document.getElementById('transport-fields').style.display = 'none';
+    routePoints = [];
+}
+
+// ─── ПРОЕКТЫ ──────────────────────────────────────────────────────────────────
+function checkDraftAndProjects() {
+    try {
         const draft = localStorage.getItem('scout_draft');
-        draftBanner.style.display = draft ? 'flex' : 'none';
+        document.getElementById('main-draft-banner').style.display = draft ? 'flex' : 'none';
+    } catch(e) {}
+    loadProjects();
+}
 
-        await loadProjectsFromSupabase();
-    }
-
-    async function loadProjectsFromSupabase() {
-        const listContainer = document.getElementById('projects-list-container');
-        const emptyState = document.getElementById('main-empty-state');
-
-        const userId = tg.initDataUnsafe?.user?.id;
-        if (!userId) {
-            // Fallback на localStorage если нет userId (тестирование в браузере)
-            loadProjectsFromLocalStorage();
-            return;
-        }
-
-        const { data: projects, error } = await supabase
-            .from('projects')
-            .select('*')
-            .eq('user_id', userId)
-            .eq('status', 'active')
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('Supabase error:', error);
-            loadProjectsFromLocalStorage();
-            return;
-        }
-
-        renderProjectCards(projects || []);
-    }
-
-    function loadProjectsFromLocalStorage() {
+function loadProjects() {
+    try {
         const stored = localStorage.getItem('scout_projects');
         const projects = stored ? JSON.parse(stored) : [];
         renderProjectCards(projects);
+    } catch(e) {
+        renderProjectCards([]);
     }
+}
 
-    function renderProjectCards(projects) {
-        const listContainer = document.getElementById('projects-list-container');
-        const emptyState = document.getElementById('main-empty-state');
+function renderProjectCards(projects) {
+    const listContainer = document.getElementById('projects-list-container');
+    const emptyState = document.getElementById('main-empty-state');
 
-        if (!projects || projects.length === 0) {
-            listContainer.innerHTML = '';
-            emptyState.style.display = 'block';
-            return;
-        }
-
-        emptyState.style.display = 'none';
+    if (!projects || projects.length === 0) {
         listContainer.innerHTML = '';
+        emptyState.style.display = 'block';
+        return;
+    }
+    emptyState.style.display = 'none';
+    listContainer.innerHTML = '';
 
-        projects.forEach((proj, idx) => {
-            const card = document.createElement('div');
-            card.className = 'project-card';
+    projects.forEach((proj, idx) => {
+        const card = document.createElement('div');
+        card.className = 'project-card';
+        card.innerHTML =
+            '<div style="font-weight:700;font-size:16px;margin-bottom:4px;">' + (proj.title || 'Без названия') + '</div>' +
+            '<div style="font-size:13px;color:var(--tg-theme-hint-color,#8e8e93);margin-bottom:8px;">🗓️ ' + (proj.date || '—') + '</div>' +
+            '<div style="font-size:14px;">📍 Сбор: ' + (proj.meetingPlace || proj.place || '—') + ' (' + (proj.meetingTime || '—') + ')</div>' +
+            '<div style="font-size:14px;font-weight:600;color:var(--tg-theme-button-color,#2481cc);margin-top:4px;">🏁 Возврат: ~' + (proj.returnTime || '—') + '</div>' +
+            '<button class="btn-primary" style="margin-top:10px;padding:8px;font-size:13px;" data-idx="' + idx + '">📤 Отправить план в чат</button>';
 
-            const dateStr = proj.event_date || proj.date || '—';
-            const placeStr = proj.meeting_place || proj.place || '—';
-            const meetTimeStr = proj.meeting_time || proj.meetingTime || '—';
-            const returnTimeStr = proj.return_time || proj.returnTime || '—';
-
-            card.innerHTML =
-                '<div style="font-weight:700;font-size:16px;margin-bottom:4px;">' + (proj.title || 'Без названия') + '</div>' +
-                '<div style="font-size:13px;color:var(--tg-theme-hint-color,#8e8e93);margin-bottom:8px;">🗓️ ' + dateStr + '</div>' +
-                '<div style="font-size:14px;">📍 Сбор: ' + placeStr + ' (' + meetTimeStr + ')</div>' +
-                '<div style="font-size:14px;font-weight:600;color:var(--tg-theme-button-color,#2481cc);margin-top:4px;">🏁 Возврат: ~' + returnTimeStr + '</div>' +
-                '<button class="btn-primary" style="margin-top:10px;padding:8px;font-size:13px;" id="send-btn-' + idx + '">📤 Отправить план в чат</button>';
-
-            card.querySelector('#send-btn-' + idx).addEventListener('click', (e) => {
-                e.stopPropagation();
-                resendProject(proj, card.querySelector('#send-btn-' + idx));
-            });
-
-            listContainer.appendChild(card);
+        card.querySelector('button').addEventListener('click', function(e) {
+            e.stopPropagation();
+            sendPlanToTelegram(proj, this);
         });
-    }
 
-    async function resendProject(proj, btn) {
-        const userId = tg.initDataUnsafe?.user?.id;
-        if (!userId) { alert('Откройте приложение через Telegram'); return; }
+        listContainer.appendChild(card);
+    });
+}
 
-        btn.textContent = '⏳ Отправка...';
-        btn.disabled = true;
+async function sendPlanToTelegram(planData, btn) {
+    const userId = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
+    if (!userId) { alert('Откройте приложение через Telegram'); return; }
 
-        try {
-            const res = await fetch(BACKEND_URL + '/send-plan', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chatId: userId, data: proj.plan_data || proj })
-            });
-            const result = await res.json();
-            if (result.ok) {
-                btn.textContent = '✅ Отправлено!';
-                btn.style.backgroundColor = '#27ae60';
-                setTimeout(() => {
-                    btn.textContent = '📤 Отправить план в чат';
-                    btn.style.backgroundColor = '';
-                    btn.disabled = false;
-                }, 2000);
-            } else {
-                throw new Error(result.error);
-            }
-        } catch(err) {
-            btn.textContent = '❌ Ошибка';
-            btn.style.backgroundColor = '#e74c3c';
-            setTimeout(() => {
-                btn.textContent = '📤 Отправить план в чат';
-                btn.style.backgroundColor = '';
-                btn.disabled = false;
-            }, 2000);
+    const origText = btn.textContent;
+    btn.textContent = '⏳ Отправка...';
+    btn.disabled = true;
+
+    try {
+        const res = await fetch(BACKEND_URL + '/send-plan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chatId: userId, data: planData })
+        });
+        const result = await res.json();
+        if (result.ok) {
+            btn.textContent = '✅ Отправлено!';
+            btn.style.backgroundColor = '#27ae60';
+            setTimeout(() => { btn.textContent = origText; btn.style.backgroundColor = ''; btn.disabled = false; }, 2000);
+        } else {
+            throw new Error(result.error || 'Ошибка');
         }
+    } catch(err) {
+        btn.textContent = '❌ ' + err.message;
+        btn.style.backgroundColor = '#e74c3c';
+        setTimeout(() => { btn.textContent = origText; btn.style.backgroundColor = ''; btn.disabled = false; }, 3000);
     }
+}
 
-    // ─── ВОССТАНОВЛЕНИЕ ЧЕРНОВИКА ─────────────────────────────
-    document.getElementById('btn-restore-draft').addEventListener('click', () => {
+// ─── ВОССТАНОВЛЕНИЕ ЧЕРНОВИКА ─────────────────────────────────────────────────
+document.getElementById('btn-restore-draft').addEventListener('click', () => {
+    try {
         const raw = localStorage.getItem('scout_draft');
         if (!raw) return;
         const d = JSON.parse(raw);
-
         document.getElementById('project-title').value = d.title || '';
         document.getElementById('project-date').value = d.date || '';
         document.getElementById('time-meeting').value = d.meetingTime || '';
@@ -578,598 +506,470 @@
         document.getElementById('car-number').value = d.carNumber || '';
         document.getElementById('driver-name').value = d.driverName || '';
         document.getElementById('driver-phone').value = d.driverPhone || '';
-
         if (d.carPhoto) {
             uploadedCarPhotoBase64 = d.carPhoto;
             document.getElementById('car-photo-preview').src = d.carPhoto;
             document.getElementById('car-photo-preview-wrap').style.display = 'block';
         }
         routePoints = d.routePoints || [];
-
+        document.getElementById('main-draft-banner').style.display = 'none';
         if (routePoints.length > 0) { document.getElementById('btn-submit-step1').click(); }
         else { showScreen('screen-create'); }
-        document.getElementById('main-draft-banner').style.display = 'none';
-    });
+    } catch(e) {}
+});
 
-    // Трекинг изменений для черновика
-    const inputsToTrack = ['project-title','project-date','time-meeting','time-departure',
-        'meeting-place','meeting-address','meeting-map','all-points-map',
-        'meeting-coords','car-number','driver-name','driver-phone'];
-    inputsToTrack.forEach(id => {
-        document.getElementById(id).addEventListener('input', saveCurrentToDraft);
-    });
-    document.getElementById('check-coords').addEventListener('change', saveCurrentToDraft);
-    document.getElementById('check-transport').addEventListener('change', saveCurrentToDraft);
+// Трекинг изменений
+['project-title','project-date','time-meeting','time-departure','meeting-place',
+ 'meeting-address','meeting-map','all-points-map','meeting-coords',
+ 'car-number','driver-name','driver-phone'].forEach(id => {
+    document.getElementById(id).addEventListener('input', saveCurrentToDraft);
+});
+document.getElementById('check-coords').addEventListener('change', saveCurrentToDraft);
+document.getElementById('check-transport').addEventListener('change', saveCurrentToDraft);
 
-    checkDraftAndProjects();
+// ─── НАВИГАЦИЯ ────────────────────────────────────────────────────────────────
+document.querySelectorAll('.bottom-sheet-overlay').forEach(overlay => {
+    overlay.addEventListener('click', function(e) { if (e.target === this) closeSheet(this.id); });
+});
 
-    // ─── НАВИГАЦИЯ ────────────────────────────────────────────
-    function showScreen(screenId) {
-        if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-        document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
-        document.getElementById(screenId).style.display = 'block';
-        window.scrollTo(0, 0);
-    }
-
-    function openSheet(id) {
-        if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-        document.body.classList.add('sheet-open');
-        document.getElementById(id).style.display = 'block';
-    }
-
-    function closeSheet(id) {
-        document.body.classList.remove('sheet-open');
-        document.getElementById(id).style.display = 'none';
-        editingIndex = null;
-    }
-
-    document.querySelectorAll('.bottom-sheet-overlay').forEach(overlay => {
-        overlay.addEventListener('click', function(e) {
-            if (e.target === this) closeSheet(this.id);
+['active','archive','trash'].forEach(tabName => {
+    document.getElementById('tab-' + tabName).addEventListener('click', function() {
+        ['active','archive','trash'].forEach(t => {
+            document.getElementById('tab-' + t).classList.remove('active');
+            document.getElementById('content-' + t).style.display = 'none';
         });
+        this.classList.add('active');
+        document.getElementById('content-' + tabName).style.display = 'block';
     });
+});
 
-    // Табы
-    ['active','archive','trash'].forEach(tabName => {
-        document.getElementById('tab-' + tabName).addEventListener('click', (e) => {
-            ['active','archive','trash'].forEach(t => {
-                document.getElementById('tab-' + t).classList.remove('active');
-                document.getElementById('content-' + t).style.display = 'none';
-            });
-            e.target.classList.add('active');
-            document.getElementById('content-' + tabName).style.display = 'block';
-        });
-    });
+document.getElementById('btn-create-project').addEventListener('click', () => showScreen('screen-create'));
+document.getElementById('btn-cancel-step1').addEventListener('click', () => showScreen('screen-main'));
+document.getElementById('btn-back-to-step1').addEventListener('click', () => showScreen('screen-create'));
 
-    document.getElementById('btn-create-project').addEventListener('click', () => showScreen('screen-create'));
-    document.getElementById('btn-cancel-step1').addEventListener('click', () => showScreen('screen-main'));
-    document.getElementById('btn-back-to-step1').addEventListener('click', () => showScreen('screen-create'));
+document.getElementById('check-coords').addEventListener('change', function() {
+    document.getElementById('coords-field').style.display = this.checked ? 'block' : 'none';
+});
+document.getElementById('check-transport').addEventListener('change', function() {
+    document.getElementById('transport-fields').style.display = this.checked ? 'block' : 'none';
+});
+document.getElementById('sheet-loc-check-coords').addEventListener('change', function() {
+    document.getElementById('sheet-loc-coords-field').style.display = this.checked ? 'block' : 'none';
+});
 
-    // Чекбоксы
-    document.getElementById('check-coords').addEventListener('change', (e) => {
-        document.getElementById('coords-field').style.display = e.target.checked ? 'block' : 'none';
-    });
-    document.getElementById('check-transport').addEventListener('change', (e) => {
-        document.getElementById('transport-fields').style.display = e.target.checked ? 'block' : 'none';
-    });
-    document.getElementById('sheet-loc-check-coords').addEventListener('change', (e) => {
-        document.getElementById('sheet-loc-coords-field').style.display = e.target.checked ? 'block' : 'none';
-    });
+document.getElementById('car-number').addEventListener('input', function() {
+    this.value = this.value.toUpperCase().replace(/[^A-Z0-9\- ]/g, '');
+});
 
-    document.getElementById('car-number').addEventListener('input', (e) => {
-        e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9\- ]/g, '');
-    });
-
-    // Фото авто
-    document.getElementById('car-photo-input').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                uploadedCarPhotoBase64 = ev.target.result;
-                document.getElementById('car-photo-preview').src = uploadedCarPhotoBase64;
-                document.getElementById('car-photo-preview-wrap').style.display = 'block';
-                saveCurrentToDraft();
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-
-    document.getElementById('btn-delete-photo').addEventListener('click', (e) => {
-        e.preventDefault();
-        uploadedCarPhotoBase64 = '';
-        document.getElementById('car-photo-input').value = '';
-        document.getElementById('car-photo-preview').src = '';
-        document.getElementById('car-photo-preview-wrap').style.display = 'none';
+document.getElementById('car-photo-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        uploadedCarPhotoBase64 = ev.target.result;
+        document.getElementById('car-photo-preview').src = uploadedCarPhotoBase64;
+        document.getElementById('car-photo-preview-wrap').style.display = 'block';
         saveCurrentToDraft();
-    });
+    };
+    reader.readAsDataURL(file);
+});
 
-    // ─── ШАГ 1 → ШАГ 2 ───────────────────────────────────────
-    document.getElementById('btn-submit-step1').addEventListener('click', () => {
-        forceCompleteTime(document.getElementById('time-meeting'));
-        forceCompleteTime(document.getElementById('time-departure'));
+document.getElementById('btn-delete-photo').addEventListener('click', function(e) {
+    e.preventDefault();
+    uploadedCarPhotoBase64 = '';
+    document.getElementById('car-photo-input').value = '';
+    document.getElementById('car-photo-preview').src = '';
+    document.getElementById('car-photo-preview-wrap').style.display = 'none';
+    saveCurrentToDraft();
+});
 
-        globalProjectTitle = document.getElementById('project-title').value || 'Проект';
-        globalProjectDate = document.getElementById('project-date').value || '00.00.00';
-        globalMeetingTime = document.getElementById('time-meeting').value || '10:00';
-        globalDepartureTime = document.getElementById('time-departure').value || '10:15';
-        globalMeetingPlace = document.getElementById('meeting-place').value || 'Не указано';
-        globalMeetingAddress = document.getElementById('meeting-address').value || '';
-        globalMeetingMap = document.getElementById('meeting-map').value || '';
-        globalAllPointsMap = document.getElementById('all-points-map').value || '';
-        globalMeetingCoords = document.getElementById('meeting-coords').value || '';
+// ─── ШАГ 1 → ШАГ 2 ───────────────────────────────────────────────────────────
+document.getElementById('btn-submit-step1').addEventListener('click', () => {
+    forceCompleteTime(document.getElementById('time-meeting'));
+    forceCompleteTime(document.getElementById('time-departure'));
 
-        document.getElementById('builder-title').innerText = globalProjectTitle;
-        document.getElementById('builder-date').innerText = globalProjectDate;
+    globalProjectTitle = document.getElementById('project-title').value || 'Проект';
+    globalProjectDate = document.getElementById('project-date').value || '00.00.00';
+    globalMeetingTime = document.getElementById('time-meeting').value || '10:00';
+    globalDepartureTime = document.getElementById('time-departure').value || '10:15';
+    globalMeetingPlace = document.getElementById('meeting-place').value || 'Не указано';
+    globalMeetingAddress = document.getElementById('meeting-address').value || '';
+    globalMeetingMap = document.getElementById('meeting-map').value || '';
+    globalAllPointsMap = document.getElementById('all-points-map').value || '';
+    globalMeetingCoords = document.getElementById('meeting-coords').value || '';
 
+    document.getElementById('builder-title').innerText = globalProjectTitle;
+    document.getElementById('builder-date').innerText = globalProjectDate;
+    updateTopSummaryCard(globalDepartureTime);
+
+    const hasTransport = document.getElementById('check-transport').checked;
+    const blockTrans = document.getElementById('block-transport-summary');
+    if (hasTransport) {
+        const carNum = document.getElementById('car-number').value || 'Не указан';
+        const dName = document.getElementById('driver-name').value || '';
+        const dPhone = document.getElementById('driver-phone').value || '';
+        let html = '<b>🚘 Транспорт:</b><br>Авто: ' + carNum;
+        if (dName) html += '<br>Водитель: ' + dName;
+        if (dPhone) html += ' (' + dPhone + ')';
+        if (uploadedCarPhotoBase64) html += '<br><img src="' + uploadedCarPhotoBase64 + '" style="width:120px;height:120px;object-fit:cover;border-radius:10px;margin-top:8px;display:block;">';
+        blockTrans.innerHTML = html;
+        blockTrans.style.display = 'block';
+    } else {
+        blockTrans.style.display = 'none';
+    }
+
+    renderRoutePoints();
+    showScreen('screen-builder');
+});
+
+function updateTopSummaryCard(returnTime) {
+    let html = '<span class="summary-line-space"><b>📍 Место встречи:</b> ' + globalMeetingPlace + '</span>';
+    if (globalMeetingAddress) html += '<span class="summary-line-space">📌 ' + globalMeetingAddress + '</span>';
+    html += '<span class="summary-line-space"><b>🟢 Время сбора:</b> ' + globalMeetingTime + '</span>';
+    html += '<span class="summary-line-space"><b>🔴 Выезд:</b> ' + globalDepartureTime + '</span>';
+    html += '<b style="color:#2481cc;">🏁 Время возвращения: ' + returnTime + '</b>';
+    document.getElementById('block-meeting-summary').innerHTML = html;
+}
+
+// ─── МАРШРУТ ──────────────────────────────────────────────────────────────────
+function renderRoutePoints() {
+    const container = document.getElementById('route-points-list');
+    const emptyState = document.getElementById('builder-empty-state');
+    container.querySelectorAll('.route-item').forEach(el => el.remove());
+
+    if (routePoints.length === 0) {
+        emptyState.style.display = 'block';
         updateTopSummaryCard(globalDepartureTime);
-
-        const hasTransport = document.getElementById('check-transport').checked;
-        const blockTrans = document.getElementById('block-transport-summary');
-        if (hasTransport) {
-            const carNum = document.getElementById('car-number').value || 'Не указан';
-            const dName = document.getElementById('driver-name').value || '';
-            const dPhone = document.getElementById('driver-phone').value || '';
-            let transHtml = '<b>🚘 Транспорт:</b><br>Авто: ' + carNum;
-            if (dName) transHtml += '<br>Водитель: ' + dName;
-            if (dPhone) transHtml += ' (' + dPhone + ')';
-            if (uploadedCarPhotoBase64) {
-                transHtml += '<br><img src="' + uploadedCarPhotoBase64 + '" style="width:120px;height:120px;object-fit:cover;border-radius:10px;margin-top:8px;display:block;">';
-            }
-            blockTrans.innerHTML = transHtml;
-            blockTrans.style.display = 'block';
-        } else {
-            blockTrans.style.display = 'none';
-        }
-
-        renderRoutePoints();
-        showScreen('screen-builder');
-    });
-
-    // ─── SUMMARY КАРТОЧКА ─────────────────────────────────────
-    function updateTopSummaryCard(finalReturnTime) {
-        let html = '<span class="summary-line-space"><b>📍 Место встречи:</b> ' + globalMeetingPlace + '</span>';
-        if (globalMeetingAddress) html += '<span class="summary-line-space">📌 ' + globalMeetingAddress + '</span>';
-        html += '<span class="summary-line-space"><b>🟢 Время сбора:</b> ' + globalMeetingTime + '</span>';
-        html += '<span class="summary-line-space"><b>🔴 Выезд:</b> ' + globalDepartureTime + '</span>';
-        html += '<b style="color:#2481cc;">🏁 Время возвращения: ' + finalReturnTime + '</b>';
-        document.getElementById('block-meeting-summary').innerHTML = html;
+        return;
     }
+    emptyState.style.display = 'none';
 
-    // ─── РЕНДЕР ТОЧЕК МАРШРУТА ───────────────────────────────
-    function renderRoutePoints() {
-        const container = document.getElementById('route-points-list');
-        const emptyState = document.getElementById('builder-empty-state');
-        container.querySelectorAll('.route-item').forEach(el => el.remove());
+    let runningTime = globalDepartureTime;
+    let locCounter = 1;
 
-        if (routePoints.length === 0) {
-            emptyState.style.display = 'block';
-            updateTopSummaryCard(globalDepartureTime);
-            return;
-        }
-        emptyState.style.display = 'none';
+    routePoints.forEach((point, index) => {
+        const dur = parseInt(point.duration) || 0;
+        const item = document.createElement('div');
+        item.className = 'route-item';
+        item.setAttribute('data-index', index);
+        item.id = 'point-' + index;
 
-        let runningTime = globalDepartureTime;
-        let locationCounter = 1;
-
-        routePoints.forEach((point, index) => {
-            const item = document.createElement('div');
-            item.className = 'route-item';
-            item.setAttribute('data-index', index);
-            item.id = 'point-' + index;
-
-            let timeText = '', subText = '', displayTitle = '';
-            const durationMinutes = parseInt(point.duration) || 0;
-
-            if (point.type === 'location') {
-                const end = addMinutesToTime(runningTime, durationMinutes);
-                timeText = runningTime + ' – ' + end + ' (' + formatDurationText(durationMinutes) + ')';
-                let subs = [];
-                if (point.link) subs.push('<span style="color:#2481cc;">🖼️ Фото</span>');
-                if (point.mapUrl) subs.push('<span style="color:#2481cc;">📍 Карта</span>');
-                if (point.coords) subs.push('📡 ' + point.coords);
-                subText = subs.length ? subs.join(' · ') : 'Нет ссылок';
-                displayTitle = locationCounter + '. ' + point.title;
-                locationCounter++;
-                runningTime = end;
-            } else if (point.type === 'transit') {
-                timeText = '⏱️ в пути ' + formatDurationText(durationMinutes);
-                subText = 'Переезд к следующей точке';
-                displayTitle = '🚗 Переезд';
-                runningTime = addMinutesToTime(runningTime, durationMinutes);
-            } else if (point.type === 'lunch') {
-                const end = addMinutesToTime(runningTime, durationMinutes);
-                timeText = runningTime + ' – ' + end + ' (' + formatDurationText(durationMinutes) + ')';
-                subText = 'Перерыв на ланч';
-                displayTitle = '🍽️ Ланч';
-                runningTime = end;
-            }
-
-            item.innerHTML =
-                '<div class="route-text-block">' +
-                    '<div class="route-item-title">' + displayTitle + '</div>' +
-                    '<div class="route-item-time">' + timeText + '</div>' +
-                    '<div class="route-item-sub">' + subText + '</div>' +
-                '</div>' +
-                '<button class="btn-delete-point">✕</button>';
-
-            item.querySelector('.btn-delete-point').addEventListener('click', (e) => {
-                e.stopPropagation();
-                routePoints.splice(index, 1);
-                saveCurrentToDraft();
-                renderRoutePoints();
-            });
-            item.addEventListener('click', (e) => {
-                if (!e.target.classList.contains('btn-delete-point')) openEditSheet(index);
-            });
-
-            setupMobileDragAndDrop(item);
-            container.appendChild(item);
-        });
-
-        updateTopSummaryCard(runningTime);
-    }
-
-    // ─── РЕДАКТИРОВАНИЕ ТОЧЕК ────────────────────────────────
-    function openEditSheet(index) {
-        editingIndex = index;
-        const point = routePoints[index];
-        const totalMins = parseInt(point.duration) || 0;
-        const h = Math.floor(totalMins / 60);
-        const m = totalMins % 60;
+        let timeText = '', subText = '', displayTitle = '';
 
         if (point.type === 'location') {
-            document.getElementById('sheet-loc-header').innerText = '✏️ Изменить локацию';
-            document.getElementById('btn-sheet-loc-save').innerText = 'Сохранить изменения';
-            document.getElementById('sheet-loc-title').value = point.title || '';
-            document.getElementById('sheet-loc-link').value = point.link || '';
-            document.getElementById('sheet-loc-map').value = point.mapUrl || '';
-            document.getElementById('sheet-loc-coords').value = point.coords || '';
-            const hasCoords = !!point.coords;
-            document.getElementById('sheet-loc-check-coords').checked = hasCoords;
-            document.getElementById('sheet-loc-coords-field').style.display = hasCoords ? 'block' : 'none';
-            document.getElementById('sheet-loc-hours').value = h || '';
-            document.getElementById('sheet-loc-mins').value = m || '';
-            openSheet('overlay-location');
+            const end = addMinutesToTime(runningTime, dur);
+            timeText = runningTime + ' – ' + end + ' (' + formatDurationText(dur) + ')';
+            const subs = [];
+            if (point.link) subs.push('<span style="color:#2481cc;">🖼️ Фото</span>');
+            if (point.mapUrl) subs.push('<span style="color:#2481cc;">📍 Карта</span>');
+            if (point.coords) subs.push('📡 ' + point.coords);
+            subText = subs.length ? subs.join(' · ') : 'Нет ссылок';
+            displayTitle = locCounter + '. ' + point.title;
+            locCounter++;
+            runningTime = end;
         } else if (point.type === 'transit') {
-            document.getElementById('sheet-transit-header').innerText = '✏️ Изменить переезд';
-            document.getElementById('btn-sheet-transit-save').innerText = 'Сохранить изменения';
-            document.getElementById('sheet-transit-hours').value = h || '';
-            document.getElementById('sheet-transit-mins').value = m || '';
-            openSheet('overlay-transit');
+            timeText = '⏱️ в пути ' + formatDurationText(dur);
+            subText = 'Переезд к следующей точке';
+            displayTitle = '🚗 Переезд';
+            runningTime = addMinutesToTime(runningTime, dur);
         } else if (point.type === 'lunch') {
-            document.getElementById('sheet-lunch-header').innerText = '✏️ Изменить ланч';
-            document.getElementById('btn-sheet-lunch-save').innerText = 'Сохранить изменения';
-            document.getElementById('sheet-lunch-hours').value = h || '';
-            document.getElementById('sheet-lunch-mins').value = m || '';
-            openSheet('overlay-lunch');
+            const end = addMinutesToTime(runningTime, dur);
+            timeText = runningTime + ' – ' + end + ' (' + formatDurationText(dur) + ')';
+            subText = 'Перерыв на ланч';
+            displayTitle = '🍽️ Ланч';
+            runningTime = end;
         }
-    }
 
-    // Сохранение шторок
-    document.getElementById('btn-sheet-loc-save').addEventListener('click', () => {
-        const title = document.getElementById('sheet-loc-title').value || 'Локация';
-        const link = document.getElementById('sheet-loc-link').value || '';
-        const mapUrl = document.getElementById('sheet-loc-map').value || '';
-        const coords = document.getElementById('sheet-loc-check-coords').checked
-            ? document.getElementById('sheet-loc-coords').value : '';
-        const h = parseInt(document.getElementById('sheet-loc-hours').value) || 0;
-        const m = parseInt(document.getElementById('sheet-loc-mins').value) || 0;
-        const pointData = { type: 'location', title, link, mapUrl, coords, duration: (h * 60) + m };
+        item.innerHTML =
+            '<div class="route-text-block">' +
+                '<div class="route-item-title">' + displayTitle + '</div>' +
+                '<div class="route-item-time">' + timeText + '</div>' +
+                '<div class="route-item-sub">' + subText + '</div>' +
+            '</div>' +
+            '<button class="btn-delete-point">✕</button>';
 
-        if (editingIndex !== null) { routePoints[editingIndex] = { ...routePoints[editingIndex], ...pointData }; }
-        else { routePoints.push(pointData); }
-        closeSheet('overlay-location');
-        saveCurrentToDraft();
-        renderRoutePoints();
+        item.querySelector('.btn-delete-point').addEventListener('click', function(e) {
+            e.stopPropagation();
+            routePoints.splice(index, 1);
+            saveCurrentToDraft();
+            renderRoutePoints();
+        });
+        item.addEventListener('click', function(e) {
+            if (!e.target.classList.contains('btn-delete-point')) openEditSheet(index);
+        });
+
+        setupMobileDragAndDrop(item);
+        container.appendChild(item);
     });
 
-    document.getElementById('btn-sheet-transit-save').addEventListener('click', () => {
-        const h = parseInt(document.getElementById('sheet-transit-hours').value) || 0;
-        const m = parseInt(document.getElementById('sheet-transit-mins').value) || 0;
-        if (editingIndex !== null) { routePoints[editingIndex].duration = (h * 60) + m; }
-        else { routePoints.push({ type: 'transit', title: '🚗 Переезд', duration: (h * 60) + m }); }
-        closeSheet('overlay-transit');
-        saveCurrentToDraft();
-        renderRoutePoints();
-    });
+    updateTopSummaryCard(runningTime);
+}
 
-    document.getElementById('btn-sheet-lunch-save').addEventListener('click', () => {
-        const h = parseInt(document.getElementById('sheet-lunch-hours').value) || 0;
-        const m = parseInt(document.getElementById('sheet-lunch-mins').value) || 0;
-        if (editingIndex !== null) { routePoints[editingIndex].duration = (h * 60) + m; }
-        else { routePoints.push({ type: 'lunch', title: '🍽️ Ланч', duration: (h * 60) + m }); }
-        closeSheet('overlay-lunch');
-        saveCurrentToDraft();
-        renderRoutePoints();
-    });
+// ─── ШТОРКИ: РЕДАКТИРОВАНИЕ ───────────────────────────────────────────────────
+function openEditSheet(index) {
+    editingIndex = index;
+    const point = routePoints[index];
+    const totalMins = parseInt(point.duration) || 0;
+    const h = Math.floor(totalMins / 60);
+    const m = totalMins % 60;
 
-    // Кнопки добавления
-    document.getElementById('btn-add-location').addEventListener('click', () => {
-        editingIndex = null;
-        document.getElementById('sheet-loc-header').innerText = '📍 Новая локация';
-        document.getElementById('btn-sheet-loc-save').innerText = 'Добавить в план';
-        document.getElementById('sheet-loc-title').value = '';
-        document.getElementById('sheet-loc-link').value = '';
-        document.getElementById('sheet-loc-map').value = '';
-        document.getElementById('sheet-loc-coords').value = '';
-        document.getElementById('sheet-loc-check-coords').checked = false;
-        document.getElementById('sheet-loc-coords-field').style.display = 'none';
-        document.getElementById('sheet-loc-hours').value = '';
-        document.getElementById('sheet-loc-mins').value = '';
+    if (point.type === 'location') {
+        document.getElementById('sheet-loc-header').innerText = '✏️ Изменить локацию';
+        document.getElementById('btn-sheet-loc-save').innerText = 'Сохранить изменения';
+        document.getElementById('sheet-loc-title').value = point.title || '';
+        document.getElementById('sheet-loc-link').value = point.link || '';
+        document.getElementById('sheet-loc-map').value = point.mapUrl || '';
+        document.getElementById('sheet-loc-coords').value = point.coords || '';
+        const hasCoords = !!point.coords;
+        document.getElementById('sheet-loc-check-coords').checked = hasCoords;
+        document.getElementById('sheet-loc-coords-field').style.display = hasCoords ? 'block' : 'none';
+        document.getElementById('sheet-loc-hours').value = h || '';
+        document.getElementById('sheet-loc-mins').value = m || '';
         openSheet('overlay-location');
-    });
-    document.getElementById('btn-add-transit').addEventListener('click', () => {
-        editingIndex = null;
-        document.getElementById('sheet-transit-header').innerText = '🚗 Добавить переезд';
-        document.getElementById('btn-sheet-transit-save').innerText = 'Добавить';
-        document.getElementById('sheet-transit-hours').value = '';
-        document.getElementById('sheet-transit-mins').value = '';
+    } else if (point.type === 'transit') {
+        document.getElementById('sheet-transit-header').innerText = '✏️ Изменить переезд';
+        document.getElementById('btn-sheet-transit-save').innerText = 'Сохранить изменения';
+        document.getElementById('sheet-transit-hours').value = h || '';
+        document.getElementById('sheet-transit-mins').value = m || '';
         openSheet('overlay-transit');
-    });
-    document.getElementById('btn-add-lunch').addEventListener('click', () => {
-        editingIndex = null;
-        document.getElementById('sheet-lunch-header').innerText = '🍽️ Добавить ланч';
-        document.getElementById('btn-sheet-lunch-save').innerText = 'Добавить';
-        document.getElementById('sheet-lunch-hours').value = '';
-        document.getElementById('sheet-lunch-mins').value = '';
+    } else if (point.type === 'lunch') {
+        document.getElementById('sheet-lunch-header').innerText = '✏️ Изменить ланч';
+        document.getElementById('btn-sheet-lunch-save').innerText = 'Сохранить изменения';
+        document.getElementById('sheet-lunch-hours').value = h || '';
+        document.getElementById('sheet-lunch-mins').value = m || '';
         openSheet('overlay-lunch');
-    });
+    }
+}
 
-    document.getElementById('btn-sheet-loc-close').addEventListener('click', () => closeSheet('overlay-location'));
-    document.getElementById('btn-sheet-transit-close').addEventListener('click', () => closeSheet('overlay-transit'));
-    document.getElementById('btn-sheet-lunch-close').addEventListener('click', () => closeSheet('overlay-lunch'));
+document.getElementById('btn-sheet-loc-save').addEventListener('click', () => {
+    const title = document.getElementById('sheet-loc-title').value || 'Локация';
+    const link = document.getElementById('sheet-loc-link').value || '';
+    const mapUrl = document.getElementById('sheet-loc-map').value || '';
+    const coords = document.getElementById('sheet-loc-check-coords').checked ? document.getElementById('sheet-loc-coords').value : '';
+    const h = parseInt(document.getElementById('sheet-loc-hours').value) || 0;
+    const m = parseInt(document.getElementById('sheet-loc-mins').value) || 0;
+    const pd = { type: 'location', title, link, mapUrl, coords, duration: (h*60)+m };
+    if (editingIndex !== null) { routePoints[editingIndex] = pd; } else { routePoints.push(pd); }
+    closeSheet('overlay-location'); saveCurrentToDraft(); renderRoutePoints();
+});
 
-    // ─── СОХРАНИТЬ И ОТПРАВИТЬ ПЛАН ──────────────────────────
-    document.getElementById('btn-generate').addEventListener('click', async () => {
-        const btn = document.getElementById('btn-generate');
-        btn.disabled = true;
-        if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('success');
-        showStatus('loading', '⏳ Сохраняем план...');
+document.getElementById('btn-sheet-transit-save').addEventListener('click', () => {
+    const h = parseInt(document.getElementById('sheet-transit-hours').value) || 0;
+    const m = parseInt(document.getElementById('sheet-transit-mins').value) || 0;
+    if (editingIndex !== null) { routePoints[editingIndex].duration = (h*60)+m; }
+    else { routePoints.push({ type: 'transit', title: '🚗 Переезд', duration: (h*60)+m }); }
+    closeSheet('overlay-transit'); saveCurrentToDraft(); renderRoutePoints();
+});
 
-        // Считаем время возвращения
-        let runningTime = globalDepartureTime;
-        routePoints.forEach(point => {
-            runningTime = addMinutesToTime(runningTime, parseInt(point.duration) || 0);
+document.getElementById('btn-sheet-lunch-save').addEventListener('click', () => {
+    const h = parseInt(document.getElementById('sheet-lunch-hours').value) || 0;
+    const m = parseInt(document.getElementById('sheet-lunch-mins').value) || 0;
+    if (editingIndex !== null) { routePoints[editingIndex].duration = (h*60)+m; }
+    else { routePoints.push({ type: 'lunch', title: '🍽️ Ланч', duration: (h*60)+m }); }
+    closeSheet('overlay-lunch'); saveCurrentToDraft(); renderRoutePoints();
+});
+
+document.getElementById('btn-add-location').addEventListener('click', () => {
+    editingIndex = null;
+    document.getElementById('sheet-loc-header').innerText = '📍 Новая локация';
+    document.getElementById('btn-sheet-loc-save').innerText = 'Добавить в план';
+    ['sheet-loc-title','sheet-loc-link','sheet-loc-map','sheet-loc-coords'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('sheet-loc-hours').value = '';
+    document.getElementById('sheet-loc-mins').value = '';
+    document.getElementById('sheet-loc-check-coords').checked = false;
+    document.getElementById('sheet-loc-coords-field').style.display = 'none';
+    openSheet('overlay-location');
+});
+document.getElementById('btn-add-transit').addEventListener('click', () => {
+    editingIndex = null;
+    document.getElementById('sheet-transit-header').innerText = '🚗 Добавить переезд';
+    document.getElementById('btn-sheet-transit-save').innerText = 'Добавить';
+    document.getElementById('sheet-transit-hours').value = '';
+    document.getElementById('sheet-transit-mins').value = '';
+    openSheet('overlay-transit');
+});
+document.getElementById('btn-add-lunch').addEventListener('click', () => {
+    editingIndex = null;
+    document.getElementById('sheet-lunch-header').innerText = '🍽️ Добавить ланч';
+    document.getElementById('btn-sheet-lunch-save').innerText = 'Добавить';
+    document.getElementById('sheet-lunch-hours').value = '';
+    document.getElementById('sheet-lunch-mins').value = '';
+    openSheet('overlay-lunch');
+});
+
+document.getElementById('btn-sheet-loc-close').addEventListener('click', () => closeSheet('overlay-location'));
+document.getElementById('btn-sheet-transit-close').addEventListener('click', () => closeSheet('overlay-transit'));
+document.getElementById('btn-sheet-lunch-close').addEventListener('click', () => closeSheet('overlay-lunch'));
+
+// ─── СОХРАНИТЬ И ОТПРАВИТЬ ────────────────────────────────────────────────────
+document.getElementById('btn-generate').addEventListener('click', async function() {
+    this.disabled = true;
+    haptic('medium');
+    showStatus('loading', '⏳ Отправляем план...');
+
+    let runningTime = globalDepartureTime;
+    routePoints.forEach(p => { runningTime = addMinutesToTime(runningTime, parseInt(p.duration) || 0); });
+
+    const hasTransport = document.getElementById('check-transport').checked;
+    const planData = {
+        title: globalProjectTitle,
+        date: globalProjectDate,
+        meetingTime: globalMeetingTime,
+        departureTime: globalDepartureTime,
+        meetingPlace: globalMeetingPlace,
+        meetingAddress: globalMeetingAddress,
+        meetingMapUrl: globalMeetingMap,
+        allPointsMapUrl: globalAllPointsMap,
+        coordinates: document.getElementById('check-coords').checked ? globalMeetingCoords : '',
+        hasTransport: hasTransport,
+        carNumber: hasTransport ? document.getElementById('car-number').value : '',
+        driverName: hasTransport ? document.getElementById('driver-name').value : '',
+        driverPhone: hasTransport ? document.getElementById('driver-phone').value : '',
+        carPhotoBase64: hasTransport ? uploadedCarPhotoBase64 : '',
+        routePoints: routePoints,
+        returnTime: runningTime
+    };
+
+    // Сохраняем локально
+    try {
+        const stored = localStorage.getItem('scout_projects');
+        const projects = stored ? JSON.parse(stored) : [];
+        projects.unshift(planData);
+        localStorage.setItem('scout_projects', JSON.stringify(projects));
+    } catch(e) {}
+
+    const userId = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
+
+    if (!userId) {
+        showStatus('success', '✅ Сохранено! (Откройте через Telegram для отправки)');
+        localStorage.removeItem('scout_draft');
+        clearAllInputs();
+        checkDraftAndProjects();
+        setTimeout(() => showScreen('screen-main'), 1500);
+        this.disabled = false;
+        return;
+    }
+
+    try {
+        const res = await fetch(BACKEND_URL + '/send-plan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chatId: userId, data: planData })
         });
+        const result = await res.json();
+        if (!result.ok) throw new Error(result.error || 'Ошибка сервера');
 
-        const hasTransport = document.getElementById('check-transport').checked;
-        const planData = {
-            title: globalProjectTitle,
-            date: globalProjectDate,
-            meetingTime: globalMeetingTime,
-            departureTime: globalDepartureTime,
-            meetingPlace: globalMeetingPlace,
-            meetingAddress: globalMeetingAddress,
-            meetingMapUrl: globalMeetingMap,
-            allPointsMapUrl: globalAllPointsMap,
-            coordinates: document.getElementById('check-coords').checked ? globalMeetingCoords : '',
-            hasTransport: hasTransport,
-            carNumber: hasTransport ? document.getElementById('car-number').value : '',
-            driverName: hasTransport ? document.getElementById('driver-name').value : '',
-            driverPhone: hasTransport ? document.getElementById('driver-phone').value : '',
-            carPhotoBase64: hasTransport ? uploadedCarPhotoBase64 : '',
-            routePoints: routePoints,
-            returnTime: runningTime
-        };
+        showStatus('success', '✅ План отправлен в Telegram!');
+        try { if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); } catch(e) {}
+        localStorage.removeItem('scout_draft');
+        clearAllInputs();
+        checkDraftAndProjects();
+        setTimeout(() => showScreen('screen-main'), 1500);
+    } catch(err) {
+        showStatus('error', '❌ ' + err.message);
+        try { if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error'); } catch(e) {}
+    }
 
-        const userId = tg.initDataUnsafe?.user?.id;
+    this.disabled = false;
+});
 
-        try {
-            // 1. Сохраняем в Supabase
-            if (userId) {
-                // Формат даты для Supabase (date тип)
-                let eventDate = null;
-                if (globalProjectDate && globalProjectDate !== '00.00.00') {
-                    const parts = globalProjectDate.split('.');
-                    if (parts.length === 3) {
-                        const year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
-                        eventDate = `${year}-${parts[1]}-${parts[0]}`;
-                    }
-                }
+// ─── DRAG & DROP ──────────────────────────────────────────────────────────────
+let activeDragEl = null, startY = 0, touchHoldTimer = null;
+let isDraggingActive = false, globalDragLock = false;
 
-                const { data: project, error: projError } = await supabase
-                    .from('projects')
-                    .insert({
-                        user_id: userId,
-                        title: globalProjectTitle,
-                        event_date: eventDate,
-                        meeting_place: globalMeetingPlace,
-                        meeting_time: globalMeetingTime + ':00',
-                        departure_time: globalDepartureTime + ':00',
-                        meeting_address: globalMeetingAddress,
-                        meeting_map_url: globalMeetingMap,
-                        show_coordinates: document.getElementById('check-coords').checked,
-                        coordinates: globalMeetingCoords,
-                        status: 'active'
-                    })
-                    .select()
-                    .single();
+function setupMobileDragAndDrop(el) {
+    el.addEventListener('touchstart', function(e) {
+        if (e.target.closest('.btn-delete-point') || globalDragLock) return;
+        startY = e.touches[0].clientY;
+        activeDragEl = this;
+        touchHoldTimer = setTimeout(() => {
+            isDraggingActive = true; globalDragLock = true;
+            haptic('medium');
+            activeDragEl.classList.add('dragging');
+        }, 400);
+    }, { passive: true });
 
-                if (projError) throw new Error('Supabase: ' + projError.message);
-
-                currentProjectId = project.id;
-
-                // Сохраняем точки маршрута
-                if (routePoints.length > 0) {
-                    const pointsToInsert = routePoints.map((point, idx) => ({
-                        project_id: currentProjectId,
-                        position: idx,
-                        type: point.type,
-                        title: point.title || null,
-                        photo_url: point.link || null,
-                        map_url: point.mapUrl || null,
-                        address: point.coords || null,
-                        duration_minutes: parseInt(point.duration) || 0
-                    }));
-
-                    const { error: pointsError } = await supabase
-                        .from('route_points')
-                        .insert(pointsToInsert);
-
-                    if (pointsError) console.error('Points error:', pointsError);
-                }
-            }
-
-            showStatus('loading', '📤 Отправляем в Telegram...');
-
-            // 2. Отправляем через backend
-            if (!userId) {
-                // В браузере без Telegram — просто показываем успех
-                showStatus('success', '✅ Сохранено! (тест без Telegram)');
-                btn.disabled = false;
-                localStorage.removeItem('scout_draft');
-                clearAllInputs();
-                await checkDraftAndProjects();
-                setTimeout(() => showScreen('screen-main'), 1500);
-                return;
-            }
-
-            const res = await fetch(BACKEND_URL + '/send-plan', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chatId: userId, data: planData })
+    el.addEventListener('touchmove', function(e) {
+        const touch = e.touches[0];
+        if (!isDraggingActive) { if (Math.abs(touch.clientY - startY) > 6) clearTimeout(touchHoldTimer); return; }
+        if (e.cancelable) e.preventDefault();
+        const bounds = document.getElementById('route-points-list').getBoundingClientRect();
+        const targetY = Math.max(bounds.top, Math.min(touch.clientY, bounds.bottom));
+        activeDragEl.style.transform = 'scale(1.04) translateY(' + (targetY - startY) + 'px)';
+        const overItem = document.elementFromPoint(touch.clientX, targetY)?.closest('.route-item');
+        if (overItem && overItem !== activeDragEl) {
+            const fromIdx = parseInt(activeDragEl.getAttribute('data-index'));
+            const toIdx = parseInt(overItem.getAttribute('data-index'));
+            const rects = {};
+            document.querySelectorAll('.route-item').forEach(i => { rects[i.id] = i.getBoundingClientRect().top; });
+            routePoints.splice(toIdx, 0, routePoints.splice(fromIdx, 1)[0]);
+            renderRoutePoints();
+            activeDragEl = document.querySelector('.route-item[data-index="' + toIdx + '"]');
+            activeDragEl.classList.add('dragging');
+            document.querySelectorAll('.route-item').forEach(i => {
+                if (i === activeDragEl) return;
+                const delta = (rects[i.id] || 0) - i.getBoundingClientRect().top;
+                if (delta) i.animate([{transform:'translateY('+delta+'px)'},{transform:'translateY(0)'}],{duration:200});
             });
-
-            const result = await res.json();
-            if (!result.ok) throw new Error(result.error || 'Ошибка отправки');
-
-            showStatus('success', '✅ План отправлен в Telegram!');
-            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-
-            localStorage.removeItem('scout_draft');
-            clearAllInputs();
-            await checkDraftAndProjects();
-            setTimeout(() => showScreen('screen-main'), 1500);
-
-        } catch (err) {
-            console.error(err);
-            showStatus('error', '❌ ' + err.message);
-            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+            startY = targetY;
+            activeDragEl.style.transform = 'scale(1.04) translateY(0px)';
         }
+    }, { passive: false });
 
-        btn.disabled = false;
-    });
-
-    // ─── DRAG & DROP ──────────────────────────────────────────
-    let activeDragEl = null, startY = 0, touchHoldTimer = null;
-    let isDraggingActive = false, globalDragLock = false;
-
-    function setupMobileDragAndDrop(el) {
-        el.addEventListener('touchstart', function(e) {
-            if (e.target.closest('.btn-delete-point') || globalDragLock) return;
-            const touch = e.touches[0];
-            startY = touch.clientY;
-            activeDragEl = this;
-            touchHoldTimer = setTimeout(() => {
-                isDraggingActive = true;
-                globalDragLock = true;
-                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-                activeDragEl.classList.add('dragging');
-            }, 400);
-        }, { passive: true });
-
-        el.addEventListener('touchmove', function(e) {
-            const currentTouch = e.touches[0];
-            if (!isDraggingActive) {
-                if (Math.abs(currentTouch.clientY - startY) > 6) clearTimeout(touchHoldTimer);
-                return;
-            }
-            if (e.cancelable) e.preventDefault();
-            const container = document.getElementById('route-points-list');
-            const bounds = container.getBoundingClientRect();
-            let targetY = Math.max(bounds.top, Math.min(currentTouch.clientY, bounds.bottom));
-
-            activeDragEl.style.transform = 'scale(1.04) translateY(' + (targetY - startY) + 'px)';
-            const targetNode = document.elementFromPoint(currentTouch.clientX, targetY);
-            if (!targetNode) return;
-            const overItem = targetNode.closest('.route-item');
-            if (overItem && overItem !== activeDragEl) {
-                const fromIdx = parseInt(activeDragEl.getAttribute('data-index'));
-                const toIdx = parseInt(overItem.getAttribute('data-index'));
-                const rects = saveItemsPositions();
-                const draggedData = routePoints.splice(fromIdx, 1)[0];
-                routePoints.splice(toIdx, 0, draggedData);
-                renderRoutePoints();
-                activeDragEl = document.querySelector('.route-item[data-index="' + toIdx + '"]');
-                activeDragEl.classList.add('dragging');
-                animateItemsFromPositions(rects);
-                startY = targetY;
-                activeDragEl.style.transform = 'scale(1.04) translateY(0px)';
-            }
-        }, { passive: false });
-
-        const endDrag = function() {
-            clearTimeout(touchHoldTimer);
-            if (isDraggingActive) {
-                isDraggingActive = false;
-                globalDragLock = false;
-                if (activeDragEl) { activeDragEl.classList.remove('dragging'); activeDragEl.style.transform = ''; }
-                saveCurrentToDraft();
-                renderRoutePoints();
-            }
-            activeDragEl = null;
-        };
-        el.addEventListener('touchend', endDrag);
-        el.addEventListener('touchcancel', endDrag);
-    }
-
-    function saveItemsPositions() {
-        const rects = {};
-        document.querySelectorAll('.route-item').forEach(item => {
-            rects[item.id] = item.getBoundingClientRect().top;
-        });
-        return rects;
-    }
-
-    function animateItemsFromPositions(oldRects) {
-        document.querySelectorAll('.route-item').forEach(item => {
-            if (item === activeDragEl) return;
-            const oldTop = oldRects[item.id];
-            if (oldTop === undefined) return;
-            const delta = oldTop - item.getBoundingClientRect().top;
-            if (delta !== 0) {
-                item.animate([{ transform: 'translateY(' + delta + 'px)' }, { transform: 'translateY(0)' }], { duration: 200 });
-            }
-        });
-    }
-
-    // ─── МАСКИ ВВОДА ─────────────────────────────────────────
-    const dateInput = document.getElementById('project-date');
-    dateInput.addEventListener('input', (e) => {
-        let value = e.target.value.replace(/\D/g, '').slice(0, 6);
-        let formatted = value.slice(0, 2);
-        if (value.length > 2) formatted += '.' + value.slice(2, 4);
-        if (value.length > 4) formatted += '.' + value.slice(4, 6);
-        e.target.value = formatted;
-    });
-
-    document.querySelectorAll('.time-mask').forEach(input => {
-        const warningEl = document.getElementById('warn-' + input.id);
-        input.addEventListener('input', (e) => {
-            let value = e.target.value.replace(/\D/g, '').slice(0, 4);
-            if (value.length >= 1 && parseInt(value[0]) > 2) value = '';
-            if (value.length >= 2 && parseInt(value.slice(0, 2)) > 23) value = value[0];
-            if (value.length >= 3 && parseInt(value[2]) > 5) value = value.slice(0, 2);
-            e.target.value = value.length > 2 ? value.slice(0, 2) + ':' + value.slice(2) : value;
-            if (warningEl) warningEl.style.display = 'none';
-        });
-        input.addEventListener('blur', (e) => handleTimeCompletion(e.target, warningEl));
-    });
-
-    function handleTimeCompletion(input, warningEl) {
-        const val = input.value.replace(/\D/g, '');
-        if (!val) return;
-        if (val.length === 2 || val.length === 3) {
-            input.value = val.slice(0, 2) + ':00';
-            if (warningEl) warningEl.style.display = 'block';
+    const endDrag = function() {
+        clearTimeout(touchHoldTimer);
+        if (isDraggingActive) {
+            isDraggingActive = false; globalDragLock = false;
+            if (activeDragEl) { activeDragEl.classList.remove('dragging'); activeDragEl.style.transform = ''; }
+            saveCurrentToDraft(); renderRoutePoints();
         }
-        saveCurrentToDraft();
-    }
+        activeDragEl = null;
+    };
+    el.addEventListener('touchend', endDrag);
+    el.addEventListener('touchcancel', endDrag);
+}
 
-    function forceCompleteTime(input) {
-        handleTimeCompletion(input, document.getElementById('warn-' + input.id));
+// ─── МАСКИ ВВОДА ─────────────────────────────────────────────────────────────
+document.getElementById('project-date').addEventListener('input', function() {
+    let v = this.value.replace(/\D/g,'').slice(0,6);
+    let f = v.slice(0,2);
+    if (v.length > 2) f += '.' + v.slice(2,4);
+    if (v.length > 4) f += '.' + v.slice(4,6);
+    this.value = f;
+});
+
+document.querySelectorAll('.time-mask').forEach(function(input) {
+    const warnId = 'warn-' + input.id;
+    input.addEventListener('input', function() {
+        let v = this.value.replace(/\D/g,'').slice(0,4);
+        if (v.length >= 1 && parseInt(v[0]) > 2) v = '';
+        if (v.length >= 2 && parseInt(v.slice(0,2)) > 23) v = v[0];
+        if (v.length >= 3 && parseInt(v[2]) > 5) v = v.slice(0,2);
+        this.value = v.length > 2 ? v.slice(0,2) + ':' + v.slice(2) : v;
+        const w = document.getElementById(warnId);
+        if (w) w.style.display = 'none';
+    });
+    input.addEventListener('blur', function() {
+        handleTimeCompletion(this, document.getElementById(warnId));
+    });
+});
+
+function handleTimeCompletion(input, warningEl) {
+    const v = input.value.replace(/\D/g,'');
+    if (!v) return;
+    if (v.length === 2 || v.length === 3) {
+        input.value = v.slice(0,2) + ':00';
+        if (warningEl) warningEl.style.display = 'block';
     }
+    saveCurrentToDraft();
+}
+
+function forceCompleteTime(input) {
+    handleTimeCompletion(input, document.getElementById('warn-' + input.id));
+}
+
+// ─── СТАРТ ────────────────────────────────────────────────────────────────────
+checkDraftAndProjects();
 </script>
 </body>
 </html>
