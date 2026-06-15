@@ -838,135 +838,207 @@ function renderRoute(){
 }
 
 // ── DRAG & DROP ────────────────────────────────────────────────────────
-let aDrag=null,sY=0,sX=0,holdT=null,dragging=false,dLock=false;
-function setupDnD(el){
-  // TOUCH
-  el.addEventListener('touchstart',function(e){
-    if(e.target.closest('.btn-delete-point')||dLock) return;
-    sY=e.touches[0].clientY; sX=e.touches[0].clientX; aDrag=this;
-    holdT=setTimeout(()=>{dragging=true;dLock=true;haptic('medium');aDrag.classList.add('dragging');aDrag.style.zIndex='9999';},340);
-  },{passive:true});
-  el.addEventListener('touchmove',function(e){
-    const t=e.touches[0];
-    if(!dragging){if(Math.abs(t.clientY-sY)>8||Math.abs(t.clientX-sX)>8)clearTimeout(holdT);return;}
-    if(e.cancelable)e.preventDefault();
-    const b=$('route-points-list').getBoundingClientRect();
-    const cy=Math.max(b.top+10,Math.min(t.clientY,b.bottom-10));
-    aDrag.style.transform='scale(1.03) translateY('+(cy-sY)+'px)';
-    const over=document.elementFromPoint(t.clientX,cy)?.closest('.route-item');
-    if(over&&over!==aDrag){
-      const fi=parseInt(aDrag.getAttribute('data-index')), ti=parseInt(over.getAttribute('data-index'));
-      if(fi!==ti){
-        const op={}; document.querySelectorAll('.route-item').forEach(i=>{op[i.id]=i.getBoundingClientRect().top;});
-        routePoints.splice(ti,0,routePoints.splice(fi,1)[0]);
-        renderRoute();
-        aDrag=document.querySelector('.route-item[data-index="'+ti+'"]');
-        aDrag.classList.add('dragging'); aDrag.style.zIndex='9999';
-        document.querySelectorAll('.route-item').forEach(i=>{
-          if(i===aDrag)return;
-          const dl=(op[i.id]||0)-i.getBoundingClientRect().top;
-          if(Math.abs(dl)>1)i.animate([{transform:'translateY('+dl+'px)'},{transform:'translateY(0)'}],{duration:220,easing:'cubic-bezier(0.25,0.46,0.45,0.94)'});
+// Ключевой принцип: во время перетягивания НЕ вызываем renderRoute().
+// Двигаем только ghost-клон. DOM переставляем через insertBefore — без перерисовки.
+let dLock = false;
+let holdT = null;
+
+function setupDnD(el) {
+  el.addEventListener('touchstart', onTouchStart, { passive: true });
+  el.addEventListener('mousedown',  onMouseStart);
+}
+
+function startDrag(dragEl, clientY) {
+  if (dLock) return;
+  dLock = true;
+  haptic('medium');
+
+  const container = $('route-points-list');
+  const items = () => [...container.querySelectorAll('.route-item')];
+
+  // Снимок размеров оригинала
+  const rect = dragEl.getBoundingClientRect();
+  const scrollTop = window.scrollY;
+
+  // Создаём ghost — точную копию размером с оригинал, абсолютно позиционированную
+  const ghost = dragEl.cloneNode(true);
+  ghost.style.cssText = [
+    'position:fixed',
+    'left:' + rect.left + 'px',
+    'top:' + rect.top + 'px',
+    'width:' + rect.width + 'px',
+    'height:' + rect.height + 'px',
+    'margin:0',
+    'z-index:99999',
+    'pointer-events:none',
+    'border-radius:12px',
+    'box-shadow:0 20px 50px rgba(0,0,0,0.22)',
+    'border:1.5px solid var(--tg-theme-button-color,#2481cc)',
+    'background:var(--tg-theme-bg-color,#fff)',
+    'transition:transform 0.08s cubic-bezier(0.34,1.56,0.64,1)',
+    'transform:scale(1.04)',
+    'opacity:0.97',
+  ].join(';');
+  document.body.appendChild(ghost);
+
+  // Оригинал — делаем прозрачным-заглушкой (держит место)
+  dragEl.style.opacity = '0.25';
+  dragEl.style.pointerEvents = 'none';
+
+  let currentY = clientY;
+  let ghostY = rect.top; // текущая Y позиция ghost (плавная)
+  let rafId = null;
+  let lastInsertedBefore = null; // чтобы не делать лишних DOM-операций
+
+  // Плавное движение через RAF — "резиновый" эффект
+  function animLoop() {
+    // Интерполяция — ghost догоняет палец с небольшим отставанием
+    const targetY = currentY - rect.height / 2;
+    ghostY += (targetY - ghostY) * 0.28;
+    ghost.style.top = ghostY + 'px';
+    rafId = requestAnimationFrame(animLoop);
+  }
+  rafId = requestAnimationFrame(animLoop);
+
+  function onMove(cy) {
+    currentY = cy;
+    const containerRect = container.getBoundingClientRect();
+    // Ограничиваем внутри контейнера
+    currentY = Math.max(containerRect.top + rect.height/2, Math.min(cy, containerRect.bottom - rect.height/2));
+
+    // Определяем над какой карточкой висим (исключая сам dragEl)
+    const others = items().filter(i => i !== dragEl);
+    let insertBefore = null;
+    for (const it of others) {
+      const r = it.getBoundingClientRect();
+      if (cy < r.top + r.height / 2) { insertBefore = it; break; }
+    }
+
+    // Вставляем dragEl в новую позицию — без перерисовки маршрута!
+    if (insertBefore !== lastInsertedBefore) {
+      lastInsertedBefore = insertBefore;
+      if (insertBefore) {
+        // Анимируем соседей FLIP
+        const snapBefore = {};
+        others.forEach(i => { snapBefore[i.id] = i.getBoundingClientRect().top; });
+        container.insertBefore(dragEl, insertBefore);
+        others.forEach(i => {
+          const delta = snapBefore[i.id] - i.getBoundingClientRect().top;
+          if (Math.abs(delta) > 0.5) {
+            i.animate([
+              { transform: 'translateY('+delta+'px)' },
+              { transform: 'translateY(0)' }
+            ], { duration: 260, easing: 'cubic-bezier(0.25,0.46,0.45,0.94)' });
+          }
         });
-        sY=cy; aDrag.style.transform='scale(1.03)';
+      } else {
+        const snapBefore = {};
+        others.forEach(i => { snapBefore[i.id] = i.getBoundingClientRect().top; });
+        container.appendChild(dragEl);
+        others.forEach(i => {
+          const delta = snapBefore[i.id] - i.getBoundingClientRect().top;
+          if (Math.abs(delta) > 0.5) {
+            i.animate([
+              { transform: 'translateY('+delta+'px)' },
+              { transform: 'translateY(0)' }
+            ], { duration: 260, easing: 'cubic-bezier(0.25,0.46,0.45,0.94)' });
+          }
+        });
       }
     }
-  },{passive:false});
-  const endT=function(){
-    clearTimeout(holdT);
-    if(dragging){
-      dragging=false; dLock=false;
-      if(aDrag){aDrag.style.transition='transform 0.2s,box-shadow 0.2s';aDrag.style.transform='';aDrag.classList.remove('dragging');aDrag.classList.add('item-dropped');setTimeout(()=>{aDrag&&aDrag.classList.remove('item-dropped');},280);}
-      saveDraft(); setTimeout(()=>renderRoute(),210);
+  }
+
+  function endDrag() {
+    cancelAnimationFrame(rafId);
+
+    // Ghost прилетает на место оригинала
+    const finalRect = dragEl.getBoundingClientRect();
+    ghost.style.transition = 'top 0.22s cubic-bezier(0.34,1.2,0.64,1), transform 0.22s, opacity 0.18s';
+    ghost.style.top = finalRect.top + 'px';
+    ghost.style.transform = 'scale(1)';
+    ghost.style.opacity = '0';
+
+    setTimeout(() => {
+      ghost.remove();
+      dragEl.style.opacity = '';
+      dragEl.style.pointerEvents = '';
+      // Восстанавливаем routePoints в соответствии с новым DOM-порядком
+      const newOrder = [...container.querySelectorAll('.route-item')].map(el => {
+        return parseInt(el.getAttribute('data-index'));
+      });
+      const oldPoints = [...routePoints];
+      routePoints = newOrder.map(i => oldPoints[i]);
+      saveDraft();
+      renderRoute();
+      dLock = false;
+    }, 230);
+  }
+
+  return { onMove, endDrag };
+}
+
+// Touch
+function onTouchStart(e) {
+  if (e.target.closest('.btn-delete-point') || dLock) return;
+  const el = this;
+  const startY = e.touches[0].clientY;
+  const startX = e.touches[0].clientX;
+  let dragCtx = null;
+
+  holdT = setTimeout(() => {
+    dragCtx = startDrag(el, e.touches[0].clientY);
+
+    const onMove = ev => {
+      if (!dragCtx) return;
+      if (ev.cancelable) ev.preventDefault();
+      dragCtx.onMove(ev.touches[0].clientY);
+    };
+    const onEnd = () => {
+      if (dragCtx) { dragCtx.endDrag(); dragCtx = null; }
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+      document.removeEventListener('touchcancel', onEnd);
+    };
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
+    document.addEventListener('touchcancel', onEnd);
+  }, 350);
+
+  const cancel = ev => {
+    if (Math.abs(ev.touches[0].clientY - startY) > 8 || Math.abs(ev.touches[0].clientX - startX) > 8) {
+      clearTimeout(holdT);
+      el.removeEventListener('touchmove', cancel);
     }
-    aDrag=null;
   };
-  el.addEventListener('touchend',endT); el.addEventListener('touchcancel',endT);
+  el.addEventListener('touchmove', cancel, { passive: true });
+}
 
-  // MOUSE
-  el.addEventListener('mousedown',function(e){
-    if(e.target.closest('.btn-delete-point')||dLock||e.button!==0)return;
-    const startMouseY=e.clientY;
-    let md=false, lastSwapTime=0;
-    aDrag=el;
+// Mouse
+function onMouseStart(e) {
+  if (e.target.closest('.btn-delete-point') || dLock || e.button !== 0) return;
+  const el = this;
+  const startY = e.clientY;
+  let dragCtx = null;
 
-    const mm=ev=>{
-      if(!md&&Math.abs(ev.clientY-startMouseY)>5){
-        md=true; dLock=true;
-        el.classList.add('dragging');
-        el.style.zIndex='9999';
-        document.body.style.cursor='grabbing';
-      }
-      if(!md)return;
+  const onMove = ev => {
+    if (!dragCtx) {
+      if (Math.abs(ev.clientY - startY) < 6) return;
+      dragCtx = startDrag(el, ev.clientY);
+      document.body.style.cursor = 'grabbing';
+    }
+    dragCtx.onMove(ev.clientY);
+  };
 
-      const b=$('route-points-list').getBoundingClientRect();
-      const cy=Math.max(b.top+10,Math.min(ev.clientY,b.bottom-10));
-      // Двигаем только визуально — без перерисовки
-      aDrag.style.transform='scale(1.03) translateY('+(cy-startMouseY)+'px)';
+  const onUp = () => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    document.body.style.cursor = '';
+    if (dragCtx) { dragCtx.endDrag(); dragCtx = null; }
+    else { dLock = false; }
+  };
 
-      // Throttle свапов — не чаще 1 раза в 120мс
-      const now=Date.now();
-      if(now-lastSwapTime<120)return;
-
-      // Временно прячем dragging-элемент от elementFromPoint
-      aDrag.style.pointerEvents='none';
-      const overEl=document.elementFromPoint(ev.clientX,cy);
-      aDrag.style.pointerEvents='';
-
-      const over=overEl?overEl.closest('.route-item'):null;
-      document.querySelectorAll('.route-item').forEach(i=>i.classList.remove('drag-over'));
-
-      if(over&&over!==aDrag){
-        over.classList.add('drag-over');
-        const fi=parseInt(aDrag.getAttribute('data-index'));
-        const ti=parseInt(over.getAttribute('data-index'));
-        if(fi!==ti){
-          lastSwapTime=now;
-          const op={};
-          document.querySelectorAll('.route-item').forEach(i=>{op[i.id]=i.getBoundingClientRect().top;});
-
-          routePoints.splice(ti,0,routePoints.splice(fi,1)[0]);
-          renderRoute();
-
-          aDrag=document.querySelector('.route-item[data-index="'+ti+'"]');
-          aDrag.classList.add('dragging');
-          aDrag.style.zIndex='9999';
-          aDrag.style.transform='scale(1.03) translateY('+(cy-startMouseY)+'px)';
-
-          document.querySelectorAll('.route-item').forEach(i=>{
-            if(i===aDrag)return;
-            const dl=(op[i.id]||0)-i.getBoundingClientRect().top;
-            if(Math.abs(dl)>1)i.animate(
-              [{transform:'translateY('+dl+'px)'},{transform:'translateY(0)'}],
-              {duration:200,easing:'ease-out'}
-            );
-          });
-        }
-      }
-    };
-
-    const mu=()=>{
-      document.removeEventListener('mousemove',mm);
-      document.removeEventListener('mouseup',mu);
-      document.body.style.cursor='';
-      document.querySelectorAll('.route-item').forEach(i=>i.classList.remove('drag-over'));
-      if(md){
-        dLock=false;
-        if(aDrag){
-          aDrag.style.transition='transform 0.2s,box-shadow 0.2s';
-          aDrag.style.transform='';
-          aDrag.classList.remove('dragging');
-          aDrag.classList.add('item-dropped');
-          setTimeout(()=>{if(aDrag)aDrag.classList.remove('item-dropped');},280);
-        }
-        saveDraft();
-        setTimeout(()=>renderRoute(),220);
-      }
-      aDrag=null;
-    };
-
-    document.addEventListener('mousemove',mm);
-    document.addEventListener('mouseup',mu);
-  });
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
 }
 
 // ── SHEETS ─────────────────────────────────────────────────────────────
