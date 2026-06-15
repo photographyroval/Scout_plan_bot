@@ -6,133 +6,185 @@
 <title>Scout Planner</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-html,body{width:100%;margin:0;padding:0;background-color:var(--tg-theme-bg-color,#f5f5f7);color:var(--tg-theme-text-color,#000);box-sizing:border-box;}
+/* ── THEME ── */
+:root {
+  --bg: #f5f5f7;
+  --bg2: #e9e9eb;
+  --text: #1a1a1a;
+  --text2: #8e8e93;
+  --accent: #2481cc;
+  --card: #ffffff;
+  --border: #e4e4e6;
+  --green: #27ae60;
+  --red: #e74c3c;
+  --orange: #e67e22;
+  --shadow: rgba(0,0,0,0.06);
+}
+[data-theme="dark"] {
+  --bg: #1c1c1e;
+  --bg2: #2c2c2e;
+  --text: #f2f2f7;
+  --text2: #8e8e93;
+  --accent: #3b9ded;
+  --card: #2c2c2e;
+  --border: #3a3a3c;
+  --shadow: rgba(0,0,0,0.25);
+}
+html,body{width:100%;margin:0;padding:0;background-color:var(--bg);color:var(--text);box-sizing:border-box;transition:background-color 0.3s,color 0.3s;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:16px;overflow-x:hidden;overflow-y:auto;-webkit-tap-highlight-color:transparent;}
 body.sheet-open{overflow:hidden!important;}
-.app-wrapper{width:100%;box-sizing:border-box;position:relative;z-index:1;}
-.header{font-size:22px;font-weight:700;margin-bottom:20px;text-align:center;}
+*{box-sizing:border-box;}
+.app-wrapper{width:100%;position:relative;z-index:1;}
+
+/* ── THEME TOGGLE ── */
+.top-bar{display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:20px;}
+.top-bar .header{margin:0;font-size:22px;font-weight:700;}
+.theme-toggle{position:absolute;left:0;display:flex;align-items:center;gap:8px;}
+.toggle-track{width:44px;height:26px;background:var(--bg2);border-radius:13px;position:relative;cursor:pointer;transition:background 0.3s;border:1.5px solid var(--border);}
+.toggle-track.on{background:var(--accent);}
+.toggle-thumb{position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 2px 6px rgba(0,0,0,0.2);}
+.toggle-track.on .toggle-thumb{transform:translateX(18px);}
+.toggle-icon{font-size:14px;}
+
+/* ── SCREENS ── */
 .screen{display:none;width:100%;}
 .screen.active{display:block;}
 
-/* TABS */
-.tabs-container{display:flex;background-color:var(--tg-theme-secondary-bg-color,#e9e9eb);padding:4px;border-radius:12px;margin-bottom:20px;}
-.tab{flex:1;text-align:center;padding:10px 0;font-size:14px;font-weight:600;color:var(--tg-theme-hint-color,#8e8e93);border-radius:9px;cursor:pointer;}
-.tab.active{background-color:var(--tg-theme-bg-color,#fff);color:var(--tg-theme-button-color,#2481cc);box-shadow:0 2px 8px rgba(0,0,0,0.08);font-weight:700;}
+/* ── HEADER ── */
+.header{font-size:22px;font-weight:700;text-align:center;}
+.screen-header{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.btn-back{background:var(--bg2);border:none;width:36px;height:36px;border-radius:10px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--accent);}
+.screen-header .header{flex:1;margin:0;}
 
-/* FORMS */
-.form-group{margin-bottom:14px;position:relative;width:100%;box-sizing:border-box;}
-.form-label{display:block;font-size:14px;font-weight:600;margin-bottom:6px;color:var(--tg-theme-text-color,#000);opacity:0.9;}
-.form-input{width:100%;background-color:var(--tg-theme-secondary-bg-color,#e9e9eb);border:1.5px solid transparent;padding:12px;border-radius:10px;font-size:16px;color:var(--tg-theme-text-color,#000);box-sizing:border-box;outline:none;display:block;transition:border-color 0.2s;}
-.form-input:focus{border-color:var(--tg-theme-button-color,#2481cc);}
-.time-warning{display:none;font-size:12px;color:#d35400;margin-top:4px;font-weight:500;}
-/* Цветные поля времени */
-#time-meeting{color:#27ae60;font-weight:700;}
-#time-departure{color:#e74c3c;font-weight:700;}
+/* ── TABS ── */
+.tabs-container{display:flex;background:var(--bg2);padding:4px;border-radius:12px;margin-bottom:20px;}
+.tab{flex:1;text-align:center;padding:10px 0;font-size:14px;font-weight:600;color:var(--text2);border-radius:9px;cursor:pointer;transition:all 0.2s;}
+.tab.active{background:var(--card);color:var(--accent);box-shadow:0 2px 8px var(--shadow);font-weight:700;}
 
-/* SECTION BLOCKS */
-.section-block{background:var(--tg-theme-bg-color,#fff);border:1px solid var(--tg-theme-secondary-bg-color,#e9e9eb);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
-.section-block-title{font-size:12px;font-weight:700;color:var(--tg-theme-hint-color,#8e8e93);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:14px;}
+/* ── FORMS ── */
+.form-group{margin-bottom:14px;position:relative;width:100%;}
+.form-label{display:block;font-size:13px;font-weight:600;margin-bottom:5px;color:var(--text);opacity:0.85;}
+.form-input{width:100%;background:var(--bg2);border:1.5px solid transparent;padding:12px 14px;border-radius:10px;font-size:15px;color:var(--text);outline:none;display:block;transition:border-color 0.2s,background 0.3s;}
+.form-input:focus{border-color:var(--accent);}
+.time-warning{display:none;font-size:12px;color:var(--orange);margin-top:4px;font-weight:500;}
+#time-meeting{color:var(--green);font-weight:700;}
+#time-departure{color:var(--red);font-weight:700;}
 
-/* BUTTONS */
-.btn-primary{display:block;width:100%;background-color:var(--tg-theme-button-color,#2481cc);color:var(--tg-theme-button-text-color,#fff);border:none;padding:15px;border-radius:14px;font-size:16px;font-weight:600;text-align:center;cursor:pointer;box-sizing:border-box;transition:opacity 0.2s,transform 0.1s;}
-.btn-primary:active{transform:scale(0.98);}
-.btn-primary:disabled{opacity:0.5;cursor:not-allowed;}
-.btn-green{background-color:#27ae60!important;}
-.btn-outline{display:block;width:100%;background-color:transparent;color:var(--tg-theme-button-color,#2481cc);border:1.5px solid var(--tg-theme-button-color,#2481cc);padding:14px;border-radius:14px;font-size:15px;font-weight:600;text-align:center;cursor:pointer;box-sizing:border-box;transition:background 0.15s;}
-.btn-outline:active{background:rgba(36,129,204,0.07);}
-.btn-secondary{background-color:transparent;color:var(--tg-theme-button-color,#2481cc);border:none;padding:12px;font-size:15px;font-weight:600;cursor:pointer;display:block;margin:8px auto 0;}
+/* ── SECTION BLOCKS ── */
+.section-block{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px var(--shadow);transition:background 0.3s,border-color 0.3s;}
+.section-block-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:14px;}
+
+/* ── BUTTONS ── */
+.btn-primary{display:block;width:100%;background:var(--accent);color:#fff;border:none;padding:15px;border-radius:14px;font-size:15px;font-weight:600;text-align:center;cursor:pointer;transition:opacity 0.2s,transform 0.1s;}
+.btn-primary:active{transform:scale(0.98);opacity:0.9;}
+.btn-primary:disabled{opacity:0.45;cursor:not-allowed;}
+.btn-green{background:var(--green)!important;}
+.btn-outline{display:block;width:100%;background:transparent;color:var(--accent);border:1.5px solid var(--accent);padding:14px;border-radius:14px;font-size:15px;font-weight:600;text-align:center;cursor:pointer;transition:background 0.15s;}
+.btn-outline:active{background:rgba(36,129,204,0.08);}
+.btn-secondary{background:transparent;color:var(--accent);border:none;padding:12px;font-size:14px;font-weight:600;cursor:pointer;display:block;margin:8px auto 0;}
 .action-buttons{display:flex;flex-direction:column;gap:10px;margin-top:24px;}
-
-.form-row{display:flex;gap:12px;width:100%;box-sizing:border-box;}
+.form-row{display:flex;gap:12px;width:100%;}
 .form-row .form-group{flex:1;}
 .checkbox-container{display:flex;align-items:center;gap:10px;margin:10px 0;cursor:pointer;}
-.checkbox-container input{width:20px;height:20px;accent-color:var(--tg-theme-button-color,#2481cc);flex-shrink:0;}
+.checkbox-container input{width:20px;height:20px;accent-color:var(--accent);flex-shrink:0;}
 .hidden-field{display:none;}
 
-.file-upload-btn{display:inline-block;background-color:var(--tg-theme-secondary-bg-color,#e9e9eb);color:var(--tg-theme-text-color,#000);padding:10px 14px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;}
-.preview-container{position:relative;width:110px;height:110px;margin-top:10px;display:none;}
-.preview-img{width:100%;height:100%;object-fit:cover;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.12);}
-.btn-remove-photo{position:absolute;top:-6px;right:-6px;width:22px;height:22px;background-color:#eb5757;color:#fff;border-radius:50%;border:2px solid var(--tg-theme-bg-color,#fff);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+/* ── FILE UPLOAD ── */
+.file-upload-btn{display:inline-block;background:var(--bg2);color:var(--text);padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);}
+.preview-container{position:relative;width:90px;height:90px;margin-top:10px;display:none;}
+.preview-img{width:100%;height:100%;object-fit:cover;border-radius:10px;box-shadow:0 4px 12px var(--shadow);}
+.btn-remove-photo{position:absolute;top:-6px;right:-6px;width:22px;height:22px;background:#eb5757;color:#fff;border-radius:50%;border:2px solid var(--card);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;}
 
-/* DRAFT BANNER */
-.draft-banner{background-color:#fff3cd;border:1px solid #ffeeba;color:#856404;padding:14px;border-radius:12px;margin-bottom:14px;font-size:14px;display:none;align-items:center;justify-content:space-between;gap:10px;}
+/* ── DRAFT BANNER ── */
+.draft-banner{background:#fff3cd;border:1px solid #ffeeba;color:#856404;padding:12px 14px;border-radius:12px;margin-bottom:14px;font-size:13px;display:none;align-items:center;justify-content:space-between;gap:10px;}
+[data-theme="dark"] .draft-banner{background:#3a2e00;border-color:#5a4600;color:#ffd860;}
 .draft-banner button{background:#856404;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;}
 
-/* PROJECT CARDS */
-.project-card{background:var(--tg-theme-bg-color,#fff);border:1px solid var(--tg-theme-secondary-bg-color,#e9e9eb);border-radius:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.04);overflow:hidden;cursor:pointer;transition:box-shadow 0.2s;}
-.project-card:active{box-shadow:0 1px 4px rgba(0,0,0,0.06);}
-.project-card-body{padding:14px 14px 10px;}
-.project-card-title{font-weight:700;font-size:16px;margin-bottom:4px;}
-.project-card-meta{font-size:13px;color:var(--tg-theme-hint-color,#8e8e93);margin-bottom:6px;}
-.project-card-info{font-size:13px;margin-bottom:2px;}
-.project-card-return{font-size:13px;font-weight:600;color:var(--tg-theme-button-color,#2481cc);}
-.project-card-actions{border-top:1px solid var(--tg-theme-secondary-bg-color,#e9e9eb);display:flex;align-items:center;}
-.project-card-actions .card-action-btn{flex:1;background:none;border:none;padding:11px 8px;font-size:13px;font-weight:600;color:var(--tg-theme-button-color,#2481cc);cursor:pointer;text-align:center;}
-.project-card-actions .card-action-btn.danger{color:#e74c3c;}
-.project-card-actions .card-divider{width:1px;height:32px;background:var(--tg-theme-secondary-bg-color,#e9e9eb);}
-.empty-state{text-align:center;color:var(--tg-theme-hint-color,#8e8e93);margin:40px 0;font-size:15px;}
+/* ── PROJECT CARDS ── */
+.project-card{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;box-shadow:0 2px 8px var(--shadow);overflow:hidden;transition:box-shadow 0.2s,background 0.3s;}
+.project-card:active{box-shadow:0 1px 3px var(--shadow);}
+.project-card-body{padding:14px 14px 10px;cursor:pointer;}
+.project-card-title{font-weight:700;font-size:16px;margin-bottom:3px;color:var(--text);}
+.project-card-meta{font-size:12px;color:var(--text2);margin-bottom:5px;}
+.project-card-info{font-size:13px;color:var(--text);margin-bottom:2px;}
+.project-card-return{font-size:13px;font-weight:600;color:var(--accent);}
+.project-card-actions{border-top:1px solid var(--border);display:flex;align-items:center;}
+.card-action-btn{flex:1;background:none;border:none;padding:11px 6px;font-size:13px;font-weight:600;color:var(--accent);cursor:pointer;text-align:center;}
+.card-action-btn.danger{color:var(--red);}
+.card-divider{width:1px;height:32px;background:var(--border);}
+.empty-state{text-align:center;color:var(--text2);margin:40px 0;font-size:15px;}
 
-/* CONTEXT MENU */
+/* ── CTX MENU ── */
 .ctx-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:88888;display:none;}
-.ctx-menu{position:fixed;background:var(--tg-theme-bg-color,#fff);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.18);z-index:88889;min-width:200px;overflow:hidden;display:none;}
-.ctx-item{padding:14px 18px;font-size:15px;font-weight:500;cursor:pointer;border-bottom:1px solid var(--tg-theme-secondary-bg-color,#f0f0f0);display:flex;align-items:center;gap:10px;}
+.ctx-menu{position:fixed;background:var(--card);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.22);z-index:88889;min-width:210px;overflow:hidden;display:none;border:1px solid var(--border);}
+.ctx-item{padding:13px 18px;font-size:14px;font-weight:500;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;color:var(--text);}
 .ctx-item:last-child{border-bottom:none;}
-.ctx-item:active{background:var(--tg-theme-secondary-bg-color,#f0f0f0);}
-.ctx-item.danger{color:#e74c3c;}
+.ctx-item:active{background:var(--bg2);}
+.ctx-item.danger{color:var(--red);}
 
-/* BUILDER */
-.builder-header-title{font-size:22px;font-weight:800;text-align:center;margin-bottom:4px;}
-.builder-header-date{font-size:16px;font-weight:600;text-align:center;color:var(--tg-theme-hint-color,#8e8e93);margin-bottom:18px;}
-.section-label{font-size:12px;font-weight:700;color:var(--tg-theme-hint-color,#8e8e93);text-transform:uppercase;letter-spacing:0.6px;margin:16px 0 8px;text-align:center;}
+/* ── BUILDER ── */
+.builder-header-title{font-size:22px;font-weight:800;text-align:center;margin-bottom:3px;color:var(--text);}
+.builder-header-date{font-size:15px;font-weight:600;text-align:center;color:var(--text2);margin-bottom:18px;}
+.section-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin:16px 0 8px;text-align:center;}
 
-/* SUMMARY */
-.summary-section{background:var(--tg-theme-secondary-bg-color,#e9e9eb);border-radius:14px;padding:14px;margin-bottom:10px;}
+/* ── TRANSPORT CARD (двухколоночный) ── */
+.transport-card{display:flex;gap:12px;align-items:stretch;}
+.transport-info{flex:1;display:flex;flex-direction:column;gap:5px;}
+.transport-info-row{font-size:13px;color:var(--text);line-height:1.5;}
+.transport-info-row b{font-weight:700;}
+.transport-info-label{font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;}
+.transport-photo{width:90px;flex-shrink:0;border-radius:10px;overflow:hidden;background:var(--bg2);}
+.transport-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+.transport-photo-placeholder{width:100%;height:100%;min-height:80px;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:24px;}
+
+/* ── SUMMARY ── */
+.summary-section{background:var(--bg2);border-radius:14px;padding:14px;margin-bottom:10px;transition:background 0.3s;}
 .summary-two-col{display:flex;gap:10px;}
 .summary-col{flex:1;display:flex;flex-direction:column;gap:8px;}
-.summary-col-right{border-left:1px solid rgba(0,0,0,0.08);padding-left:12px;}
-.summary-item-label{font-size:11px;font-weight:700;color:var(--tg-theme-hint-color,#8e8e93);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px;}
-.summary-item-value{font-size:14px;font-weight:600;}
-.summary-time-value{font-size:20px;font-weight:800;}
-.summary-return{text-align:center;margin-top:10px;padding-top:10px;border-top:1px solid rgba(0,0,0,0.08);font-size:15px;font-weight:700;color:var(--tg-theme-button-color,#2481cc);}
+.summary-col-right{border-left:1px solid var(--border);padding-left:12px;}
+.summary-item-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px;}
+.summary-item-value{font-size:14px;font-weight:600;color:var(--text);}
+.summary-time-value{font-size:22px;font-weight:800;}
+.summary-return{text-align:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:15px;font-weight:700;color:var(--accent);}
 
-/* ROUTE ITEMS */
-.route-list-container{border:2px solid var(--tg-theme-secondary-bg-color,#e9e9eb);border-radius:14px;padding:8px;min-height:60px;}
+/* ── ROUTE ── */
+.route-list-container{border:2px solid var(--border);border-radius:14px;padding:8px;min-height:60px;transition:border-color 0.3s;}
 #route-points-list{width:100%;display:flex;flex-direction:column;}
-.route-item{background:var(--tg-theme-bg-color,#fff);border:1px solid var(--tg-theme-secondary-bg-color,#e9e9eb);padding:12px;border-radius:12px;margin-bottom:8px;display:flex;align-items:center;user-select:none;-webkit-user-select:none;position:relative;box-sizing:border-box;transition:box-shadow 0.2s,transform 0.15s;cursor:grab;}
+.route-item{background:var(--card);border:1px solid var(--border);padding:12px;border-radius:12px;margin-bottom:8px;display:flex;align-items:center;user-select:none;-webkit-user-select:none;position:relative;cursor:grab;transition:box-shadow 0.2s,background 0.3s;}
 .route-item:last-child{margin-bottom:0;}
-.drag-handle{width:28px;height:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;flex-shrink:0;cursor:grab;padding-right:4px;}
-.drag-handle span{display:block;width:16px;height:2px;background:var(--tg-theme-hint-color,#c8c8ce);border-radius:2px;}
-.route-item.dragging{box-shadow:0 16px 40px rgba(0,0,0,0.2);border-color:var(--tg-theme-button-color,#2481cc);z-index:9999;opacity:0.96;cursor:grabbing;}
-.route-item.drag-over{border-color:var(--tg-theme-button-color,#2481cc);background:rgba(36,129,204,0.04);}
+.drag-handle{width:28px;height:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;flex-shrink:0;padding-right:4px;}
+.drag-handle span{display:block;width:16px;height:2px;background:var(--text2);border-radius:2px;opacity:0.5;}
+.route-item.type-location{border-left:3px solid var(--green);}
+.route-item.type-transit{border-left:3px solid var(--orange);}
+.route-item.type-lunch{border-left:3px solid var(--accent);}
 .route-text-block{flex:1;pointer-events:none;min-width:0;}
-.route-item-title{font-weight:700;font-size:15px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.route-item-time{color:var(--tg-theme-button-color,#2481cc);font-family:monospace;font-size:13px;font-weight:600;}
-.route-item-sub{font-size:12px;color:var(--tg-theme-hint-color,#8e8e93);margin-top:2px;}
-.btn-delete-point{background:none;border:none;color:var(--tg-theme-hint-color,#8e8e93);font-size:18px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;border-radius:50%;transition:background 0.15s;}
+.route-item-title{font-weight:700;font-size:15px;margin-bottom:2px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.route-item-time{color:var(--accent);font-family:monospace;font-size:13px;font-weight:600;}
+.route-item-sub{font-size:12px;color:var(--text2);margin-top:2px;}
+.btn-delete-point{background:none;border:none;color:var(--text2);font-size:18px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;border-radius:50%;transition:background 0.15s;}
 .btn-delete-point:hover{background:rgba(235,87,87,0.12);color:#eb5757;}
-/* ЦВЕТА ТИПОВ — исправлены по заданию */
-.route-item.type-location{border-left:3px solid #27ae60;}
-.route-item.type-transit{border-left:3px solid #e67e22;}
-.route-item.type-lunch{border-left:3px solid #2481cc;}
-
 .constructor-buttons{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
-.btn-add{background-color:var(--tg-theme-secondary-bg-color,#e9e9eb);color:var(--tg-theme-text-color,#000);border:1px dashed var(--tg-theme-hint-color,#b0b0b8);padding:13px 14px;border-radius:12px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;transition:background 0.15s;}
-.btn-add:hover{background:rgba(36,129,204,0.07);}
+.btn-add{background:var(--bg2);color:var(--text);border:1.5px dashed var(--border);padding:13px 14px;border-radius:12px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;transition:background 0.15s;}
+.btn-add:active{background:rgba(36,129,204,0.08);}
 
-/* BOTTOM SHEETS */
-.bottom-sheet-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:99999;display:none;}
-.bottom-sheet{position:fixed;bottom:0;left:0;right:0;background:var(--tg-theme-bg-color,#fff);border-top-left-radius:22px;border-top-right-radius:22px;padding:20px;box-sizing:border-box;max-height:88vh;overflow-y:auto;}
-.sheet-handle{width:40px;height:5px;background:#ccc;border-radius:3px;margin:-10px auto 16px;}
+/* ── SHEETS ── */
+.bottom-sheet-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:99999;display:none;}
+.bottom-sheet{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top-left-radius:22px;border-top-right-radius:22px;padding:20px;max-height:88vh;overflow-y:auto;transition:background 0.3s;}
+.sheet-handle{width:40px;height:5px;background:var(--border);border-radius:3px;margin:-10px auto 16px;}
 
-/* PREVIEW SCREEN */
-.preview-bubble{background:var(--tg-theme-secondary-bg-color,#e9e9eb);border-radius:14px 14px 14px 4px;padding:14px 16px;font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word;margin-bottom:16px;font-family:-apple-system,sans-serif;}
-.preview-bubble a{color:var(--tg-theme-button-color,#2481cc);text-decoration:none;}
+/* ── PREVIEW ── */
+.preview-bubble{background:var(--bg2);border-radius:14px 14px 14px 4px;padding:14px 16px;font-size:14px;line-height:1.75;white-space:pre-wrap;word-break:break-word;margin-bottom:16px;transition:background 0.3s;}
+.preview-bubble a{color:var(--accent);text-decoration:none;}
+.preview-bubble b{font-weight:700;}
 
-/* STATUS */
+/* ── STATUS ── */
 .send-status{margin-top:10px;padding:12px;border-radius:10px;font-size:14px;font-weight:600;text-align:center;display:none;}
-.send-status.loading{background:#e8f4fd;color:#2481cc;display:block;}
+.send-status.loading{background:#e8f4fd;color:#1a6faa;display:block;}
 .send-status.success{background:#d4edda;color:#155724;display:block;}
 .send-status.error{background:#f8d7da;color:#721c24;display:block;}
+[data-theme="dark"] .send-status.loading{background:#1a3a55;color:#7ec8f5;}
+[data-theme="dark"] .send-status.success{background:#1a3d28;color:#6fcf97;}
+[data-theme="dark"] .send-status.error{background:#3d1a1e;color:#f5a0a0;}
 
 @keyframes itemDrop{0%{transform:scale(1.03)}60%{transform:scale(0.98)}100%{transform:scale(1)}}
 .item-dropped{animation:itemDrop 0.25s ease;}
@@ -141,9 +193,18 @@ body.sheet-open{overflow:hidden!important;}
 <body>
 <div class="app-wrapper">
 
-<!-- ═══ ГЛАВНЫЙ ЭКРАН ═══ -->
+<!-- ══════════════════════════════════
+     ГЛАВНЫЙ ЭКРАН
+═══════════════════════════════════ -->
 <div id="screen-main" class="screen active">
-  <div class="header">Scout Planner</div>
+  <div class="top-bar">
+    <div class="theme-toggle">
+      <div class="toggle-track" id="theme-toggle-btn">
+        <div class="toggle-thumb"></div>
+      </div>
+    </div>
+    <div class="header">Scout Planner</div>
+  </div>
   <div class="tabs-container">
     <div class="tab active" id="tab-active">Активные</div>
     <div class="tab" id="tab-archive">Скрытые</div>
@@ -151,12 +212,12 @@ body.sheet-open{overflow:hidden!important;}
   </div>
   <div id="content-active">
     <div class="draft-banner" id="main-draft-banner">
-      <span>У вас есть несохраненный черновик!</span>
+      <span>📝 Есть несохранённый черновик</span>
       <button id="btn-restore-draft">Восстановить</button>
     </div>
-    <div class="empty-state" id="main-empty-state">У вас пока нет активных планов</div>
+    <div class="empty-state" id="main-empty-state">Планов пока нет — создай первый!</div>
     <div id="projects-list-active"></div>
-    <button class="btn-primary" id="btn-create-project" style="margin-top:14px;">+ Создать новый проект</button>
+    <button class="btn-primary" id="btn-create-project" style="margin-top:14px;">＋ Создать новый проект</button>
   </div>
   <div id="content-archive" style="display:none;">
     <div class="empty-state" id="archive-empty-state">Нет скрытых проектов</div>
@@ -168,66 +229,78 @@ body.sheet-open{overflow:hidden!important;}
   </div>
 </div>
 
-<!-- ═══ ШАГ 1: СОЗДАНИЕ ═══ -->
+<!-- ══════════════════════════════════
+     ШАГ 1: СОЗДАНИЕ
+═══════════════════════════════════ -->
 <div id="screen-create" class="screen">
-  <div class="header">Что планируем?</div>
+  <div class="screen-header">
+    <button class="btn-back" id="btn-cancel-step1">←</button>
+    <div class="header">Что планируем?</div>
+  </div>
+
   <div class="section-block">
     <div class="section-block-title">Основное</div>
     <div class="form-group">
       <label class="form-label">Название проекта</label>
       <input type="text" id="project-title" class="form-input" placeholder="Например: Скаут Тбилиси">
     </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Дата</label>
-        <input type="text" id="project-date" class="form-input" placeholder="ДД.ММ.ГГ" inputmode="numeric" maxlength="8">
-      </div>
+    <div class="form-group">
+      <label class="form-label">Дата</label>
+      <input type="text" id="project-date" class="form-input" placeholder="ДД.ММ.ГГ" inputmode="numeric" maxlength="8">
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label" style="color:#27ae60;">🟢 Время сбора</label>
+        <label class="form-label" style="color:var(--green);">🟢 Время сбора</label>
         <input type="text" id="time-meeting" class="form-input time-mask" placeholder="ЧЧ:ММ" inputmode="numeric" maxlength="5">
-        <div id="warn-time-meeting" class="time-warning">Выставили :00 — всё верно?</div>
+        <div id="warn-time-meeting" class="time-warning">Выставили :00 — верно?</div>
       </div>
       <div class="form-group">
-        <label class="form-label" style="color:#e74c3c;">🔴 Время выезда</label>
+        <label class="form-label" style="color:var(--red);">🔴 Время выезда</label>
         <input type="text" id="time-departure" class="form-input time-mask" placeholder="ЧЧ:ММ" inputmode="numeric" maxlength="5">
-        <div id="warn-time-departure" class="time-warning">Выставили :00 — всё верно?</div>
+        <div id="warn-time-departure" class="time-warning">Выставили :00 — верно?</div>
       </div>
     </div>
   </div>
+
   <div class="section-block">
     <div class="section-block-title">Место сбора</div>
     <div class="form-group">
-      <label class="form-label">Место сбора (кратко)</label>
+      <label class="form-label">Место (кратко)</label>
       <input type="text" id="meeting-place" class="form-input" placeholder="Например: Метро Руставели">
     </div>
     <div class="form-group">
-      <label class="form-label">Адрес сбора</label>
+      <label class="form-label">Адрес</label>
       <input type="text" id="meeting-address" class="form-input" placeholder="Улица, дом...">
     </div>
     <div class="form-group">
-      <label class="form-label">Ссылка на место сбора (карта)</label>
+      <label class="form-label">Ссылка на карту (место сбора)</label>
       <input type="url" id="meeting-map" class="form-input" placeholder="Google / Yandex Maps">
     </div>
     <label class="checkbox-container">
       <input type="checkbox" id="check-coords">
-      <span class="form-label" style="margin:0;">Добавить GPS координаты</span>
+      <span class="form-label" style="margin:0;">📡 Добавить GPS координаты</span>
     </label>
     <div id="coords-field" class="form-group hidden-field">
       <input type="text" id="meeting-coords" class="form-input" placeholder="41.7151, 44.7932">
     </div>
   </div>
+
   <div class="section-block">
     <div class="section-block-title">Транспорт</div>
     <label class="checkbox-container">
       <input type="checkbox" id="check-transport">
-      <span class="form-label" style="margin:0;">Добавить данные транспорта</span>
+      <span class="form-label" style="margin:0;">🚘 Добавить данные транспорта</span>
     </label>
-    <div id="transport-fields" class="hidden-field">
-      <div class="form-group" style="margin-top:10px;">
-        <label class="form-label">Номер авто</label>
-        <input type="text" id="car-number" class="form-input" placeholder="AA-123-BB">
+    <div id="transport-fields" class="hidden-field" style="margin-top:10px;">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Марка / Цвет</label>
+          <input type="text" id="car-brand" class="form-input" placeholder="Белый Mercedes">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Номер авто</label>
+          <input type="text" id="car-number" class="form-input" placeholder="AA-123-BB">
+        </div>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -241,7 +314,7 @@ body.sheet-open{overflow:hidden!important;}
       </div>
       <div class="form-group">
         <label class="form-label">Фото автомобиля</label>
-        <label class="file-upload-btn" for="car-photo-input">📁 Выбрать фото</label>
+        <label class="file-upload-btn" for="car-photo-input">📷 Выбрать фото</label>
         <input type="file" id="car-photo-input" accept="image/*" style="display:none;">
         <div id="car-photo-preview-wrap" class="preview-container">
           <img id="car-photo-preview" class="preview-img" alt="">
@@ -250,14 +323,20 @@ body.sheet-open{overflow:hidden!important;}
       </div>
     </div>
   </div>
+
   <button class="btn-primary" id="btn-submit-step1">Далее →</button>
-  <button class="btn-secondary" id="btn-cancel-step1">Отмена</button>
 </div>
 
-<!-- ═══ ШАГ 2: МАРШРУТ ═══ -->
+<!-- ══════════════════════════════════
+     ШАГ 2: МАРШРУТ
+═══════════════════════════════════ -->
 <div id="screen-builder" class="screen">
-  <div class="builder-header-title" id="builder-title">—</div>
+  <div class="screen-header">
+    <button class="btn-back" id="btn-back-to-step1">←</button>
+    <div class="header" id="builder-title">—</div>
+  </div>
   <div class="builder-header-date" id="builder-date">—</div>
+
   <div class="section-label">Информация о сборе</div>
   <div class="summary-section">
     <div class="summary-two-col">
@@ -266,10 +345,12 @@ body.sheet-open{overflow:hidden!important;}
     </div>
     <div class="summary-return" id="summary-return">🏁 Возвращение: —</div>
   </div>
+
   <div id="block-transport-summary" style="display:none;">
     <div class="section-label">Транспорт</div>
     <div class="summary-section" id="block-transport-inner"></div>
   </div>
+
   <div class="section-label">Маршрутный лист</div>
   <div class="section-block" style="padding:12px 16px;margin-bottom:10px;">
     <label class="checkbox-container" style="margin:0;">
@@ -277,47 +358,53 @@ body.sheet-open{overflow:hidden!important;}
       <span class="form-label" style="margin:0;">🗺 Все точки на карте</span>
     </label>
     <div id="all-points-map-field" class="form-group hidden-field" style="margin-top:10px;margin-bottom:0;">
-      <input type="url" id="all-points-map" class="form-input" placeholder="Ссылка на общую карту">
+      <input type="url" id="all-points-map" class="form-input" placeholder="Ссылка на общую карту маршрута">
     </div>
   </div>
+
   <div class="route-list-container">
     <div id="route-points-list">
       <div class="empty-state" id="builder-empty-state" style="margin:20px 0;">Точки маршрута ещё не добавлены</div>
     </div>
   </div>
+
   <div class="constructor-buttons">
-    <button class="btn-add" id="btn-add-location">📍 + Добавить локацию</button>
-    <button class="btn-add" id="btn-add-transit">🚗 + Добавить переезд</button>
-    <button class="btn-add" id="btn-add-lunch">🍽️ + Добавить ланч</button>
+    <button class="btn-add" id="btn-add-location">📍 Добавить локацию</button>
+    <button class="btn-add" id="btn-add-transit">🚗 Добавить переезд</button>
+    <button class="btn-add" id="btn-add-lunch">🍽 Добавить ланч</button>
   </div>
+
   <div class="action-buttons">
     <button class="btn-primary btn-green" id="btn-save-close">✅ Сохранить и закрыть</button>
     <button class="btn-outline" id="btn-preview">👁 Предпросмотр сообщения</button>
-    <button class="btn-primary" id="btn-send-plan">📤 Запросить план в чат</button>
+    <button class="btn-primary" id="btn-send-plan">📤 Отправить план в Telegram</button>
   </div>
   <div id="send-status" class="send-status"></div>
-  <button class="btn-secondary" id="btn-back-to-step1">← Назад</button>
 </div>
 
-<!-- ═══ ПРЕДПРОСМОТР ═══ -->
+<!-- ══════════════════════════════════
+     ПРЕДПРОСМОТР
+═══════════════════════════════════ -->
 <div id="screen-preview" class="screen">
-  <div class="header">Предпросмотр плана</div>
+  <div class="screen-header">
+    <button class="btn-back" id="btn-back-from-preview">←</button>
+    <div class="header">Предпросмотр</div>
+  </div>
   <div class="preview-bubble" id="preview-content"></div>
-  <button class="btn-primary" id="btn-send-from-preview">📤 Запросить план в чат</button>
+  <button class="btn-primary" id="btn-send-from-preview">📤 Отправить план в Telegram</button>
   <div id="preview-send-status" class="send-status"></div>
-  <button class="btn-secondary" id="btn-back-from-preview">← Назад</button>
 </div>
 
 </div><!-- /app-wrapper -->
 
-<!-- CONTEXT MENU -->
+<!-- CTX MENU -->
 <div class="ctx-overlay" id="ctx-overlay"></div>
 <div class="ctx-menu" id="ctx-menu">
   <div class="ctx-item" id="ctx-open">✏️ Открыть и редактировать</div>
   <div class="ctx-item" id="ctx-send">📤 Отправить план в чат</div>
   <div class="ctx-item" id="ctx-hide">🙈 Скрыть проект</div>
   <div class="ctx-item" id="ctx-restore" style="display:none;">♻️ Восстановить</div>
-  <div class="ctx-item danger" id="ctx-delete">🗑️ Удалить</div>
+  <div class="ctx-item danger" id="ctx-delete">🗑 Удалить</div>
 </div>
 
 <!-- ШТОРКА: ЛОКАЦИЯ -->
@@ -325,10 +412,10 @@ body.sheet-open{overflow:hidden!important;}
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
     <div class="header" id="sheet-loc-header" style="font-size:18px;margin-bottom:14px;">📍 Новая локация</div>
-    <div class="form-group"><label class="form-label">Название локации</label><input type="text" id="sheet-loc-title" class="form-input" placeholder="Например: Загородный дом"></div>
-    <div class="form-group"><label class="form-label">Ссылка на фото</label><input type="url" id="sheet-loc-link" class="form-input" placeholder="Google Drive / Dropbox..."></div>
-    <div class="form-group"><label class="form-label">Ссылка на точку (карта)</label><input type="url" id="sheet-loc-map" class="form-input" placeholder="Google / Yandex Maps"></div>
-    <label class="checkbox-container"><input type="checkbox" id="sheet-loc-check-coords"><span class="form-label" style="margin:0;">Добавить GPS координаты</span></label>
+    <div class="form-group"><label class="form-label">Название</label><input type="text" id="sheet-loc-title" class="form-input" placeholder="Например: Загородный дом"></div>
+    <div class="form-group"><label class="form-label">Ссылка на фото (Drive / Dropbox)</label><input type="url" id="sheet-loc-link" class="form-input" placeholder="https://..."></div>
+    <div class="form-group"><label class="form-label">Ссылка на карту (точка)</label><input type="url" id="sheet-loc-map" class="form-input" placeholder="Google / Yandex Maps"></div>
+    <label class="checkbox-container"><input type="checkbox" id="sheet-loc-check-coords"><span class="form-label" style="margin:0;">📡 GPS координаты точки</span></label>
     <div id="sheet-loc-coords-field" class="form-group hidden-field"><input type="text" id="sheet-loc-coords" class="form-input" placeholder="41.7151, 44.7932"></div>
     <div class="form-group"><label class="form-label">Время на локации</label>
       <div class="form-row">
@@ -361,7 +448,7 @@ body.sheet-open{overflow:hidden!important;}
 <div class="bottom-sheet-overlay" id="overlay-lunch">
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
-    <div class="header" id="sheet-lunch-header" style="font-size:18px;margin-bottom:14px;">🍽️ Ланч</div>
+    <div class="header" id="sheet-lunch-header" style="font-size:18px;margin-bottom:14px;">🍽 Ланч</div>
     <div class="form-group"><label class="form-label">Длительность</label>
       <div class="form-row">
         <div style="flex:1;"><input type="number" id="sheet-lunch-hours" class="form-input" placeholder="Часы" min="0" max="23" inputmode="numeric"></div>
@@ -380,326 +467,373 @@ tg.ready(); tg.expand();
 function haptic(t){try{if(tg.HapticFeedback)tg.HapticFeedback.impactOccurred(t);}catch(e){}}
 function hapticN(t){try{if(tg.HapticFeedback)tg.HapticFeedback.notificationOccurred(t);}catch(e){}}
 
-// ── STATE ──────────────────────────────────────────────────────────────
-let uploadedCarPhotoBase64='', routePoints=[];
-let gTitle='',gDate='',gMeetTime='',gDepTime='',gPlace='',gAddress='',gMap='',gAllMap='',gCoords='';
-let editingIndex=null, ctxProjectIdx=null, ctxProjectStatus='active';
+// ── THEME ────────────────────────────────────────────────────────────────
+function initTheme() {
+  // Определяем тему: из localStorage или системная
+  let saved = localStorage.getItem('scout_theme');
+  if (!saved) {
+    saved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  applyTheme(saved);
+}
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const btn = $('theme-toggle-btn');
+  if (theme === 'dark') btn.classList.add('on'); else btn.classList.remove('on');
+  localStorage.setItem('scout_theme', theme);
+}
+$t('theme-toggle-btn','click',function(){
+  const cur = document.documentElement.getAttribute('data-theme');
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+});
 
-// ── UTILS ──────────────────────────────────────────────────────────────
+// ── HELPERS ─────────────────────────────────────────────────────────────
+function $(id){return document.getElementById(id);}
+function $t(id,ev,fn){document.getElementById(id).addEventListener(ev,fn);}
+function haptic(t){try{if(tg.HapticFeedback)tg.HapticFeedback.impactOccurred(t);}catch(e){}}
+function hapticN(t){try{if(tg.HapticFeedback)tg.HapticFeedback.notificationOccurred(t);}catch(e){}}
+
+// ── NAVIGATION STACK ─────────────────────────────────────────────────────
+// Поддерживаем стек экранов для корректной навигации назад
+const screenStack = ['screen-main'];
+
+function showScreen(id, pushToStack=true) {
+  haptic('medium');
+  document.querySelectorAll('.screen').forEach(s=>s.style.display='none');
+  $(id).style.display='block';
+  window.scrollTo(0,0);
+  if (pushToStack) {
+    // Убираем дубли
+    if (screenStack[screenStack.length-1] !== id) screenStack.push(id);
+  }
+}
+
+function goBack() {
+  if (screenStack.length > 1) {
+    screenStack.pop();
+    const prev = screenStack[screenStack.length-1];
+    haptic('medium');
+    document.querySelectorAll('.screen').forEach(s=>s.style.display='none');
+    $(prev).style.display='block';
+    window.scrollTo(0,0);
+  } else {
+    showScreen('screen-main', false);
+  }
+}
+
+// ── STATE ────────────────────────────────────────────────────────────────
+let uploadedCarPhotoBase64='', routePoints=[];
+let gTitle='',gDate='',gMeetTime='',gDepTime='';
+let gPlace='',gAddress='',gMap='',gAllMap='',gCoords='';
+let gBrand='';
+let editingIndex=null, ctxProjectIdx=null, ctxProjectStatus='active';
+let editingProjectIdx=null; // индекс редактируемого проекта (-1 = новый)
+
+// ── UTILS ────────────────────────────────────────────────────────────────
 function dur(m){if(!m||isNaN(m))return'0 мин';const h=Math.floor(m/60),r=m%60;if(h&&r)return h+' ч '+r+' мин';if(h)return h+' ч';return r+' мин';}
 function addM(t,m){if(!t)t='00:00';const[h,mm]=t.split(':').map(Number);const tot=(isNaN(h)?0:h)*60+(isNaN(mm)?0:mm)+parseInt(m||0);return String(Math.floor(tot/60)%24).padStart(2,'0')+':'+String(tot%60).padStart(2,'0');}
-function showScreen(id){haptic('medium');document.querySelectorAll('.screen').forEach(s=>s.style.display='none');document.getElementById(id).style.display='block';window.scrollTo(0,0);}
-function openSheet(id){haptic('light');document.body.classList.add('sheet-open');document.getElementById(id).style.display='block';}
-function closeSheet(id){document.body.classList.remove('sheet-open');document.getElementById(id).style.display='none';editingIndex=null;}
-function showStatus(id,type,text){const el=document.getElementById(id);el.className='send-status '+type;el.textContent=text;if(type!=='loading')setTimeout(()=>{el.style.display='none';},4000);}
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function showStatus(id,type,text){const el=$(id);el.className='send-status '+type;el.textContent=text;if(type!=='loading')setTimeout(()=>{el.style.display='none';},4000);}
 
-// ── STORAGE ────────────────────────────────────────────────────────────
+function openSheet(id){haptic('light');document.body.classList.add('sheet-open');$(id).style.display='block';}
+function closeSheet(id){document.body.classList.remove('sheet-open');$(id).style.display='none';editingIndex=null;}
+
+// ── STORAGE ──────────────────────────────────────────────────────────────
 function getProjects(){try{return JSON.parse(localStorage.getItem('scout_projects')||'[]');}catch(e){return[];}}
 function saveProjects(p){localStorage.setItem('scout_projects',JSON.stringify(p));}
+
 function saveDraft(){
   try{localStorage.setItem('scout_draft',JSON.stringify({
-    title:$('project-title').value,date:$('project-date').value,
-    meetingTime:$('time-meeting').value,departureTime:$('time-departure').value,
-    place:$('meeting-place').value,address:$('meeting-address').value,
-    map:$('meeting-map').value,allPointsMap:$('all-points-map').value,
+    title:$('project-title').value, date:$('project-date').value,
+    meetingTime:$('time-meeting').value, departureTime:$('time-departure').value,
+    place:$('meeting-place').value, address:$('meeting-address').value,
+    map:$('meeting-map').value, allPointsMap:$('all-points-map').value,
     checkAllPointsMap:$('check-all-points-map').checked,
-    coords:$('meeting-coords').value,checkCoords:$('check-coords').checked,
+    coords:$('meeting-coords').value, checkCoords:$('check-coords').checked,
     checkTransport:$('check-transport').checked,
-    carNumber:$('car-number').value,driverName:$('driver-name').value,driverPhone:$('driver-phone').value,
-    carPhoto:uploadedCarPhotoBase64,routePoints
+    carBrand:$('car-brand').value, carNumber:$('car-number').value,
+    driverName:$('driver-name').value, driverPhone:$('driver-phone').value,
+    carPhoto:uploadedCarPhotoBase64, routePoints, editingProjectIdx
   }));}catch(e){}
 }
-function $(id){return document.getElementById(id);}
+
 function clearInputs(){
   ['project-title','project-date','time-meeting','time-departure','meeting-place','meeting-address',
-   'meeting-map','all-points-map','meeting-coords','car-number','driver-name','driver-phone'].forEach(id=>{const el=$(id);if(el)el.value='';});
+   'meeting-map','all-points-map','meeting-coords','car-brand','car-number','driver-name','driver-phone'
+  ].forEach(id=>{const el=$(id);if(el)el.value='';});
   uploadedCarPhotoBase64='';
   $('car-photo-preview-wrap').style.display='none';
   ['check-coords','check-transport','check-all-points-map'].forEach(id=>{$(id).checked=false;});
   ['coords-field','transport-fields','all-points-map-field'].forEach(id=>{$(id).style.display='none';});
   routePoints=[];
+  editingProjectIdx=null;
 }
 
-// ── BUILD TELEGRAM MESSAGE ─────────────────────────────────────────────
-function buildPlanText(data, forPreview=false) {
-  const {title,date,meetingTime,departureTime,meetingPlace,meetingAddress,meetingMapUrl,
-    allPointsMapUrl,coordinates,hasTransport,carNumber,driverName,driverPhone,routePoints:rp} = data;
+// ── BUILD PREVIEW HTML ────────────────────────────────────────────────────
+function buildPreviewHtml(data) {
+  const {title,date,meetingTime,departureTime,meetingPlace,meetingAddress,
+    meetingMapUrl,allPointsMapUrl,coordinates,hasTransport,
+    carBrand,carNumber,driverName,driverPhone,routePoints:rp=[]} = data;
 
-  let runTime = departureTime || '00:00';
-  let locN = 1;
-  let lines = [];
+  let runTime = departureTime||'00:00';
+  let locN=1;
+  const emojis=['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+  let html='';
 
-  lines.push('📋 *' + (title||'План') + '* — ' + (date||''));
-  lines.push('━━━━━━━━━━━━━━━━━━');
+  html += `<b>📋 ${esc(title||'План')} — ${esc(date||'')}</b>\n`;
+  html += `━━━━━━━━━━━━━━━━━━\n`;
+  if(allPointsMapUrl) html += `🗺 <a href="${allPointsMapUrl}">Все точки на карте</a>\n`;
 
-  if (allPointsMapUrl) lines.push('🗺 [Все точки на карте](' + allPointsMapUrl + ')');
-
-  if (hasTransport && (carNumber||driverName)) {
-    lines.push('');
-    lines.push('🚘 *Транспорт:*');
-    if (carNumber) lines.push('Авто: *' + carNumber + '*');
-    if (driverName) { let dl = '👤 ' + driverName; if(driverPhone) dl += ' · ' + driverPhone; lines.push(dl); }
+  if(hasTransport&&(carBrand||carNumber||driverName)){
+    html+='\n<b>🚘 Транспорт:</b>\n';
+    if(carBrand) html+=`${esc(carBrand)}\n`;
+    if(carNumber) html+=`Номер: <b>${esc(carNumber)}</b>\n`;
+    if(driverName){let dl=`👤 ${esc(driverName)}`;if(driverPhone)dl+=` · ${esc(driverPhone)}`;html+=dl+'\n';}
   }
 
-  lines.push('');
-  lines.push('━━━━━━━━━━━━━━━━━━');
-  // Место сбора
-  let sborLine = '🟢 *Сбор:* ';
-  if (meetingMapUrl) sborLine += '[' + (meetingPlace||'Место') + '](' + meetingMapUrl + ')';
-  else sborLine += '*' + (meetingPlace||'—') + '*';
-  sborLine += ' — ' + (meetingTime||'—');
-  lines.push(sborLine);
-  if (meetingAddress) lines.push('📌 ' + meetingAddress);
-  if (coordinates) lines.push('📡 `' + coordinates + '`');
-  lines.push('🔴 *Выезд:* ' + (departureTime||'—'));
-  lines.push('');
+  html+=`\n━━━━━━━━━━━━━━━━━━\n`;
+  let sborLine=`🟢 <b>Сбор:</b> `;
+  if(meetingMapUrl) sborLine+=`<a href="${meetingMapUrl}">${esc(meetingPlace||'Место')}</a>`;
+  else sborLine+=`<b>${esc(meetingPlace||'—')}</b>`;
+  sborLine+=` — ${esc(meetingTime||'—')}`;
+  html+=sborLine+'\n';
+  if(meetingAddress) html+=`📌 ${esc(meetingAddress)}\n`;
+  if(coordinates) html+=`📡 <span style="font-family:monospace;font-size:12px;">${esc(coordinates)}</span>\n`;
+  html+=`🔴 <b>Выезд:</b> ${esc(departureTime||'—')}\n\n`;
 
-  // Маршрут
-  (rp||[]).forEach(point => {
-    const d = parseInt(point.duration)||0;
-    if (point.type==='transit') {
-      lines.push('   🚗 *Переезд* ~' + dur(d));
-      lines.push('');
-      runTime = addM(runTime, d);
-    } else if (point.type==='lunch') {
-      const end = addM(runTime, d);
-      lines.push('🍽 *Ланч* — ' + runTime + '–' + end + ' (' + dur(d) + ')');
-      lines.push('');
-      runTime = end;
-    } else if (point.type==='location') {
-      const end = addM(runTime, d);
-      const emojis=['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
-      const em = emojis[locN-1] || locN+'.';
-      let line = em + ' ';
-      if (point.link) line += '[' + point.title + '](' + point.link + ')';
-      else line += '*' + point.title + '*';
-      line += ' — ' + runTime + '–' + end;
-      lines.push(line);
-      lines.push('   ⏱ ' + dur(d));
-      if (point.mapUrl) lines.push('   📍 [Точка на карте](' + point.mapUrl + ')');
-      if (point.coords) lines.push('   📡 `' + point.coords + '`');
-      lines.push('');
-      locN++; runTime = end;
+  rp.forEach(point=>{
+    const d=parseInt(point.duration)||0;
+    if(point.type==='transit'){
+      html+=`   🚗 <i>Переезд</i> ~${dur(d)}\n\n`;
+      runTime=addM(runTime,d);
+    } else if(point.type==='lunch'){
+      const e=addM(runTime,d);
+      html+=`🍽 <b>Ланч</b> — ${esc(runTime)}–${esc(e)} (${dur(d)})\n\n`;
+      runTime=e;
+    } else if(point.type==='location'){
+      const e=addM(runTime,d);
+      const em=emojis[locN-1]||`${locN}.`;
+      let line=`${em} `;
+      if(point.link) line+=`<a href="${point.link}">${esc(point.title||'Локация')}</a>`;
+      else line+=`<b>${esc(point.title||'Локация')}</b>`;
+      line+=` — ${esc(runTime)}–${esc(e)}`;
+      html+=line+'\n';
+      html+=`   ⏱ ${dur(d)}\n`;
+      if(point.mapUrl) html+=`   📍 <a href="${point.mapUrl}">Точка на карте</a>\n`;
+      if(point.coords) html+=`   📡 <span style="font-family:monospace;font-size:12px;">${esc(point.coords)}</span>\n`;
+      html+='\n';
+      locN++; runTime=e;
     }
   });
 
-  lines.push('━━━━━━━━━━━━━━━━━━');
-  lines.push('🏁 *Возвращение: ~' + runTime + '*');
-
-  return lines.join('\n');
+  html+=`━━━━━━━━━━━━━━━━━━\n`;
+  html+=`🏁 <b>Возвращение: ~${esc(runTime)}</b>`;
+  return html.replace(/\n/g,'<br>');
 }
 
-// Preview: простой HTML (без markdown-синтаксиса)
-function buildPreviewHtml(data) {
-  const text = buildPlanText(data, true);
-  // Конвертим MarkdownV2 в HTML для предпросмотра
-  let html = text
-    .replace(/\*([^*]+)\*/g, '<b>$1</b>')
-    .replace(/`([^`]+)`/g, '<span style="font-family:monospace;font-size:12px;">$1</span>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
-    .replace(/\n/g, '<br>');
-  return html;
+// ── COLLECT PLAN DATA ─────────────────────────────────────────────────────
+function collectPlanData(){
+  const hasTr=$('check-transport').checked;
+  const hasAP=$('check-all-points-map').checked;
+  let rt=gDepTime||'00:00';
+  routePoints.forEach(p=>{rt=addM(rt,parseInt(p.duration)||0);});
+  return {
+    title:gTitle, date:gDate, meetingTime:gMeetTime, departureTime:gDepTime,
+    meetingPlace:gPlace, meetingAddress:gAddress, meetingMapUrl:gMap,
+    allPointsMapUrl:hasAP?($('all-points-map').value||''):'',
+    coordinates:$('check-coords').checked?gCoords:'',
+    hasTransport:hasTr,
+    carBrand:hasTr?$('car-brand').value:'',
+    carNumber:hasTr?$('car-number').value:'',
+    driverName:hasTr?$('driver-name').value:'',
+    driverPhone:hasTr?$('driver-phone').value:'',
+    carPhotoBase64:hasTr?uploadedCarPhotoBase64:'',
+    routePoints:[...routePoints], returnTime:rt, status:'active'
+  };
 }
 
-// ── RENDER PROJECTS ────────────────────────────────────────────────────
-function renderAllProjects() {
-  const projects = getProjects();
-  const statuses = ['active','archive','trash'];
-  const containerIds = {active:'projects-list-active',archive:'projects-list-archive',trash:'projects-list-trash'};
-  const emptyIds = {active:'main-empty-state',archive:'archive-empty-state',trash:'trash-empty-state'};
+// ── SAVE PROJECT ──────────────────────────────────────────────────────────
+function saveProjectToStorage(data){
+  const projects=getProjects();
+  if(editingProjectIdx!==null&&editingProjectIdx>=0){
+    // Обновляем существующий
+    data.status=projects[editingProjectIdx].status||'active';
+    projects[editingProjectIdx]=data;
+  } else {
+    projects.unshift(data);
+  }
+  saveProjects(projects);
+}
 
-  statuses.forEach(status => {
-    const list = projects.filter(p=>p.status===status);
-    const container = $(containerIds[status]);
-    const emptyEl = $(emptyIds[status]);
-    container.innerHTML = '';
-    if (list.length === 0) { emptyEl.style.display = 'block'; return; }
-    emptyEl.style.display = 'none';
-
-    list.forEach(proj => {
-      const idx = projects.indexOf(proj);
-      const card = document.createElement('div');
-      card.className = 'project-card';
-      card.innerHTML =
-        '<div class="project-card-body">' +
-          '<div class="project-card-title">' + (proj.title||'Без названия') + '</div>' +
-          '<div class="project-card-meta">🗓 ' + (proj.date||'—') + '</div>' +
-          '<div class="project-card-info">📍 ' + (proj.meetingPlace||'—') + ' · 🕐 ' + (proj.meetingTime||'—') + '</div>' +
-          '<div class="project-card-return">🏁 Возврат: ~' + (proj.returnTime||'—') + '</div>' +
-        '</div>' +
-        '<div class="project-card-actions">' +
-          (status==='active' ? '<button class="card-action-btn" data-action="edit">✏️ Открыть</button><div class="card-divider"></div><button class="card-action-btn" data-action="send">📤 Отправить</button><div class="card-divider"></div>' : '') +
-          (status==='archive' ? '<button class="card-action-btn" data-action="restore-active">♻️ Восстановить</button><div class="card-divider"></div>' : '') +
-          (status==='trash' ? '<button class="card-action-btn" data-action="restore-active">♻️ Восстановить</button><div class="card-divider"></div>' : '') +
-          '<button class="card-action-btn" data-action="menu">⋯</button>' +
+// ── RENDER PROJECTS ───────────────────────────────────────────────────────
+function renderAllProjects(){
+  const projects=getProjects();
+  ['active','archive','trash'].forEach(status=>{
+    const ids={active:'projects-list-active',archive:'projects-list-archive',trash:'projects-list-trash'};
+    const eids={active:'main-empty-state',archive:'archive-empty-state',trash:'trash-empty-state'};
+    const list=projects.filter(p=>p.status===status);
+    const container=$(ids[status]), emptyEl=$(eids[status]);
+    container.innerHTML='';
+    if(!list.length){emptyEl.style.display='block';return;}
+    emptyEl.style.display='none';
+    list.forEach(proj=>{
+      const idx=projects.indexOf(proj);
+      const card=document.createElement('div');
+      card.className='project-card';
+      card.innerHTML=
+        '<div class="project-card-body">'+
+          '<div class="project-card-title">'+(proj.title||'Без названия')+'</div>'+
+          '<div class="project-card-meta">📅 '+(proj.date||'—')+'</div>'+
+          '<div class="project-card-info">📍 '+(proj.meetingPlace||'—')+' · 🕐 '+(proj.meetingTime||'—')+'</div>'+
+          '<div class="project-card-return">🏁 Возврат: ~'+(proj.returnTime||'—')+'</div>'+
+        '</div>'+
+        '<div class="project-card-actions">'+
+          (status==='active'?'<button class="card-action-btn" data-action="edit">✏️ Открыть</button><div class="card-divider"></div><button class="card-action-btn" data-action="send">📤 Отправить</button><div class="card-divider"></div>':'')+
+          (status!=='active'?'<button class="card-action-btn" data-action="restore">♻️ Восстановить</button><div class="card-divider"></div>':'')+
+          '<button class="card-action-btn" data-action="menu">•••</button>'+
         '</div>';
-
-      // Тап на тело карточки → открыть
-      card.querySelector('.project-card-body').addEventListener('click', () => openProjectForEdit(idx));
-
-      // Кнопки действий
-      card.querySelectorAll('.card-action-btn').forEach(btn => {
-        btn.addEventListener('click', e => {
+      card.querySelector('.project-card-body').addEventListener('click',()=>openProjectForEdit(idx));
+      card.querySelectorAll('.card-action-btn').forEach(btn=>{
+        btn.addEventListener('click',e=>{
           e.stopPropagation();
-          const action = btn.getAttribute('data-action');
-          if (action==='edit') openProjectForEdit(idx);
-          else if (action==='send') sendProjectToTg(idx, btn);
-          else if (action==='restore-active') changeProjectStatus(idx,'active');
-          else if (action==='menu') openCtxMenu(idx, status, btn);
+          const a=btn.getAttribute('data-action');
+          if(a==='edit') openProjectForEdit(idx);
+          else if(a==='send') sendProjectToTg(idx,btn);
+          else if(a==='restore') changeStatus(idx,'active');
+          else if(a==='menu') openCtxMenu(idx,status,btn);
         });
       });
-
       container.appendChild(card);
     });
   });
-
-  // Draft banner
-  try {
-    const draft = localStorage.getItem('scout_draft');
-    $('main-draft-banner').style.display = draft ? 'flex' : 'none';
-  } catch(e){}
+  try{$('main-draft-banner').style.display=localStorage.getItem('scout_draft')?'flex':'none';}catch(e){}
 }
 
-function changeProjectStatus(idx, newStatus) {
-  const projects = getProjects();
-  projects[idx].status = newStatus;
-  saveProjects(projects);
-  renderAllProjects();
+function changeStatus(idx,s){const p=getProjects();p[idx].status=s;saveProjects(p);renderAllProjects();}
+function deleteForever(idx){const p=getProjects();p.splice(idx,1);saveProjects(p);renderAllProjects();}
+
+// ── CTX MENU ──────────────────────────────────────────────────────────────
+function openCtxMenu(idx,status,anchor){
+  ctxProjectIdx=idx; ctxProjectStatus=status;
+  $('ctx-hide').style.display=status==='active'?'flex':'none';
+  $('ctx-restore').style.display=status!=='active'?'flex':'none';
+  $('ctx-delete').textContent=status==='trash'?'🗑 Удалить навсегда':'🗑 В корзину';
+  const menu=$('ctx-menu');
+  menu.style.display='block';
+  const rect=anchor.getBoundingClientRect();
+  const mh=menu.offsetHeight||200;
+  let top=rect.bottom+6;
+  if(top+mh>window.innerHeight-10) top=rect.top-mh-6;
+  menu.style.top=top+'px'; menu.style.right='16px'; menu.style.left='auto';
+  $('ctx-overlay').style.display='block';
 }
+function closeCtxMenu(){$('ctx-menu').style.display='none';$('ctx-overlay').style.display='none';}
 
-function deleteProject(idx) {
-  const projects = getProjects();
-  projects.splice(idx, 1);
-  saveProjects(projects);
-  renderAllProjects();
-}
-
-// ── CONTEXT MENU ───────────────────────────────────────────────────────
-function openCtxMenu(idx, status, anchorBtn) {
-  ctxProjectIdx = idx; ctxProjectStatus = status;
-  const menu = $('ctx-menu');
-  $('ctx-hide').style.display = status==='active' ? 'flex' : 'none';
-  $('ctx-restore').style.display = (status==='archive'||status==='trash') ? 'flex' : 'none';
-  $('ctx-delete').textContent = status==='trash' ? '🗑️ Удалить навсегда' : '🗑️ В корзину';
-
-  const rect = anchorBtn.getBoundingClientRect();
-  menu.style.display = 'block';
-  const menuH = menu.offsetHeight || 200;
-  let top = rect.bottom + 6;
-  if (top + menuH > window.innerHeight - 10) top = rect.top - menuH - 6;
-  menu.style.top = top + 'px';
-  menu.style.right = '16px';
-  menu.style.left = 'auto';
-  $('ctx-overlay').style.display = 'block';
-}
-
-function closeCtxMenu() {
-  $('ctx-menu').style.display = 'none';
-  $('ctx-overlay').style.display = 'none';
-}
-
-$('ctx-overlay').addEventListener('click', closeCtxMenu);
-$('ctx-open').addEventListener('click', () => { closeCtxMenu(); openProjectForEdit(ctxProjectIdx); });
-$('ctx-send').addEventListener('click', () => { closeCtxMenu(); sendProjectToTg(ctxProjectIdx, null); });
-$('ctx-hide').addEventListener('click', () => { closeCtxMenu(); changeProjectStatus(ctxProjectIdx,'archive'); });
-$('ctx-restore').addEventListener('click', () => { closeCtxMenu(); changeProjectStatus(ctxProjectIdx,'active'); });
-$('ctx-delete').addEventListener('click', () => {
+$t('ctx-overlay','click',closeCtxMenu);
+$t('ctx-open','click',()=>{closeCtxMenu();openProjectForEdit(ctxProjectIdx);});
+$t('ctx-send','click',()=>{closeCtxMenu();sendProjectToTg(ctxProjectIdx,null);});
+$t('ctx-hide','click',()=>{closeCtxMenu();changeStatus(ctxProjectIdx,'archive');});
+$t('ctx-restore','click',()=>{closeCtxMenu();changeStatus(ctxProjectIdx,'active');});
+$t('ctx-delete','click',()=>{
   closeCtxMenu();
-  const projects = getProjects();
-  if (ctxProjectStatus==='trash') { deleteProject(ctxProjectIdx); }
-  else { changeProjectStatus(ctxProjectIdx,'trash'); }
+  if(ctxProjectStatus==='trash') deleteForever(ctxProjectIdx);
+  else changeStatus(ctxProjectIdx,'trash');
 });
 
-// ── OPEN PROJECT FOR EDIT ──────────────────────────────────────────────
-function openProjectForEdit(idx) {
-  const projects = getProjects();
-  const proj = projects[idx];
-  if (!proj) return;
+// ── OPEN PROJECT FOR EDIT ─────────────────────────────────────────────────
+function openProjectForEdit(idx){
+  const projects=getProjects();
+  const proj=projects[idx];
+  if(!proj) return;
   haptic('medium');
+  editingProjectIdx=idx;
 
-  // Восстанавливаем форму
-  $('project-title').value = proj.title||'';
-  $('project-date').value = proj.date||'';
-  $('time-meeting').value = proj.meetingTime||'';
-  $('time-departure').value = proj.departureTime||'';
-  $('meeting-place').value = proj.meetingPlace||proj.place||'';
-  $('meeting-address').value = proj.meetingAddress||'';
-  $('meeting-map').value = proj.meetingMapUrl||'';
-  $('all-points-map').value = proj.allPointsMapUrl||'';
-  $('meeting-coords').value = proj.coordinates||'';
-  $('check-coords').checked = !!proj.coordinates;
-  $('coords-field').style.display = proj.coordinates ? 'block' : 'none';
-  $('check-transport').checked = !!proj.hasTransport;
-  $('transport-fields').style.display = proj.hasTransport ? 'block' : 'none';
-  $('car-number').value = proj.carNumber||'';
-  $('driver-name').value = proj.driverName||'';
-  $('driver-phone').value = proj.driverPhone||'';
-  const hasAllMap = !!(proj.allPointsMapUrl);
-  $('check-all-points-map').checked = hasAllMap;
-  $('all-points-map-field').style.display = hasAllMap ? 'block' : 'none';
+  // Заполняем форму шага 1
+  $('project-title').value=proj.title||'';
+  $('project-date').value=proj.date||'';
+  $('time-meeting').value=proj.meetingTime||'';
+  $('time-departure').value=proj.departureTime||'';
+  $('meeting-place').value=proj.meetingPlace||proj.place||'';
+  $('meeting-address').value=proj.meetingAddress||'';
+  $('meeting-map').value=proj.meetingMapUrl||'';
+  $('all-points-map').value=proj.allPointsMapUrl||'';
+  $('meeting-coords').value=proj.coordinates||'';
+  $('check-coords').checked=!!proj.coordinates;
+  $('coords-field').style.display=proj.coordinates?'block':'none';
+  $('check-transport').checked=!!proj.hasTransport;
+  $('transport-fields').style.display=proj.hasTransport?'block':'none';
+  $('car-brand').value=proj.carBrand||'';
+  $('car-number').value=proj.carNumber||'';
+  $('driver-name').value=proj.driverName||'';
+  $('driver-phone').value=proj.driverPhone||'';
+  const hasAM=!!(proj.allPointsMapUrl);
+  $('check-all-points-map').checked=hasAM;
+  $('all-points-map-field').style.display=hasAM?'block':'none';
 
-  if (proj.carPhotoBase64) {
-    uploadedCarPhotoBase64 = proj.carPhotoBase64;
-    $('car-photo-preview').src = proj.carPhotoBase64;
-    $('car-photo-preview-wrap').style.display = 'block';
+  if(proj.carPhotoBase64){
+    uploadedCarPhotoBase64=proj.carPhotoBase64;
+    $('car-photo-preview').src=proj.carPhotoBase64;
+    $('car-photo-preview-wrap').style.display='block';
   } else {
-    uploadedCarPhotoBase64 = '';
-    $('car-photo-preview-wrap').style.display = 'none';
+    uploadedCarPhotoBase64='';
+    $('car-photo-preview-wrap').style.display='none';
   }
-  routePoints = (proj.routePoints||[]).map(p=>({...p}));
+  routePoints=(proj.routePoints||[]).map(p=>({...p}));
 
-  // Переходим к шагу 2
-  $('btn-submit-step1').click();
+  // Открываем шаг 1 чтобы юзер мог редактировать с самого начала
+  screenStack.length=0;
+  screenStack.push('screen-main');
+  showScreen('screen-create');
 }
 
-// ── SEND PROJECT ───────────────────────────────────────────────────────
-async function sendProjectToTg(idx, btn) {
-  const projects = getProjects();
-  const proj = projects[idx];
-  const userId = tg.initDataUnsafe&&tg.initDataUnsafe.user?tg.initDataUnsafe.user.id:null;
-  if (!userId) { alert('Откройте через Telegram'); return; }
-  if (btn) { btn.textContent='⏳'; btn.disabled=true; }
-  try {
-    const res = await fetch(BACKEND_URL+'/send-plan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chatId:userId,data:proj})});
-    const r = await res.json();
-    if (!r.ok) throw new Error(r.error||'Ошибка');
-    if (btn) { btn.textContent='✅'; btn.style.color='#27ae60'; setTimeout(()=>{btn.textContent='📤 Отправить';btn.style.color='';btn.disabled=false;},2000); }
+// ── SEND TO TELEGRAM ──────────────────────────────────────────────────────
+async function sendProjectToTg(idx,btn){
+  const projects=getProjects();
+  const proj=projects[idx];
+  const userId=tg.initDataUnsafe&&tg.initDataUnsafe.user?tg.initDataUnsafe.user.id:null;
+  if(!userId){alert('Откройте через Telegram');return;}
+  if(btn){btn.textContent='⏳';btn.disabled=true;}
+  try{
+    const res=await fetch(BACKEND_URL+'/send-plan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chatId:userId,data:proj})});
+    const r=await res.json();
+    if(!r.ok) throw new Error(r.error||'Ошибка');
+    if(btn){btn.textContent='✅';btn.style.color='#27ae60';setTimeout(()=>{btn.textContent='📤 Отправить';btn.style.color='';btn.disabled=false;},2000);}
     hapticN('success');
-  } catch(err) {
-    if (btn) { btn.textContent='❌'; setTimeout(()=>{btn.textContent='📤 Отправить';btn.disabled=false;},2500); }
+  } catch(err){
+    if(btn){btn.textContent='❌';setTimeout(()=>{btn.textContent='📤 Отправить';btn.disabled=false;},2500);}
     hapticN('error');
   }
 }
 
-// ── DRAFT RESTORE ──────────────────────────────────────────────────────
-$('btn-restore-draft').addEventListener('click', () => {
-  try {
-    const d = JSON.parse(localStorage.getItem('scout_draft')||'{}');
-    const sv = (id,v)=>{const el=$(id);if(el)el.value=v||'';};
+// ── DRAFT RESTORE ─────────────────────────────────────────────────────────
+$t('btn-restore-draft','click',()=>{
+  try{
+    const d=JSON.parse(localStorage.getItem('scout_draft')||'{}');
+    const sv=(id,v)=>{const el=$(id);if(el)el.value=v||'';};
     sv('project-title',d.title); sv('project-date',d.date);
     sv('time-meeting',d.meetingTime); sv('time-departure',d.departureTime);
     sv('meeting-place',d.place); sv('meeting-address',d.address);
     sv('meeting-map',d.map); sv('all-points-map',d.allPointsMap);
-    sv('meeting-coords',d.coords); sv('car-number',d.carNumber);
-    sv('driver-name',d.driverName); sv('driver-phone',d.driverPhone);
+    sv('meeting-coords',d.coords); sv('car-brand',d.carBrand);
+    sv('car-number',d.carNumber); sv('driver-name',d.driverName); sv('driver-phone',d.driverPhone);
     $('check-coords').checked=!!d.checkCoords; $('coords-field').style.display=d.checkCoords?'block':'none';
     $('check-transport').checked=!!d.checkTransport; $('transport-fields').style.display=d.checkTransport?'block':'none';
     $('check-all-points-map').checked=!!d.checkAllPointsMap; $('all-points-map-field').style.display=d.checkAllPointsMap?'block':'none';
     if(d.carPhoto){uploadedCarPhotoBase64=d.carPhoto;$('car-photo-preview').src=d.carPhoto;$('car-photo-preview-wrap').style.display='block';}
     routePoints=d.routePoints||[];
+    editingProjectIdx=d.editingProjectIdx??null;
     $('main-draft-banner').style.display='none';
-    if(routePoints.length>0) $('btn-submit-step1').click(); else showScreen('screen-create');
-  } catch(e){}
+    showScreen('screen-create');
+  }catch(e){}
 });
 
-// Track draft
+// Track inputs for draft
 ['project-title','project-date','time-meeting','time-departure','meeting-place','meeting-address',
- 'meeting-map','all-points-map','meeting-coords','car-number','driver-name','driver-phone'].forEach(id=>{
-  const el=$(id); if(el) el.addEventListener('input', saveDraft);
-});
+ 'meeting-map','all-points-map','meeting-coords','car-brand','car-number','driver-name','driver-phone'
+].forEach(id=>{const el=$(id);if(el)el.addEventListener('input',saveDraft);});
 ['check-coords','check-transport','check-all-points-map'].forEach(id=>$(id).addEventListener('change',saveDraft));
 
-// ── NAVIGATION ─────────────────────────────────────────────────────────
+// ── NAVIGATION ────────────────────────────────────────────────────────────
 document.querySelectorAll('.bottom-sheet-overlay').forEach(ov=>{
   ov.addEventListener('click',function(e){if(e.target===this)closeSheet(this.id);});
 });
@@ -711,43 +845,42 @@ document.querySelectorAll('.bottom-sheet-overlay').forEach(ov=>{
   });
 });
 
-$('btn-create-project').addEventListener('click',()=>showScreen('screen-create'));
-$('btn-cancel-step1').addEventListener('click',()=>showScreen('screen-main'));
-$('btn-back-to-step1').addEventListener('click',()=>showScreen('screen-create'));
-$('btn-back-from-preview').addEventListener('click',()=>showScreen('screen-builder'));
+$t('btn-create-project','click',()=>{clearInputs();screenStack.length=0;screenStack.push('screen-main');showScreen('screen-create');});
+$t('btn-cancel-step1','click',goBack);
+$t('btn-back-to-step1','click',goBack);
+$t('btn-back-from-preview','click',goBack);
 
 $('check-coords').addEventListener('change',function(){$('coords-field').style.display=this.checked?'block':'none';});
 $('check-transport').addEventListener('change',function(){$('transport-fields').style.display=this.checked?'block':'none';});
 $('check-all-points-map').addEventListener('change',function(){$('all-points-map-field').style.display=this.checked?'block':'none';saveDraft();});
 $('sheet-loc-check-coords').addEventListener('change',function(){$('sheet-loc-coords-field').style.display=this.checked?'block':'none';});
 
-// Car number mask
+// Car number & phone masks
 $('car-number').addEventListener('input',function(){
   let v=this.value.toUpperCase().replace(/[^A-ZА-ЯЁ0-9\-]/g,'').replace(/-{2,}/g,'-');
   v=v.replace(/^([A-ZА-ЯЁ]{2})([0-9])/,'$1-$2');
   v=v.replace(/([0-9]{1,3})([A-ZА-ЯЁ])/,'$1-$2');
   this.value=v;
 });
-// Phone mask
 $('driver-phone').addEventListener('input',function(){
   this.value=this.value.replace(/[^\d+\-() ]/g,'').replace(/(?!^)\+/g,'');
 });
 
 // Photo
 $('car-photo-input').addEventListener('change',function(e){
-  const f=e.target.files[0]; if(!f) return;
+  const f=e.target.files[0];if(!f)return;
   const r=new FileReader();
   r.onload=ev=>{uploadedCarPhotoBase64=ev.target.result;$('car-photo-preview').src=ev.target.result;$('car-photo-preview-wrap').style.display='block';saveDraft();};
   r.readAsDataURL(f);
 });
-$('btn-delete-photo').addEventListener('click',function(e){
-  e.preventDefault(); uploadedCarPhotoBase64='';
-  $('car-photo-input').value=''; $('car-photo-preview').src='';
-  $('car-photo-preview-wrap').style.display='none'; saveDraft();
+$t('btn-delete-photo','click',function(e){
+  e.preventDefault();uploadedCarPhotoBase64='';
+  $('car-photo-input').value='';$('car-photo-preview').src='';
+  $('car-photo-preview-wrap').style.display='none';saveDraft();
 });
 
-// ── STEP 1 → STEP 2 ───────────────────────────────────────────────────
-$('btn-submit-step1').addEventListener('click',()=>{
+// ── STEP 1 → STEP 2 ──────────────────────────────────────────────────────
+$t('btn-submit-step1','click',()=>{
   forceT($('time-meeting')); forceT($('time-departure'));
   gTitle=$('project-title').value||'Проект';
   gDate=$('project-date').value||'';
@@ -758,43 +891,54 @@ $('btn-submit-step1').addEventListener('click',()=>{
   gMap=$('meeting-map').value||'';
   gAllMap=$('all-points-map').value||'';
   gCoords=$('meeting-coords').value||'';
+  gBrand=$('car-brand').value||'';
 
   $('builder-title').innerText=gTitle;
   $('builder-date').innerText=gDate||'—';
   updateSummary(gDepTime||'—');
 
+  // Транспортный блок — двухколоночный макет
   const hasTr=$('check-transport').checked;
   const btr=$('block-transport-summary');
   if(hasTr){
-    const cn=$('car-number').value||'—', dn=$('driver-name').value||'', dp=$('driver-phone').value||'';
-    let h='<div style="font-size:14px;line-height:1.9;">🚘 <b>'+cn+'</b>';
-    if(dn) h+='<br>👤 '+dn;
-    if(dp) h+='<br>📞 '+dp;
-    if(uploadedCarPhotoBase64) h+='<br><img src="'+uploadedCarPhotoBase64+'" style="width:110px;height:110px;object-fit:cover;border-radius:10px;margin-top:8px;display:block;">';
-    h+='</div>';
-    $('block-transport-inner').innerHTML=h; btr.style.display='block';
+    const brand=$('car-brand').value||'';
+    const cn=$('car-number').value||'';
+    const dn=$('driver-name').value||'';
+    const dp=$('driver-phone').value||'';
+    let infoHtml='<div class="transport-info">';
+    if(brand) infoHtml+=`<div><div class="transport-info-label">Марка / Цвет</div><div class="transport-info-row"><b>${brand}</b></div></div>`;
+    if(cn) infoHtml+=`<div><div class="transport-info-label">Номер</div><div class="transport-info-row"><b>${cn}</b></div></div>`;
+    if(dn) infoHtml+=`<div><div class="transport-info-label">Водитель</div><div class="transport-info-row">${dn}</div></div>`;
+    if(dp) infoHtml+=`<div><div class="transport-info-label">Телефон</div><div class="transport-info-row">${dp}</div></div>`;
+    infoHtml+='</div>';
+    let photoHtml='<div class="transport-photo">';
+    if(uploadedCarPhotoBase64) photoHtml+=`<img src="${uploadedCarPhotoBase64}" alt="">`;
+    else photoHtml+='<div class="transport-photo-placeholder">🚗</div>';
+    photoHtml+='</div>';
+    $('block-transport-inner').innerHTML='<div class="transport-card">'+infoHtml+photoHtml+'</div>';
+    btr.style.display='block';
   } else { btr.style.display='none'; }
 
   renderRoute(); showScreen('screen-builder');
 });
 
-// ── SUMMARY ────────────────────────────────────────────────────────────
-function updateSummary(retTime){
+// ── SUMMARY ────────────────────────────────────────────────────────────────
+function updateSummary(ret){
   let lh='';
-  lh+='<div><div class="summary-item-label">Место</div><div class="summary-item-value">'+(gPlace||'—')+'</div></div>';
-  if(gAddress) lh+='<div><div class="summary-item-label">Адрес</div><div class="summary-item-value" style="font-size:13px;">'+gAddress+'</div></div>';
-  if($('check-coords').checked&&gCoords) lh+='<div><div class="summary-item-label">GPS</div><div class="summary-item-value" style="font-size:12px;font-family:monospace;">'+gCoords+'</div></div>';
+  lh+=`<div><div class="summary-item-label">Место</div><div class="summary-item-value">${gPlace||'—'}</div></div>`;
+  if(gAddress) lh+=`<div><div class="summary-item-label">Адрес</div><div class="summary-item-value" style="font-size:13px;">${gAddress}</div></div>`;
+  if($('check-coords').checked&&gCoords) lh+=`<div><div class="summary-item-label">GPS</div><div class="summary-item-value" style="font-size:12px;font-family:monospace;">${gCoords}</div></div>`;
 
   let rh='';
-  rh+='<div><div class="summary-item-label" style="color:#27ae60;">Сбор</div><div class="summary-time-value" style="color:#27ae60;">'+(gMeetTime||'—')+'</div></div>';
-  rh+='<div><div class="summary-item-label" style="color:#e74c3c;">Выезд</div><div class="summary-time-value" style="color:#e74c3c;">'+(gDepTime||'—')+'</div></div>';
+  rh+=`<div><div class="summary-item-label" style="color:var(--green);">Сбор</div><div class="summary-time-value" style="color:var(--green);">${gMeetTime||'—'}</div></div>`;
+  rh+=`<div><div class="summary-item-label" style="color:var(--red);">Выезд</div><div class="summary-time-value" style="color:var(--red);">${gDepTime||'—'}</div></div>`;
 
   $('summary-col-left').innerHTML=lh;
   $('summary-col-right').innerHTML=rh;
-  $('summary-return').textContent='🏁 Возвращение: '+retTime;
+  $('summary-return').textContent='🏁 Возвращение: '+ret;
 }
 
-// ── RENDER ROUTE ───────────────────────────────────────────────────────
+// ── RENDER ROUTE ──────────────────────────────────────────────────────────
 function renderRoute(){
   const c=$('route-points-list'), em=$('builder-empty-state');
   c.querySelectorAll('.route-item').forEach(el=>el.remove());
@@ -808,15 +952,15 @@ function renderRoute(){
     item.setAttribute('data-index',i); item.id='rp-'+i;
     let tt='',sub=[],dt='';
     if(p.type==='location'){
-      const e=addM(rt,d); tt=rt+' – '+e+' ('+dur(d)+')';
-      if(p.link) sub.push('<span style="color:#27ae60;">🖼 Фото</span>');
-      if(p.mapUrl) sub.push('<span style="color:#2481cc;">📍 Карта</span>');
+      const e=addM(rt,d);tt=rt+' – '+e+' ('+dur(d)+')';
+      if(p.link) sub.push('<span style="color:var(--green);">🖼 Фото</span>');
+      if(p.mapUrl) sub.push('<span style="color:var(--accent);">📍 Карта</span>');
       if(p.coords) sub.push('<span style="font-family:monospace;font-size:11px;">📡 '+p.coords+'</span>');
-      dt=ln+'. '+(p.title||'Локация'); ln++; rt=e;
+      dt=ln+'. '+(p.title||'Локация');ln++;rt=e;
     } else if(p.type==='transit'){
-      tt='⏱ в пути '+dur(d); sub=['Переезд']; dt='🚗 Переезд'; rt=addM(rt,d);
+      tt='⏱ в пути '+dur(d);sub=['Переезд к следующей точке'];dt='🚗 Переезд';rt=addM(rt,d);
     } else if(p.type==='lunch'){
-      const e=addM(rt,d); tt=rt+' – '+e+' ('+dur(d)+')'; sub=['Ланч']; dt='🍽️ Ланч'; rt=e;
+      const e=addM(rt,d);tt=rt+' – '+e+' ('+dur(d)+')';sub=['Перерыв'];dt='🍽 Ланч';rt=e;
     }
     item.innerHTML=
       '<div class="drag-handle"><span></span><span></span><span></span></div>'+
@@ -828,367 +972,219 @@ function renderRoute(){
       '<button class="btn-delete-point">✕</button>';
     item.querySelector('.btn-delete-point').addEventListener('click',function(e){
       e.stopPropagation();
-      item.style.transition='opacity 0.18s,transform 0.18s'; item.style.opacity='0'; item.style.transform='scale(0.94)';
+      item.style.transition='opacity 0.18s,transform 0.18s';item.style.opacity='0';item.style.transform='scale(0.94)';
       setTimeout(()=>{routePoints.splice(i,1);saveDraft();renderRoute();},170);
     });
-    item.addEventListener('click',function(e){if(!e.target.closest('.btn-delete-point')&&!e.target.closest('.drag-handle'))openEditSheet(i);});
+    item.addEventListener('click',function(e){
+      if(!e.target.closest('.btn-delete-point')&&!e.target.closest('.drag-handle')) openEditSheet(i);
+    });
     setupDnD(item); c.appendChild(item);
   });
   updateSummary(rt);
 }
 
-// ── DRAG & DROP ────────────────────────────────────────────────────────
-// Ключевой принцип: во время перетягивания НЕ вызываем renderRoute().
-// Двигаем только ghost-клон. DOM переставляем через insertBefore — без перерисовки.
-let dLock = false;
-let holdT = null;
+// ── DRAG & DROP (ghost clone, no renderRoute during drag) ─────────────────
+let dLock=false, holdT=null;
 
-function setupDnD(el) {
-  el.addEventListener('touchstart', onTouchStart, { passive: true });
-  el.addEventListener('mousedown',  onMouseStart);
+function setupDnD(el){
+  el.addEventListener('touchstart',onTouchStart,{passive:true});
+  el.addEventListener('mousedown',onMouseStart);
 }
 
-function startDrag(dragEl, clientY) {
-  if (dLock) return;
-  dLock = true;
-  haptic('medium');
+function startDrag(dragEl,clientY){
+  if(dLock)return null;
+  dLock=true; haptic('medium');
+  const container=$('route-points-list');
+  const rect=dragEl.getBoundingClientRect();
 
-  const container = $('route-points-list');
-  const items = () => [...container.querySelectorAll('.route-item')];
-
-  // Снимок размеров оригинала
-  const rect = dragEl.getBoundingClientRect();
-  const scrollTop = window.scrollY;
-
-  // Создаём ghost — точную копию размером с оригинал, абсолютно позиционированную
-  const ghost = dragEl.cloneNode(true);
-  ghost.style.cssText = [
-    'position:fixed',
-    'left:' + rect.left + 'px',
-    'top:' + rect.top + 'px',
-    'width:' + rect.width + 'px',
-    'height:' + rect.height + 'px',
-    'margin:0',
-    'z-index:99999',
-    'pointer-events:none',
-    'border-radius:12px',
-    'box-shadow:0 20px 50px rgba(0,0,0,0.22)',
-    'border:1.5px solid var(--tg-theme-button-color,#2481cc)',
-    'background:var(--tg-theme-bg-color,#fff)',
-    'transition:transform 0.08s cubic-bezier(0.34,1.56,0.64,1)',
-    'transform:scale(1.04)',
-    'opacity:0.97',
+  const ghost=dragEl.cloneNode(true);
+  ghost.style.cssText=[
+    'position:fixed','left:'+rect.left+'px','top:'+rect.top+'px',
+    'width:'+rect.width+'px','height:'+rect.height+'px','margin:0',
+    'z-index:99999','pointer-events:none','border-radius:12px',
+    'box-shadow:0 20px 50px rgba(0,0,0,0.25)',
+    'border:1.5px solid var(--accent)',
+    'background:var(--card)',
+    'transform:scale(1.04)','opacity:0.97',
   ].join(';');
   document.body.appendChild(ghost);
+  dragEl.style.opacity='0.2';
+  dragEl.style.pointerEvents='none';
 
-  // Оригинал — делаем прозрачным-заглушкой (держит место)
-  dragEl.style.opacity = '0.25';
-  dragEl.style.pointerEvents = 'none';
+  let curY=clientY, ghostY=rect.top, rafId=null, lastBefore=null;
 
-  let currentY = clientY;
-  let ghostY = rect.top; // текущая Y позиция ghost (плавная)
-  let rafId = null;
-  let lastInsertedBefore = null; // чтобы не делать лишних DOM-операций
-
-  // Плавное движение через RAF — "резиновый" эффект
-  function animLoop() {
-    // Интерполяция — ghost догоняет палец с небольшим отставанием
-    const targetY = currentY - rect.height / 2;
-    ghostY += (targetY - ghostY) * 0.28;
-    ghost.style.top = ghostY + 'px';
-    rafId = requestAnimationFrame(animLoop);
+  function loop(){
+    const tY=curY-rect.height/2;
+    ghostY+=(tY-ghostY)*0.28;
+    ghost.style.top=ghostY+'px';
+    rafId=requestAnimationFrame(loop);
   }
-  rafId = requestAnimationFrame(animLoop);
+  rafId=requestAnimationFrame(loop);
 
-  function onMove(cy) {
-    currentY = cy;
-    const containerRect = container.getBoundingClientRect();
-    // Ограничиваем внутри контейнера
-    currentY = Math.max(containerRect.top + rect.height/2, Math.min(cy, containerRect.bottom - rect.height/2));
-
-    // Определяем над какой карточкой висим (исключая сам dragEl)
-    const others = items().filter(i => i !== dragEl);
-    let insertBefore = null;
-    for (const it of others) {
-      const r = it.getBoundingClientRect();
-      if (cy < r.top + r.height / 2) { insertBefore = it; break; }
-    }
-
-    // Вставляем dragEl в новую позицию — без перерисовки маршрута!
-    if (insertBefore !== lastInsertedBefore) {
-      lastInsertedBefore = insertBefore;
-      if (insertBefore) {
-        // Анимируем соседей FLIP
-        const snapBefore = {};
-        others.forEach(i => { snapBefore[i.id] = i.getBoundingClientRect().top; });
-        container.insertBefore(dragEl, insertBefore);
-        others.forEach(i => {
-          const delta = snapBefore[i.id] - i.getBoundingClientRect().top;
-          if (Math.abs(delta) > 0.5) {
-            i.animate([
-              { transform: 'translateY('+delta+'px)' },
-              { transform: 'translateY(0)' }
-            ], { duration: 260, easing: 'cubic-bezier(0.25,0.46,0.45,0.94)' });
-          }
-        });
-      } else {
-        const snapBefore = {};
-        others.forEach(i => { snapBefore[i.id] = i.getBoundingClientRect().top; });
-        container.appendChild(dragEl);
-        others.forEach(i => {
-          const delta = snapBefore[i.id] - i.getBoundingClientRect().top;
-          if (Math.abs(delta) > 0.5) {
-            i.animate([
-              { transform: 'translateY('+delta+'px)' },
-              { transform: 'translateY(0)' }
-            ], { duration: 260, easing: 'cubic-bezier(0.25,0.46,0.45,0.94)' });
-          }
-        });
-      }
-    }
-  }
-
-  function endDrag() {
-    cancelAnimationFrame(rafId);
-
-    // Ghost прилетает на место оригинала
-    const finalRect = dragEl.getBoundingClientRect();
-    ghost.style.transition = 'top 0.22s cubic-bezier(0.34,1.2,0.64,1), transform 0.22s, opacity 0.18s';
-    ghost.style.top = finalRect.top + 'px';
-    ghost.style.transform = 'scale(1)';
-    ghost.style.opacity = '0';
-
-    setTimeout(() => {
-      ghost.remove();
-      dragEl.style.opacity = '';
-      dragEl.style.pointerEvents = '';
-      // Восстанавливаем routePoints в соответствии с новым DOM-порядком
-      const newOrder = [...container.querySelectorAll('.route-item')].map(el => {
-        return parseInt(el.getAttribute('data-index'));
+  function onMove(cy){
+    const cr=container.getBoundingClientRect();
+    curY=Math.max(cr.top+rect.height/2,Math.min(cy,cr.bottom-rect.height/2));
+    const others=[...container.querySelectorAll('.route-item')].filter(i=>i!==dragEl);
+    let ins=null;
+    for(const it of others){const r=it.getBoundingClientRect();if(cy<r.top+r.height/2){ins=it;break;}}
+    if(ins!==lastBefore){
+      lastBefore=ins;
+      const snap={};others.forEach(i=>{snap[i.id]=i.getBoundingClientRect().top;});
+      if(ins) container.insertBefore(dragEl,ins); else container.appendChild(dragEl);
+      others.forEach(i=>{
+        const dl=snap[i.id]-i.getBoundingClientRect().top;
+        if(Math.abs(dl)>0.5) i.animate([{transform:'translateY('+dl+'px)'},{transform:'translateY(0)'}],{duration:240,easing:'cubic-bezier(0.25,0.46,0.45,0.94)'});
       });
-      const oldPoints = [...routePoints];
-      routePoints = newOrder.map(i => oldPoints[i]);
-      saveDraft();
-      renderRoute();
-      dLock = false;
-    }, 230);
+    }
   }
 
-  return { onMove, endDrag };
+  function end(){
+    cancelAnimationFrame(rafId);
+    const fr=dragEl.getBoundingClientRect();
+    ghost.style.transition='top 0.2s cubic-bezier(0.34,1.2,0.64,1),transform 0.2s,opacity 0.15s';
+    ghost.style.top=fr.top+'px'; ghost.style.transform='scale(1)'; ghost.style.opacity='0';
+    setTimeout(()=>{
+      ghost.remove(); dragEl.style.opacity=''; dragEl.style.pointerEvents='';
+      const newOrder=[...container.querySelectorAll('.route-item')].map(el=>parseInt(el.getAttribute('data-index')));
+      const old=[...routePoints];
+      routePoints=newOrder.map(i=>old[i]);
+      saveDraft(); renderRoute(); dLock=false;
+    },210);
+  }
+  return {onMove,end};
 }
 
-// Touch
-function onTouchStart(e) {
-  if (e.target.closest('.btn-delete-point') || dLock) return;
-  const el = this;
-  const startY = e.touches[0].clientY;
-  const startX = e.touches[0].clientX;
-  let dragCtx = null;
-
-  holdT = setTimeout(() => {
-    dragCtx = startDrag(el, e.touches[0].clientY);
-
-    const onMove = ev => {
-      if (!dragCtx) return;
-      if (ev.cancelable) ev.preventDefault();
-      dragCtx.onMove(ev.touches[0].clientY);
-    };
-    const onEnd = () => {
-      if (dragCtx) { dragCtx.endDrag(); dragCtx = null; }
-      document.removeEventListener('touchmove', onMove);
-      document.removeEventListener('touchend', onEnd);
-      document.removeEventListener('touchcancel', onEnd);
-    };
-    document.addEventListener('touchmove', onMove, { passive: false });
-    document.addEventListener('touchend', onEnd);
-    document.addEventListener('touchcancel', onEnd);
-  }, 350);
-
-  const cancel = ev => {
-    if (Math.abs(ev.touches[0].clientY - startY) > 8 || Math.abs(ev.touches[0].clientX - startX) > 8) {
-      clearTimeout(holdT);
-      el.removeEventListener('touchmove', cancel);
-    }
-  };
-  el.addEventListener('touchmove', cancel, { passive: true });
+function onTouchStart(e){
+  if(e.target.closest('.btn-delete-point')||dLock)return;
+  const el=this,sy=e.touches[0].clientY,sx=e.touches[0].clientX;
+  let ctx=null;
+  holdT=setTimeout(()=>{
+    ctx=startDrag(el,e.touches[0].clientY);
+    if(!ctx)return;
+    const mv=ev=>{if(!ctx)return;if(ev.cancelable)ev.preventDefault();ctx.onMove(ev.touches[0].clientY);};
+    const up=()=>{if(ctx){ctx.end();ctx=null;}document.removeEventListener('touchmove',mv);document.removeEventListener('touchend',up);document.removeEventListener('touchcancel',up);};
+    document.addEventListener('touchmove',mv,{passive:false});
+    document.addEventListener('touchend',up); document.addEventListener('touchcancel',up);
+  },350);
+  const cancel=ev=>{if(Math.abs(ev.touches[0].clientY-sy)>8||Math.abs(ev.touches[0].clientX-sx)>8){clearTimeout(holdT);el.removeEventListener('touchmove',cancel);}};
+  el.addEventListener('touchmove',cancel,{passive:true});
 }
 
-// Mouse
-function onMouseStart(e) {
-  if (e.target.closest('.btn-delete-point') || dLock || e.button !== 0) return;
-  const el = this;
-  const startY = e.clientY;
-  let dragCtx = null;
-
-  const onMove = ev => {
-    if (!dragCtx) {
-      if (Math.abs(ev.clientY - startY) < 6) return;
-      dragCtx = startDrag(el, ev.clientY);
-      document.body.style.cursor = 'grabbing';
-    }
-    dragCtx.onMove(ev.clientY);
+function onMouseStart(e){
+  if(e.target.closest('.btn-delete-point')||dLock||e.button!==0)return;
+  const el=this,sy=e.clientY;
+  let ctx=null;
+  const mv=ev=>{
+    if(!ctx){if(Math.abs(ev.clientY-sy)<6)return;ctx=startDrag(el,ev.clientY);if(!ctx)return;document.body.style.cursor='grabbing';}
+    ctx.onMove(ev.clientY);
   };
-
-  const onUp = () => {
-    document.removeEventListener('mousemove', onMove);
-    document.removeEventListener('mouseup', onUp);
-    document.body.style.cursor = '';
-    if (dragCtx) { dragCtx.endDrag(); dragCtx = null; }
-    else { dLock = false; }
+  const up=()=>{
+    document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);
+    document.body.style.cursor='';
+    if(ctx){ctx.end();ctx=null;}else{dLock=false;}
   };
-
-  document.addEventListener('mousemove', onMove);
-  document.addEventListener('mouseup', onUp);
+  document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
 }
 
-// ── SHEETS ─────────────────────────────────────────────────────────────
+// ── SHEETS ────────────────────────────────────────────────────────────────
 function openEditSheet(i){
   editingIndex=i; const p=routePoints[i];
-  const h=Math.floor((parseInt(p.duration)||0)/60), m=(parseInt(p.duration)||0)%60;
+  const h=Math.floor((parseInt(p.duration)||0)/60),m=(parseInt(p.duration)||0)%60;
   if(p.type==='location'){
-    $('sheet-loc-header').innerText='✏️ Изменить локацию'; $('btn-sheet-loc-save').innerText='Сохранить';
-    $('sheet-loc-title').value=p.title||''; $('sheet-loc-link').value=p.link||'';
-    $('sheet-loc-map').value=p.mapUrl||''; $('sheet-loc-coords').value=p.coords||'';
-    const hc=!!p.coords; $('sheet-loc-check-coords').checked=hc; $('sheet-loc-coords-field').style.display=hc?'block':'none';
-    $('sheet-loc-hours').value=h||''; $('sheet-loc-mins').value=m||''; openSheet('overlay-location');
+    $('sheet-loc-header').innerText='✏️ Изменить локацию';$('btn-sheet-loc-save').innerText='Сохранить';
+    $('sheet-loc-title').value=p.title||'';$('sheet-loc-link').value=p.link||'';
+    $('sheet-loc-map').value=p.mapUrl||'';$('sheet-loc-coords').value=p.coords||'';
+    const hc=!!p.coords;$('sheet-loc-check-coords').checked=hc;$('sheet-loc-coords-field').style.display=hc?'block':'none';
+    $('sheet-loc-hours').value=h||'';$('sheet-loc-mins').value=m||'';openSheet('overlay-location');
   } else if(p.type==='transit'){
-    $('sheet-transit-header').innerText='✏️ Изменить переезд'; $('btn-sheet-transit-save').innerText='Сохранить';
-    $('sheet-transit-hours').value=h||''; $('sheet-transit-mins').value=m||''; openSheet('overlay-transit');
+    $('sheet-transit-header').innerText='✏️ Изменить переезд';$('btn-sheet-transit-save').innerText='Сохранить';
+    $('sheet-transit-hours').value=h||'';$('sheet-transit-mins').value=m||'';openSheet('overlay-transit');
   } else if(p.type==='lunch'){
-    $('sheet-lunch-header').innerText='✏️ Изменить ланч'; $('btn-sheet-lunch-save').innerText='Сохранить';
-    $('sheet-lunch-hours').value=h||''; $('sheet-lunch-mins').value=m||''; openSheet('overlay-lunch');
+    $('sheet-lunch-header').innerText='✏️ Изменить ланч';$('btn-sheet-lunch-save').innerText='Сохранить';
+    $('sheet-lunch-hours').value=h||'';$('sheet-lunch-mins').value=m||'';openSheet('overlay-lunch');
   }
 }
 
-$('btn-sheet-loc-save').addEventListener('click',()=>{
+$t('btn-sheet-loc-save','click',()=>{
   const pd={type:'location',title:$('sheet-loc-title').value||'Локация',link:$('sheet-loc-link').value||'',
     mapUrl:$('sheet-loc-map').value||'',coords:$('sheet-loc-check-coords').checked?$('sheet-loc-coords').value:'',
     duration:(parseInt($('sheet-loc-hours').value)||0)*60+(parseInt($('sheet-loc-mins').value)||0)};
-  if(editingIndex!==null)routePoints[editingIndex]=pd; else routePoints.push(pd);
-  closeSheet('overlay-location'); saveDraft(); renderRoute();
+  if(editingIndex!==null)routePoints[editingIndex]=pd;else routePoints.push(pd);
+  closeSheet('overlay-location');saveDraft();renderRoute();
 });
-$('btn-sheet-transit-save').addEventListener('click',()=>{
+$t('btn-sheet-transit-save','click',()=>{
   const d=(parseInt($('sheet-transit-hours').value)||0)*60+(parseInt($('sheet-transit-mins').value)||0);
-  if(editingIndex!==null)routePoints[editingIndex].duration=d; else routePoints.push({type:'transit',title:'🚗 Переезд',duration:d});
-  closeSheet('overlay-transit'); saveDraft(); renderRoute();
+  if(editingIndex!==null)routePoints[editingIndex].duration=d;else routePoints.push({type:'transit',title:'🚗 Переезд',duration:d});
+  closeSheet('overlay-transit');saveDraft();renderRoute();
 });
-$('btn-sheet-lunch-save').addEventListener('click',()=>{
+$t('btn-sheet-lunch-save','click',()=>{
   const d=(parseInt($('sheet-lunch-hours').value)||0)*60+(parseInt($('sheet-lunch-mins').value)||0);
-  if(editingIndex!==null)routePoints[editingIndex].duration=d; else routePoints.push({type:'lunch',title:'🍽️ Ланч',duration:d});
-  closeSheet('overlay-lunch'); saveDraft(); renderRoute();
+  if(editingIndex!==null)routePoints[editingIndex].duration=d;else routePoints.push({type:'lunch',title:'🍽 Ланч',duration:d});
+  closeSheet('overlay-lunch');saveDraft();renderRoute();
 });
-$('btn-add-location').addEventListener('click',()=>{
-  editingIndex=null; $('sheet-loc-header').innerText='📍 Новая локация'; $('btn-sheet-loc-save').innerText='Добавить в план';
+$t('btn-add-location','click',()=>{
+  editingIndex=null;$('sheet-loc-header').innerText='📍 Новая локация';$('btn-sheet-loc-save').innerText='Добавить в план';
   ['sheet-loc-title','sheet-loc-link','sheet-loc-map','sheet-loc-coords','sheet-loc-hours','sheet-loc-mins'].forEach(id=>$(id).value='');
-  $('sheet-loc-check-coords').checked=false; $('sheet-loc-coords-field').style.display='none';
-  openSheet('overlay-location');
+  $('sheet-loc-check-coords').checked=false;$('sheet-loc-coords-field').style.display='none';openSheet('overlay-location');
 });
-$('btn-add-transit').addEventListener('click',()=>{
-  editingIndex=null; $('sheet-transit-header').innerText='🚗 Добавить переезд'; $('btn-sheet-transit-save').innerText='Добавить';
-  ['sheet-transit-hours','sheet-transit-mins'].forEach(id=>$(id).value=''); openSheet('overlay-transit');
+$t('btn-add-transit','click',()=>{
+  editingIndex=null;$('sheet-transit-header').innerText='🚗 Добавить переезд';$('btn-sheet-transit-save').innerText='Добавить';
+  ['sheet-transit-hours','sheet-transit-mins'].forEach(id=>$(id).value='');openSheet('overlay-transit');
 });
-$('btn-add-lunch').addEventListener('click',()=>{
-  editingIndex=null; $('sheet-lunch-header').innerText='🍽️ Добавить ланч'; $('btn-sheet-lunch-save').innerText='Добавить';
-  ['sheet-lunch-hours','sheet-lunch-mins'].forEach(id=>$(id).value=''); openSheet('overlay-lunch');
+$t('btn-add-lunch','click',()=>{
+  editingIndex=null;$('sheet-lunch-header').innerText='🍽 Добавить ланч';$('btn-sheet-lunch-save').innerText='Добавить';
+  ['sheet-lunch-hours','sheet-lunch-mins'].forEach(id=>$(id).value='');openSheet('overlay-lunch');
 });
-$('btn-sheet-loc-close').addEventListener('click',()=>closeSheet('overlay-location'));
-$('btn-sheet-transit-close').addEventListener('click',()=>closeSheet('overlay-transit'));
-$('btn-sheet-lunch-close').addEventListener('click',()=>closeSheet('overlay-lunch'));
+$t('btn-sheet-loc-close','click',()=>closeSheet('overlay-location'));
+$t('btn-sheet-transit-close','click',()=>closeSheet('overlay-transit'));
+$t('btn-sheet-lunch-close','click',()=>closeSheet('overlay-lunch'));
 
-// ── COLLECT PLAN DATA ──────────────────────────────────────────────────
-function collectPlanData() {
-  const hasTransport=$('check-transport').checked;
-  const hasAllPoints=$('check-all-points-map').checked;
-  let rt=gDepTime||'00:00';
-  routePoints.forEach(p=>{rt=addM(rt,parseInt(p.duration)||0);});
-  return {
-    title:gTitle, date:gDate, meetingTime:gMeetTime, departureTime:gDepTime,
-    meetingPlace:gPlace, meetingAddress:gAddress, meetingMapUrl:gMap,
-    allPointsMapUrl:hasAllPoints?($('all-points-map').value||''):'',
-    coordinates:$('check-coords').checked?gCoords:'',
-    hasTransport, carNumber:hasTransport?$('car-number').value:'',
-    driverName:hasTransport?$('driver-name').value:'',
-    driverPhone:hasTransport?$('driver-phone').value:'',
-    carPhotoBase64:hasTransport?uploadedCarPhotoBase64:'',
-    routePoints:[...routePoints], returnTime:rt, status:'active'
-  };
-}
-
-function saveProjectToStorage(data) {
-  const projects = getProjects();
-  projects.unshift(data);
-  saveProjects(projects);
-}
-
-// ── 3 КНОПКИ ФИНАЛА ───────────────────────────────────────────────────
-
-// 1. Сохранить и закрыть
-$('btn-save-close').addEventListener('click',()=>{
+// ── 3 ACTION BUTTONS ──────────────────────────────────────────────────────
+$t('btn-save-close','click',()=>{
   haptic('medium');
-  const data = collectPlanData();
+  const data=collectPlanData();
   saveProjectToStorage(data);
   localStorage.removeItem('scout_draft');
   clearInputs(); renderAllProjects();
-  showScreen('screen-main');
+  screenStack.length=0; screenStack.push('screen-main');
+  showScreen('screen-main',false);
   hapticN('success');
 });
 
-// 2. Предпросмотр
-$('btn-preview').addEventListener('click',()=>{
+$t('btn-preview','click',()=>{
   haptic('light');
-  const data = collectPlanData();
-  $('preview-content').innerHTML = buildPreviewHtml(data);
-  // Сохраняем данные для отправки из предпросмотра
-  $('btn-send-from-preview')._planData = data;
+  const data=collectPlanData();
+  $('preview-content').innerHTML=buildPreviewHtml(data);
+  $('btn-send-from-preview')._planData=data;
   showScreen('screen-preview');
 });
 
-// 3. Запросить план в чат
-$('btn-send-plan').addEventListener('click', async function(){
-  this.disabled=true; haptic('medium');
-  showStatus('send-status','loading','⏳ Отправляем...');
-  const data = collectPlanData();
+async function doSend(data,statusId,btnEl){
   const userId=tg.initDataUnsafe&&tg.initDataUnsafe.user?tg.initDataUnsafe.user.id:null;
-  if(!userId){ showStatus('send-status','error','❌ Откройте через Telegram'); this.disabled=false; return; }
-  try {
+  if(!userId){showStatus(statusId,'error','❌ Откройте через Telegram');return;}
+  if(btnEl)btnEl.disabled=true;
+  showStatus(statusId,'loading','⏳ Отправляем...');
+  try{
     const res=await fetch(BACKEND_URL+'/send-plan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chatId:userId,data})});
     const r=await res.json();
-    if(!r.ok) throw new Error(r.error||'Ошибка');
+    if(!r.ok) throw new Error(r.error||'Ошибка сервера');
     saveProjectToStorage(data);
     localStorage.removeItem('scout_draft');
-    showStatus('send-status','success','✅ План отправлен в Telegram!');
+    showStatus(statusId,'success','✅ План отправлен в Telegram!');
     hapticN('success');
     clearInputs(); renderAllProjects();
-    setTimeout(()=>showScreen('screen-main'),1600);
-  } catch(err){ showStatus('send-status','error','❌ '+err.message); hapticN('error'); }
-  this.disabled=false;
-});
+    setTimeout(()=>{screenStack.length=0;screenStack.push('screen-main');showScreen('screen-main',false);},1600);
+  }catch(err){showStatus(statusId,'error','❌ '+err.message);hapticN('error');}
+  if(btnEl)btnEl.disabled=false;
+}
 
-// Отправить из предпросмотра
-$('btn-send-from-preview').addEventListener('click', async function(){
-  this.disabled=true;
-  showStatus('preview-send-status','loading','⏳ Отправляем...');
-  const data = this._planData || collectPlanData();
-  const userId=tg.initDataUnsafe&&tg.initDataUnsafe.user?tg.initDataUnsafe.user.id:null;
-  if(!userId){ showStatus('preview-send-status','error','❌ Откройте через Telegram'); this.disabled=false; return; }
-  try {
-    const res=await fetch(BACKEND_URL+'/send-plan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chatId:userId,data})});
-    const r=await res.json();
-    if(!r.ok) throw new Error(r.error||'Ошибка');
-    saveProjectToStorage(data);
-    localStorage.removeItem('scout_draft');
-    showStatus('preview-send-status','success','✅ Отправлено!');
-    hapticN('success');
-    clearInputs(); renderAllProjects();
-    setTimeout(()=>showScreen('screen-main'),1600);
-  } catch(err){ showStatus('preview-send-status','error','❌ '+err.message); hapticN('error'); }
-  this.disabled=false;
-});
+$t('btn-send-plan','click',function(){doSend(collectPlanData(),'send-status',this);});
+$t('btn-send-from-preview','click',function(){doSend(this._planData||collectPlanData(),'preview-send-status',this);});
 
-// ── INPUT MASKS ────────────────────────────────────────────────────────
+// ── INPUT MASKS ───────────────────────────────────────────────────────────
 $('project-date').addEventListener('input',function(){
   let v=this.value.replace(/\D/g,'').slice(0,6);
-  let f=v.slice(0,2); if(v.length>2)f+='.'+v.slice(2,4); if(v.length>4)f+='.'+v.slice(4,6);
+  let f=v.slice(0,2);if(v.length>2)f+='.'+v.slice(2,4);if(v.length>4)f+='.'+v.slice(4,6);
   this.value=f;
 });
 document.querySelectorAll('.time-mask').forEach(function(inp){
@@ -1199,18 +1195,19 @@ document.querySelectorAll('.time-mask').forEach(function(inp){
     if(v.length>=2&&parseInt(v.slice(0,2))>23)v=v[0];
     if(v.length>=3&&parseInt(v[2])>5)v=v.slice(0,2);
     this.value=v.length>2?v.slice(0,2)+':'+v.slice(2):v;
-    const w=$(wid); if(w)w.style.display='none';
+    const w=$(wid);if(w)w.style.display='none';
   });
   inp.addEventListener('blur',function(){timeComplete(this,$(wid));});
 });
 function timeComplete(inp,wEl){
-  const v=inp.value.replace(/\D/g,''); if(!v)return;
+  const v=inp.value.replace(/\D/g,'');if(!v)return;
   if(v.length===2||v.length===3){inp.value=v.slice(0,2)+':00';if(wEl)wEl.style.display='block';}
   saveDraft();
 }
-function forceT(inp){timeComplete(inp,$(('warn-'+inp.id)));}
+function forceT(inp){timeComplete(inp,$('warn-'+inp.id));}
 
-// ── INIT ───────────────────────────────────────────────────────────────
+// ── INIT ──────────────────────────────────────────────────────────────────
+initTheme();
 renderAllProjects();
 </script>
 </body>
