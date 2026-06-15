@@ -8,25 +8,24 @@ app.use(express.json({ limit: '10mb' }));
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
-// Экранирование для MarkdownV2
 function esc(text) {
     if (!text) return '';
-    return String(text).replace(/[_*[\]()~`>#+=|{}.!\\-]/g, '\\$&');
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
 }
 
 function addMinutes(timeStr, mins) {
     if (!timeStr) timeStr = '00:00';
     const [h, m] = timeStr.split(':').map(Number);
-    const total = h * 60 + m + parseInt(mins || 0);
-    const rh = Math.floor(total / 60) % 24;
-    const rm = total % 60;
-    return `${String(rh).padStart(2, '0')}:${String(rm).padStart(2, '0')}`;
+    const total = (isNaN(h)?0:h) * 60 + (isNaN(m)?0:m) + parseInt(mins || 0);
+    return `${String(Math.floor(total/60)%24).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;
 }
 
 function formatDuration(mins) {
     mins = parseInt(mins) || 0;
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
+    const h = Math.floor(mins / 60), m = mins % 60;
     if (h > 0 && m > 0) return `${h} ч ${m} мин`;
     if (h > 0) return `${h} ч`;
     return `${m} мин`;
@@ -37,141 +36,153 @@ function buildMessage(data) {
         title, date, meetingTime, departureTime,
         meetingPlace, meetingAddress, meetingMapUrl,
         allPointsMapUrl, coordinates,
-        hasTransport, carNumber, driverName, driverPhone,
-        routePoints
+        hasTransport, carBrand, carNumber, driverName, driverPhone,
+        routePoints = []
     } = data;
 
-    let msg = '';
+    const lines = [];
 
     // Заголовок
-    msg += `📋 *План скаута на ${esc(date)}*\n`;
-    msg += `*${esc(title)}*\n`;
-    msg += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+    lines.push(`📋 <b>${esc(title || 'План')}</b> — ${esc(date || '')}`);
+    lines.push(`━━━━━━━━━━━━━━━━━━`);
 
-    // Ссылка на все точки
+    // Все точки на карте
     if (allPointsMapUrl) {
-        msg += `🗺 [Все точки на карте](${allPointsMapUrl})\n\n`;
+        lines.push(`🗺 <a href="${allPointsMapUrl}">Все точки на карте</a>`);
     }
 
     // Транспорт
-    if (hasTransport && (carNumber || driverName)) {
-        msg += `🚘 *Транспорт:*\n`;
-        if (carNumber) msg += `Авто: *${esc(carNumber)}*\n`;
-        if (driverName || driverPhone) {
-            msg += `Водитель: ${esc(driverName)}`;
-            if (driverPhone) msg += ` — ${esc(driverPhone)}`;
-            msg += `\n`;
+    if (hasTransport && (carNumber || driverName || carBrand)) {
+        lines.push('');
+        lines.push(`🚘 <b>Транспорт:</b>`);
+        if (carBrand) lines.push(`Марка/цвет: <b>${esc(carBrand)}</b>`);
+        if (carNumber) lines.push(`Номер: <b>${esc(carNumber)}</b>`);
+        if (driverName) {
+            let dl = `👤 ${esc(driverName)}`;
+            if (driverPhone) dl += ` · ${esc(driverPhone)}`;
+            lines.push(dl);
         }
-        msg += `\n`;
     }
 
-    msg += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+    lines.push('');
+    lines.push(`━━━━━━━━━━━━━━━━━━`);
 
     // Место сбора
-    msg += `🟢 *Сбор:* `;
+    let sborLine = `🟢 <b>Сбор:</b> `;
     if (meetingMapUrl) {
-        msg += `[${esc(meetingPlace)}](${meetingMapUrl})`;
+        sborLine += `<a href="${meetingMapUrl}">${esc(meetingPlace || 'Место')}</a>`;
     } else {
-        msg += `*${esc(meetingPlace)}*`;
+        sborLine += `<b>${esc(meetingPlace || '—')}</b>`;
     }
-    msg += ` — 🕐 ${esc(meetingTime)}\n`;
+    sborLine += ` — 🕐 ${esc(meetingTime || '—')}`;
+    lines.push(sborLine);
 
-    if (meetingAddress) {
-        msg += `📌 ${esc(meetingAddress)}\n`;
-    }
-    if (coordinates) {
-        msg += `📡 \`${esc(coordinates)}\`\n`;
-    }
-
-    msg += `🔴 *Выезд:* ${esc(departureTime)}\n\n`;
+    if (meetingAddress) lines.push(`📌 ${esc(meetingAddress)}`);
+    if (coordinates)   lines.push(`📡 <code>${esc(coordinates)}</code>`);
+    lines.push(`🔴 <b>Выезд:</b> ${esc(departureTime || '—')}`);
+    lines.push('');
 
     // Маршрут
-    let runningTime = departureTime;
-    let locCounter = 1;
     const emojis = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+    let runTime = departureTime || '00:00';
+    let locN = 1;
 
-    routePoints.forEach((point) => {
+    routePoints.forEach(point => {
         const dur = parseInt(point.duration) || 0;
 
         if (point.type === 'transit') {
-            msg += `   🚗 *Переезд* ~${esc(formatDuration(dur))}\n\n`;
-            runningTime = addMinutes(runningTime, dur);
+            lines.push(`   🚗 <i>Переезд</i> ~${formatDuration(dur)}`);
+            lines.push('');
+            runTime = addMinutes(runTime, dur);
+
         } else if (point.type === 'lunch') {
-            const end = addMinutes(runningTime, dur);
-            msg += `🍽️ *Ланч* — ${esc(runningTime)}–${esc(end)} \\(${esc(formatDuration(dur))}\\)\n\n`;
-            runningTime = end;
+            const end = addMinutes(runTime, dur);
+            lines.push(`🍽 <b>Ланч</b> — ${esc(runTime)}–${esc(end)} (${formatDuration(dur)})`);
+            lines.push('');
+            runTime = end;
+
         } else if (point.type === 'location') {
-            const end = addMinutes(runningTime, dur);
-            const emoji = emojis[locCounter - 1] || `${locCounter}\\.`;
+            const end = addMinutes(runTime, dur);
+            const em = emojis[locN - 1] || `${locN}.`;
 
-            msg += `${emoji} `;
+            let locLine = `${em} `;
             if (point.link) {
-                msg += `[${esc(point.title)}](${point.link})`;
+                locLine += `<a href="${point.link}">${esc(point.title || 'Локация')}</a>`;
             } else {
-                msg += `*${esc(point.title)}*`;
+                locLine += `<b>${esc(point.title || 'Локация')}</b>`;
             }
-            msg += ` — 🕐 ${esc(runningTime)}–${esc(end)}\n`;
-            msg += `   ⏱ ${esc(formatDuration(dur))}\n`;
+            locLine += ` — ${esc(runTime)}–${esc(end)}`;
+            lines.push(locLine);
+            lines.push(`   ⏱ ${formatDuration(dur)}`);
 
-            if (point.mapUrl) {
-                msg += `   📍 [Точка на карте](${point.mapUrl})\n`;
-            }
-            if (point.coords) {
-                msg += `   📡 \`${esc(point.coords)}\`\n`;
-            }
+            if (point.mapUrl) lines.push(`   📍 <a href="${point.mapUrl}">Точка на карте</a>`);
+            if (point.coords) lines.push(`   📡 <code>${esc(point.coords)}</code>`);
 
-            msg += `\n`;
-            locCounter++;
-            runningTime = end;
+            lines.push('');
+            locN++;
+            runTime = end;
         }
     });
 
-    msg += `━━━━━━━━━━━━━━━━━━━━\n`;
-    msg += `🏁 *Возвращение: ~${esc(runningTime)}*`;
+    lines.push(`━━━━━━━━━━━━━━━━━━`);
+    lines.push(`🏁 <b>Возвращение: ~${esc(runTime)}</b>`);
 
-    return msg;
+    return lines.join('\n');
 }
 
-// Основной эндпоинт
 app.post('/send-plan', async (req, res) => {
     try {
         const { chatId, data } = req.body;
-
         if (!chatId || !data) {
             return res.status(400).json({ error: 'chatId и data обязательны' });
         }
 
         const messageText = buildMessage(data);
+        console.log('Sending to chatId:', chatId);
+        console.log('Message preview:', messageText.slice(0, 200));
 
-        // Если есть фото авто — сначала фото с подписью
+        // Фото авто отдельным сообщением если есть
         if (data.hasTransport && data.carPhotoBase64) {
-            const photoBase64 = data.carPhotoBase64.replace(/^data:image\/\w+;base64,/, '');
+            try {
+                const photoBase64 = data.carPhotoBase64.replace(/^data:image\/\w+;base64,/, '');
+                const formData = new FormData();
+                formData.append('chat_id', String(chatId));
+                const blob = new Blob([Buffer.from(photoBase64, 'base64')], { type: 'image/jpeg' });
+                formData.append('photo', blob, 'car.jpg');
 
-            const formData = new FormData();
-            formData.append('chat_id', chatId);
-            const blob = new Blob([Buffer.from(photoBase64, 'base64')], { type: 'image/jpeg' });
-            formData.append('photo', blob, 'car.jpg');
-            formData.append('caption', `🚘 ${data.carNumber || 'Авто'} — ${data.driverName || ''}`);
+                let caption = '🚘';
+                if (data.carBrand) caption += ` ${data.carBrand}`;
+                if (data.carNumber) caption += ` · ${data.carNumber}`;
+                if (data.driverName) caption += `\n👤 ${data.driverName}`;
+                if (data.driverPhone) caption += ` · ${data.driverPhone}`;
+                formData.append('caption', caption);
 
-            await fetch(`${TELEGRAM_API}/sendPhoto`, {
-                method: 'POST',
-                body: formData
-            });
+                const photoRes = await fetch(`${TELEGRAM_API}/sendPhoto`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const photoData = await photoRes.json();
+                if (!photoData.ok) console.error('Photo error:', photoData);
+            } catch (photoErr) {
+                console.error('Photo send error:', photoErr);
+                // Не останавливаемся — продолжаем отправку текста
+            }
         }
 
-        // Отправляем основное сообщение
+        // Основное сообщение
         const tgRes = await fetch(`${TELEGRAM_API}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                chat_id: chatId,
+                chat_id: String(chatId),
                 text: messageText,
-                parse_mode: 'MarkdownV2',
+                parse_mode: 'HTML',
                 disable_web_page_preview: true
             })
         });
 
         const tgData = await tgRes.json();
+        console.log('Telegram response:', JSON.stringify(tgData).slice(0, 300));
 
         if (!tgData.ok) {
             console.error('Telegram error:', tgData);
@@ -181,7 +192,7 @@ app.post('/send-plan', async (req, res) => {
         res.json({ ok: true });
 
     } catch (err) {
-        console.error(err);
+        console.error('Server error:', err);
         res.status(500).json({ error: err.message });
     }
 });
