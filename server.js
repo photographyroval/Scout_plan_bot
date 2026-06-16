@@ -42,29 +42,26 @@ function buildMessage(data) {
 
     const lines = [];
 
-    // Заголовок
+    // Заголовок — название, дата, ссылка на карту всех точек
     lines.push(`📋 <b>${esc(title || 'План')}</b> — ${esc(date || '')}`);
-    lines.push(`━━━━━━━━━━━━━━━━━━`);
-
-    // Все точки на карте
     if (allPointsMapUrl) {
         lines.push(`🗺 <a href="${allPointsMapUrl}">Все точки на карте</a>`);
     }
+    lines.push(`━━━━━━━━━━━━━━━━━━`);
 
-    // Транспорт
-    if (hasTransport && (carNumber || driverName || carBrand)) {
-        lines.push('');
+    // Транспорт — без лишних подписей, только значения
+    if (hasTransport && (carBrand || carNumber || driverName)) {
         lines.push(`🚘 <b>Транспорт:</b>`);
-        if (carBrand) lines.push(`Марка/цвет: <b>${esc(carBrand)}</b>`);
-        if (carNumber) lines.push(`Номер: <b>${esc(carNumber)}</b>`);
+        if (carBrand)  lines.push(`<b>${esc(carBrand)}</b>`);
+        if (carNumber) lines.push(`<b>${esc(carNumber)}</b>`);
         if (driverName) {
             let dl = `👤 ${esc(driverName)}`;
             if (driverPhone) dl += ` · ${esc(driverPhone)}`;
             lines.push(dl);
         }
+        lines.push('');
     }
 
-    lines.push('');
     lines.push(`━━━━━━━━━━━━━━━━━━`);
 
     // Место сбора
@@ -139,9 +136,9 @@ app.post('/send-plan', async (req, res) => {
 
         const messageText = buildMessage(data);
         console.log('Sending to chatId:', chatId);
-        console.log('Message preview:', messageText.slice(0, 200));
+        console.log('Message preview:', messageText.slice(0, 300));
 
-        // Фото авто отдельным сообщением если есть
+        // Если есть фото авто — отправляем ОДНИМ сообщением: фото + весь план как caption
         if (data.hasTransport && data.carPhotoBase64) {
             try {
                 const photoBase64 = data.carPhotoBase64.replace(/^data:image\/\w+;base64,/, '');
@@ -149,46 +146,43 @@ app.post('/send-plan', async (req, res) => {
                 formData.append('chat_id', String(chatId));
                 const blob = new Blob([Buffer.from(photoBase64, 'base64')], { type: 'image/jpeg' });
                 formData.append('photo', blob, 'car.jpg');
+                // Весь план идёт как caption к фото
+                // Telegram ограничивает caption до 1024 символов
+                // Если план длиннее — обрезаем caption и отправляем текст отдельно
+                if (messageText.length <= 1024) {
+                    formData.append('caption', messageText);
+                    formData.append('parse_mode', 'HTML');
 
-                let caption = '🚘';
-                if (data.carBrand) caption += ` ${data.carBrand}`;
-                if (data.carNumber) caption += ` · ${data.carNumber}`;
-                if (data.driverName) caption += `\n👤 ${data.driverName}`;
-                if (data.driverPhone) caption += ` · ${data.driverPhone}`;
-                formData.append('caption', caption);
+                    const photoRes = await fetch(`${TELEGRAM_API}/sendPhoto`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const photoData = await photoRes.json();
+                    console.log('Photo+caption response:', JSON.stringify(photoData).slice(0, 300));
 
-                const photoRes = await fetch(`${TELEGRAM_API}/sendPhoto`, {
-                    method: 'POST',
-                    body: formData
-                });
-                const photoData = await photoRes.json();
-                if (!photoData.ok) console.error('Photo error:', photoData);
+                    if (!photoData.ok) {
+                        console.error('Photo error:', photoData);
+                        // Fallback — отправляем фото отдельно, потом текст
+                        await sendPhotoOnly(data, chatId);
+                        await sendTextMessage(chatId, messageText);
+                    }
+                } else {
+                    // План длинный — фото отдельно, текст отдельно
+                    formData.append('caption', '📋 План прикреплён ниже');
+                    await fetch(`${TELEGRAM_API}/sendPhoto`, { method: 'POST', body: formData });
+                    await sendTextMessage(chatId, messageText);
+                }
+
+                return res.json({ ok: true });
+
             } catch (photoErr) {
                 console.error('Photo send error:', photoErr);
-                // Не останавливаемся — продолжаем отправку текста
+                // Fallback — просто текст
             }
         }
 
-        // Основное сообщение
-        const tgRes = await fetch(`${TELEGRAM_API}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: String(chatId),
-                text: messageText,
-                parse_mode: 'HTML',
-                disable_web_page_preview: true
-            })
-        });
-
-        const tgData = await tgRes.json();
-        console.log('Telegram response:', JSON.stringify(tgData).slice(0, 300));
-
-        if (!tgData.ok) {
-            console.error('Telegram error:', tgData);
-            return res.status(500).json({ error: tgData.description });
-        }
-
+        // Нет фото — просто текстовое сообщение
+        await sendTextMessage(chatId, messageText);
         res.json({ ok: true });
 
     } catch (err) {
@@ -196,6 +190,34 @@ app.post('/send-plan', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+async function sendPhotoOnly(data, chatId) {
+    try {
+        const photoBase64 = data.carPhotoBase64.replace(/^data:image\/\w+;base64,/, '');
+        const formData = new FormData();
+        formData.append('chat_id', String(chatId));
+        const blob = new Blob([Buffer.from(photoBase64, 'base64')], { type: 'image/jpeg' });
+        formData.append('photo', blob, 'car.jpg');
+        await fetch(`${TELEGRAM_API}/sendPhoto`, { method: 'POST', body: formData });
+    } catch(e) { console.error(e); }
+}
+
+async function sendTextMessage(chatId, text) {
+    const tgRes = await fetch(`${TELEGRAM_API}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            chat_id: String(chatId),
+            text: text,
+            parse_mode: 'HTML',
+            disable_web_page_preview: true
+        })
+    });
+    const tgData = await tgRes.json();
+    console.log('Text response:', JSON.stringify(tgData).slice(0, 300));
+    if (!tgData.ok) throw new Error(tgData.description || 'Telegram error');
+    return tgData;
+}
 
 app.get('/', (req, res) => res.send('Scout Planner Bot — работает ✅'));
 
