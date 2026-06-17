@@ -19,8 +19,17 @@ function esc(text) {
 function addMinutes(timeStr, mins) {
     if (!timeStr) timeStr = '00:00';
     const [h, m] = timeStr.split(':').map(Number);
-    const total = (isNaN(h)?0:h) * 60 + (isNaN(m)?0:m) + parseInt(mins || 0);
-    return `${String(Math.floor(total/60)%24).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;
+    
+    // Проверяем, что минуты — это действительно число. Если нет — берем 0
+    const parsedMins = parseInt(mins, 10);
+    const cleanMins = isNaN(parsedMins) ? 0 : parsedMins;
+    
+    const total = (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m) + cleanMins;
+    
+    const finalHours = Math.floor(total / 60) % 24;
+    const finalMins = total % 60;
+    
+    return `${String(finalHours).padStart(2, '0')}:${String(finalMins).padStart(2, '0')}`;
 }
 
 function formatDuration(mins) {
@@ -140,15 +149,28 @@ function buildCarCaption(data) {
 }
 
 async function sendPhoto(chatId, photoBuffer, caption, parseMode = 'HTML') {
+    // Используем встроенный глобальный FormData
     const formData = new FormData();
     formData.append('chat_id', String(chatId));
-    formData.append('photo', new Blob([photoBuffer], { type: 'image/jpeg' }), 'car.jpg');
+    
+    // Безопасно превращаем буфер картинки в файл для Telegram
+    const blob = new Blob([photoBuffer], { type: 'image/jpeg' });
+    formData.append('photo', blob, 'car.jpg');
+    
     if (caption) {
         formData.append('caption', caption);
         formData.append('parse_mode', parseMode);
     }
-    const res = await fetch(`${TELEGRAM_API}/sendPhoto`, { method: 'POST', body: formData });
-    return res.json();
+
+    const res = await fetch(`${TELEGRAM_API}/sendPhoto`, { 
+        method: 'POST', 
+        body: formData 
+    });
+    
+    const d = await res.json();
+    // Добавляем жесткую проверку: если Telegram вернул ошибку, сервер не молчит, а сообщает об этом
+    if (!d.ok) throw new Error(d.description || 'Telegram sendPhoto error');
+    return d;
 }
 
 async function sendText(chatId, text) {
