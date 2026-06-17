@@ -29,7 +29,6 @@ function addMinutes(timeStr, mins) {
     if (!timeStr) timeStr = '00:00';
     const [h, m] = timeStr.split(':').map(Number);
     
-    // Проверяем, что минуты — это действительно число. Если нет — берем 0
     const parsedMins = parseInt(mins, 10);
     const cleanMins = isNaN(parsedMins) ? 0 : parsedMins;
     
@@ -40,6 +39,7 @@ function addMinutes(timeStr, mins) {
     
     return `${String(finalHours).padStart(2, '0')}:${String(finalMins).padStart(2, '0')}`;
 }
+
 // Форматирование длительности
 function formatDuration(mins) {
     mins = parseInt(mins, 10) || 0;
@@ -156,11 +156,9 @@ function buildCarCaption(data) {
 
 // Отправка фото в Telegram
 async function sendPhoto(chatId, photoBuffer, caption, parseMode = 'HTML') {
-    // Используем встроенный глобальный FormData
     const formData = new FormData();
     formData.append('chat_id', String(chatId));
     
-    // Безопасно превращаем буфер картинки в файл для Telegram
     const blob = new Blob([photoBuffer], { type: 'image/jpeg' });
     formData.append('photo', blob, 'car.jpg');
     
@@ -169,13 +167,8 @@ async function sendPhoto(chatId, photoBuffer, caption, parseMode = 'HTML') {
         formData.append('parse_mode', parseMode);
     }
 
-    const res = await fetch(`${TELEGRAM_API}/sendPhoto`, { 
-        method: 'POST', 
-        body: formData 
-    });
-    
+    const res = await fetch(`${TELEGRAM_API}/sendPhoto`, { method: 'POST', body: formData });
     const d = await res.json();
-    // Добавляем жесткую проверку: если Telegram вернул ошибку, сервер не молчит, а сообщает об этом
     if (!d.ok) throw new Error(d.description || 'Telegram sendPhoto error');
     return d;
 }
