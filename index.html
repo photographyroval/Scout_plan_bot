@@ -540,7 +540,24 @@ function closeSheet(id){document.body.classList.remove('sheet-open');$(id).style
 
 // ── STORAGE ──────────────────────────────────────────────────────────────
 function getProjects(){try{return JSON.parse(localStorage.getItem('scout_projects')||'[]');}catch(e){return[];}}
-function saveProjects(p){localStorage.setItem('scout_projects',JSON.stringify(p));}
+function saveProjects(p){
+  try {
+    localStorage.setItem('scout_projects', JSON.stringify(p));
+  } catch(e) {
+    // Quota exceeded — удаляем мусор из корзины и повторяем
+    console.warn('Storage quota exceeded, cleaning trash...');
+    try {
+      const cleaned = p
+        .filter(pr => pr.status !== 'trash') // убираем корзину
+        .map(pr => ({...pr, carPhotoBase64:''})); // убираем фото на всякий случай
+      localStorage.setItem('scout_projects', JSON.stringify(cleaned));
+      console.log('Saved after cleanup');
+    } catch(e2) {
+      console.error('Storage completely full:', e2.message);
+      alert('Хранилище переполнено. Удали старые проекты из корзины.');
+    }
+  }
+}
 
 function saveDraft(){
   try{localStorage.setItem('scout_draft',JSON.stringify({
@@ -553,7 +570,7 @@ function saveDraft(){
     checkTransport:$('check-transport').checked,
     carBrand:$('car-brand').value, carNumber:$('car-number').value,
     driverName:$('driver-name').value, driverPhone:$('driver-phone').value,
-    carPhoto:uploadedCarPhotoBase64, routePoints, editingProjectIdx
+    routePoints, editingProjectIdx
   }));}catch(e){}
 }
 
@@ -647,22 +664,35 @@ function collectPlanData(){
     carNumber:hasTr?$('car-number').value:'',
     driverName:hasTr?$('driver-name').value:'',
     driverPhone:hasTr?$('driver-phone').value:'',
-    carPhotoBase64:hasTr?uploadedCarPhotoBase64:'',
+    carPhotoBase64:'',
     routePoints:[...routePoints], returnTime:rt, status:'active'
   };
 }
 
+// Для отправки — добавляем фото из памяти (не из localStorage)
+function collectPlanDataForSend(){
+  const data = collectPlanData();
+  if(data.hasTransport) data.carPhotoBase64 = uploadedCarPhotoBase64||'';
+  return data;
+}
+
 // ── SAVE PROJECT ──────────────────────────────────────────────────────────
 function saveProjectToStorage(data){
-  const projects=getProjects();
-  if(editingProjectIdx!==null&&editingProjectIdx>=0){
-    // Обновляем существующий
-    data.status=projects[editingProjectIdx].status||'active';
-    projects[editingProjectIdx]=data;
-  } else {
-    projects.unshift(data);
+  try {
+    const projects=getProjects();
+    const toStore={...data, carPhotoBase64:''};
+    if(editingProjectIdx!==null&&editingProjectIdx>=0){
+      toStore.status=projects[editingProjectIdx].status||'active';
+      projects[editingProjectIdx]=toStore;
+    } else {
+      projects.unshift(toStore);
+    }
+    saveProjects(projects);
+    return true;
+  } catch(e){
+    console.error('Save failed:',e.message);
+    return false;
   }
-  saveProjects(projects);
 }
 
 // ── RENDER PROJECTS ───────────────────────────────────────────────────────
@@ -1143,17 +1173,21 @@ $t('btn-sheet-lunch-close','click',()=>closeSheet('overlay-lunch'));
 $t('btn-save-close','click',()=>{
   haptic('medium');
   const data=collectPlanData();
-  saveProjectToStorage(data);
-  localStorage.removeItem('scout_draft');
-  clearInputs(); renderAllProjects();
-  screenStack.length=0; screenStack.push('screen-main');
-  showScreen('screen-main',false);
-  hapticN('success');
+  const saved=saveProjectToStorage(data);
+  if(saved){
+    localStorage.removeItem('scout_draft');
+    clearInputs(); renderAllProjects();
+    screenStack.length=0; screenStack.push('screen-main');
+    showScreen('screen-main',false);
+    hapticN('success');
+  } else {
+    showStatus('send-status','error','❌ Ошибка сохранения — попробуй ещё раз');
+  }
 });
 
 $t('btn-preview','click',()=>{
   haptic('light');
-  const data=collectPlanData();
+  const data=collectPlanDataForSend();
   $('preview-content').innerHTML=buildPreviewHtml(data);
   $('btn-send-from-preview')._planData=data;
   showScreen('screen-preview');
@@ -1178,8 +1212,8 @@ async function doSend(data,statusId,btnEl){
   if(btnEl)btnEl.disabled=false;
 }
 
-$t('btn-send-plan','click',function(){doSend(collectPlanData(),'send-status',this);});
-$t('btn-send-from-preview','click',function(){doSend(this._planData||collectPlanData(),'preview-send-status',this);});
+$t('btn-send-plan','click',function(){doSend(collectPlanDataForSend(),'send-status',this);});
+$t('btn-send-from-preview','click',function(){doSend(this._planData||collectPlanDataForSend(),'preview-send-status',this);});
 
 // ── INPUT MASKS ───────────────────────────────────────────────────────────
 $('project-date').addEventListener('input',function(){
