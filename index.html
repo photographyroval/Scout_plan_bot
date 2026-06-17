@@ -177,7 +177,7 @@ body.sheet-open{overflow:hidden!important;}
 .preview-bubble a{color:var(--accent);text-decoration:none;}
 .preview-bubble b{font-weight:700;}
 
-/* ── STATUS ── */
+/* ── SUMMARY ── */
 .send-status{margin-top:10px;padding:12px;border-radius:10px;font-size:14px;font-weight:600;text-align:center;display:none;}
 .send-status.loading{background:#e8f4fd;color:#1a6faa;display:block;}
 .send-status.success{background:#d4edda;color:#155724;display:block;}
@@ -548,7 +548,7 @@ function saveDraft(){
 
 function clearInputs(){
   ['project-title','project-date','time-meeting','time-departure','meeting-place','meeting-address',
-   'meeting-map','all-points-map','meeting-coords','car-brand','car-number','driver-name','driver-phone'
+    'meeting-map','all-points-map','meeting-coords','car-brand','car-number','driver-name','driver-phone'
   ].forEach(id=>{const el=$(id);if(el)el.value='';});
   uploadedCarPhotoBase64='';
   $('car-photo-preview-wrap').style.display='none';
@@ -600,7 +600,8 @@ $t('sheet-loc-check-coords','change',function(e){ $('sheet-loc-coords-field').st
 
 // ── PHOTO LOADING ──
 $t('car-photo-input','change',function(e){
-  const f = e.target.files[0]; if(!f) return;
+  const f = e.target.files[0];
+  if(!f) return;
   const r = new FileReader();
   r.onload = function(evt){
     uploadedCarPhotoBase64 = evt.target.result;
@@ -610,610 +611,434 @@ $t('car-photo-input','change',function(e){
   };
   r.readAsDataURL(f);
 });
+
 $t('btn-delete-photo','click',function(){
   uploadedCarPhotoBase64 = '';
-  $('car-photo-input').value = '';
+  $('car-photo-preview').src = '';
   $('car-photo-preview-wrap').style.display = 'none';
+  $('car-photo-input').value = '';
   saveDraft();
 });
 
 // ── TABS LOGIC ──
-function switchTab(tabName) {
+function switchTab(type) {
   haptic('light');
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  $('tab-'+tabName).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  $('tab-' + type).classList.add('active');
   
-  ['active','archive','trash'].forEach(t=>{
-    $('content-'+t).style.display = (t === tabName)?'block':'none';
-  });
-  ctxProjectStatus = tabName;
-  renderProjectsList();
+  $('content-active').style.display = (type === 'active') ? 'block' : 'none';
+  $('content-archive').style.display = (type === 'archive') ? 'block' : 'none';
+  $('content-trash').style.display = (type === 'trash') ? 'block' : 'none';
+  
+  renderProjects();
 }
+
 $t('tab-active','click',()=>switchTab('active'));
 $t('tab-archive','click',()=>switchTab('archive'));
 $t('tab-trash','click',()=>switchTab('trash'));
 
-// ── RENDER MAIN LIST ──
-function renderProjectsList(){
-  const all = getProjects();
-  const listActive = $('projects-list-active');
-  const listArchive = $('projects-list-archive');
-  const listTrash = $('projects-list-trash');
-  
-  listActive.innerHTML=''; listArchive.innerHTML=''; listTrash.innerHTML='';
-  
-  let cAct=0, cArc=0, cTrsh=0;
-  
-  all.forEach((p, idx)=>{
-    const card = document.createElement('div');
-    card.className = 'project-card';
-    
-    let tpl = `<div class="project-card-body" onclick="onCardClick(${idx}, '${p.status}')">
-      <div class="project-card-title">${esc(p.title || 'Без названия')}</div>
-      <div class="project-card-meta">📅 ${esc(p.date || '—')} &nbsp;•&nbsp; 🟢 ${esc(p.meetingTime || '—')}</div>
-      <div class="project-card-info">📍 Сбор: <b>${esc(p.place || '—')}</b></div>
-    </div>`;
-    
-    card.innerHTML = tpl;
-    
-    if(!p.status || p.status==='active') { listActive.appendChild(card); cAct++; }
-    else if(p.status==='archive') { listArchive.appendChild(card); cArc++; }
-    else if(p.status==='trash') { listTrash.appendChild(card); cTrsh++; }
-  });
-  
-  $('main-empty-state').style.display = (cAct===0)?'block':'none';
-  $('archive-empty-state').style.display = (cArc===0)?'block':'none';
-  $('trash-empty-state').style.display = (cTrsh===0)?'block':'none';
-  
-  const dr = localStorage.getItem('scout_draft');
-  $('main-draft-banner').style.display = (dr && ctxProjectStatus==='active')?'flex':'none';
-}
-
-function onCardClick(idx, status) {
-  ctxProjectIdx = idx;
-  const all = getProjects();
-  const p = all[idx];
-  
-  if (status === 'trash') {
-    $('ctx-open').style.display='none';
-    $('ctx-send').style.display='none';
-    $('ctx-hide').style.display='none';
-    $('ctx-restore').style.display='block';
-  } else if (status === 'archive') {
-    $('ctx-open').style.add ? $('ctx-open').style.display='block' : $('ctx-open').style.display='block';
-    $('ctx-send').style.display='block';
-    $('ctx-hide').textContent = '👁 Восстановить в активные';
-    $('ctx-restore').style.display='none';
-  } else {
-    $('ctx-open').style.display='block';
-    $('ctx-send').style.display='block';
-    $('ctx-hide').textContent = '🙈 Скрыть проект';
-    $('ctx-restore').style.display='none';
-  }
-  
-  $('ctx-overlay').style.display='block';
-  $('ctx-menu').style.display='block';
-  
-  // Позиционируем меню по центру экрана для простоты в WebApp
-  $('ctx-menu').style.left = '50%';
-  $('ctx-menu').style.top = '50%';
-  $('ctx-menu').style.transform = 'translate(-50%, -50%)';
-}
-
-function closeCtx(){
-  $('ctx-overlay').style.display='none';
-  $('ctx-menu').style.display='none';
-}
-$t('ctx-overlay','click',closeCtx);
-
-// ── CTX ACTIONS ──
-$t('ctx-open','click',function(){
-  closeCtx();
-  if(ctxProjectIdx===null)return;
-  const p = getProjects()[ctxProjectIdx];
-  editingProjectIdx = ctxProjectIdx;
-  
-  $('project-title').value = p.title||'';
-  $('project-date').value = p.date||'';
-  $('time-meeting').value = p.meetingTime||'';
-  $('time-departure').value = p.departureTime||'';
-  $('meeting-place').value = p.place||'';
-  $('meeting-address').value = p.address||'';
-  $('meeting-map').value = p.map||'';
-  $('all-points-map').value = p.allPointsMap||'';
-  $('check-all-points-map').checked = !!p.checkAllPointsMap;
-  $('all-points-map-field').style.display = p.checkAllPointsMap?'block':'none';
-  $('meeting-coords').value = p.coords||'';
-  $('check-coords').checked = !!p.checkCoords;
-  $('coords-field').style.display = p.checkCoords?'block':'none';
-  
-  $('check-transport').checked = !!p.checkTransport;
-  $('transport-fields').style.display = p.checkTransport?'block':'none';
-  $('car-brand').value = p.carBrand||'';
-  $('car-number').value = p.carNumber||'';
-  $('driver-name').value = p.driverName||'';
-  $('driver-phone').value = p.driverPhone||'';
-  
-  if(p.carPhotoBase64) {
-    uploadedCarPhotoBase64 = p.carPhotoBase64;
-    $('car-photo-preview').src = p.carPhotoBase64;
-    $('car-photo-preview-wrap').style.display='block';
-  } else {
-    uploadedCarPhotoBase64 = '';
-    $('car-photo-preview-wrap').style.display='none';
-  }
-  
-  routePoints = p.routePoints || [];
-  showScreen('screen-create');
-});
-
-$t('ctx-hide','click',function(){
-  closeCtx();
-  const pr = getProjects();
-  if(pr[ctxProjectIdx].status === 'archive') {
-    pr[ctxProjectIdx].status = 'active';
-  } else {
-    pr[ctxProjectIdx].status = 'archive';
-  }
-  saveProjects(pr); renderProjectsList();
-});
-
-$t('ctx-restore','click',function(){
-  closeCtx();
-  const pr = getProjects();
-  pr[ctxProjectIdx].status = 'active';
-  saveProjects(pr); renderProjectsList();
-});
-
-$t('ctx-delete','click',function(){
-  closeCtx();
-  const pr = getProjects();
-  if(pr[ctxProjectIdx].status === 'trash') {
-    if(confirm('Удалить проект окончательно без возможности восстановления?')) {
-      pr.splice(ctxProjectIdx,1);
-    }
-  } else {
-    pr[ctxProjectIdx].status = 'trash';
-  }
-  saveProjects(pr); renderProjectsList();
-});
-
-// ── DRAFT RESTORE ──
-$t('btn-restore-draft','click',function(){
-  const drStr = localStorage.getItem('scout_draft'); if(!drStr)return;
-  const p = JSON.parse(drStr);
-  editingProjectIdx = p.editingProjectIdx;
-  
-  $('project-title').value = p.title||'';
-  $('project-date').value = p.date||'';
-  $('time-meeting').value = p.meetingTime||'';
-  $('time-departure').value = p.departureTime||'';
-  $('meeting-place').value = p.place||'';
-  $('meeting-address').value = p.address||'';
-  $('meeting-map').value = p.map||'';
-  $('all-points-map').value = p.allPointsMap||'';
-  $('check-all-points-map').checked = !!p.checkAllPointsMap;
-  $('all-points-map-field').style.display = p.checkAllPointsMap?'block':'none';
-  $('meeting-coords').value = p.coords||'';
-  $('check-coords').checked = !!p.checkCoords;
-  $('coords-field').style.display = p.checkCoords?'block':'none';
-  $('check-transport').checked = !!p.checkTransport;
-  $('transport-fields').style.display = p.checkTransport?'block':'none';
-  $('car-brand').value = p.carBrand||'';
-  $('car-number').value = p.carNumber||'';
-  $('driver-name').value = p.driverName||'';
-  $('driver-phone').value = p.driverPhone||'';
-  routePoints = p.routePoints || [];
-  
-  showScreen('screen-create');
-});
-
-// ── NAVIGATION ACTIONS ──
-$t('btn-create-project','click',function(){
+// ── RENDERING & NAVIGATION STACK EVENTS ──
+$t('btn-create-project','click',() => {
   clearInputs();
-  editingProjectIdx = -1;
   showScreen('screen-create');
 });
-$t('btn-cancel-step1','click',function(){
-  clearInputs();
+
+$t('btn-cancel-step1','click',() => {
   goBack();
 });
 
-// ── STEP 1 SUBMIT ──
-$t('btn-submit-step1','click',function(){
+$t('btn-back-to-step1','click',() => {
+  goBack();
+});
+
+$t('btn-back-from-preview','click',() => {
+  goBack();
+});
+
+// Инициализация
+window.addEventListener('DOMContentLoaded', () => {
+  initTheme();
+  renderProjects();
+  
+  // Проверка черновика
+  const draft = localStorage.getItem('scout_draft');
+  if(draft) {
+    $('main-draft-banner').style.display = 'flex';
+  }
+});
+
+function renderProjects() {
+  const all = getProjects();
+  const activeList = $('projects-list-active');
+  const archiveList = $('projects-list-archive');
+  const trashList = $('projects-list-trash');
+  
+  if(activeList) activeList.innerHTML = '';
+  if(archiveList) archiveList.innerHTML = '';
+  if(trashList) trashList.innerHTML = '';
+  
+  let cActive = 0, cArchive = 0, cTrash = 0;
+  
+  all.forEach((p, idx) => {
+    const card = document.createElement('div');
+    card.className = 'project-card';
+    card.innerHTML = `
+      <div class="project-card-body" onclick="openProjectContextMenu(${idx}, '${p.status}')">
+        <div class="project-card-title">${esc(p.title || 'Без названия')}</div>
+        <div class="project-card-meta">📅 ${esc(p.date || '—')} | 🟢 ${esc(p.meetingTime || '—')}</div>
+        <div class="project-card-info">📍 ${esc(p.place || '—')}</div>
+      </div>
+    `;
+    
+    if(p.status === 'archive') {
+      if(archiveList) archiveList.appendChild(card);
+      cArchive++;
+    } else if(p.status === 'trash') {
+      if(trashList) trashList.appendChild(card);
+      cTrash++;
+    } else {
+      if(activeList) activeList.appendChild(card);
+      cActive++;
+    }
+  });
+  
+  $('main-empty-state').style.display = (cActive === 0) ? 'block' : 'none';
+  $('archive-empty-state').style.display = (cArchive === 0) ? 'block' : 'none';
+  $('trash-empty-state').style.display = (cTrash === 0) ? 'block' : 'none';
+}
+
+function openProjectContextMenu(idx, status) {
+  ctxProjectIdx = idx;
+  ctxProjectStatus = status;
+  haptic('medium');
+  
+  $('ctx-restore').style.display = (status !== 'active') ? 'flex' : 'none';
+  $('ctx-hide').style.display = (status === 'active') ? 'flex' : 'none';
+  
+  $('ctx-overlay').style.display = 'block';
+  $('ctx-menu').style.display = 'block';
+  
+  // Центрирование меню по экрану для простоты
+  $('ctx-menu').style.top = '35%';
+  $('ctx-menu').style.left = '50%';
+  $('ctx-menu').style.transform = 'translate(-50%, -50%)';
+}
+
+function closeContextMenu() {
+  $('ctx-overlay').style.display = 'none';
+  $('ctx-menu').style.display = 'none';
+}
+
+$t('ctx-overlay','click', closeContextMenu);
+
+$t('ctx-hide','click', () => {
+  let p = getProjects();
+  if(p[ctxProjectIdx]) p[ctxProjectIdx].status = 'archive';
+  saveProjects(p);
+  closeContextMenu();
+  renderProjects();
+});
+
+$t('ctx-restore','click', () => {
+  let p = getProjects();
+  if(p[ctxProjectIdx]) p[ctxProjectIdx].status = 'active';
+  saveProjects(p);
+  closeContextMenu();
+  renderProjects();
+});
+
+$t('ctx-delete','click', () => {
+  let p = getProjects();
+  if(ctxProjectStatus === 'trash') {
+    p.splice(ctxProjectIdx, 1);
+  } else {
+    if(p[ctxProjectIdx]) p[ctxProjectIdx].status = 'trash';
+  }
+  saveProjects(p);
+  closeContextMenu();
+  renderProjects();
+});
+
+$t('btn-restore-draft','click', () => {
+  try {
+    const draft = JSON.parse(localStorage.getItem('scout_draft'));
+    if(!draft) return;
+    
+    $('project-title').value = draft.title || '';
+    $('project-date').value = draft.date || '';
+    $('time-meeting').value = draft.meetingTime || '';
+    $('time-departure').value = draft.departureTime || '';
+    $('meeting-place').value = draft.place || '';
+    $('meeting-address').value = draft.address || '';
+    $('meeting-map').value = draft.map || '';
+    $('all-points-map').value = draft.allPointsMap || '';
+    $('check-all-points-map').checked = draft.checkAllPointsMap || false;
+    $('meeting-coords').value = draft.coords || '';
+    $('check-coords').checked = draft.checkCoords || false;
+    $('check-transport').checked = draft.checkTransport || false;
+    $('car-brand').value = draft.carBrand || '';
+    $('car-number').value = draft.carNumber || '';
+    $('driver-name').value = draft.driverName || '';
+    $('driver-phone').value = draft.driverPhone || '';
+    
+    routePoints = draft.routePoints || [];
+    editingProjectIdx = draft.editingProjectIdx;
+    
+    $('coords-field').style.display = draft.checkCoords ? 'block' : 'none';
+    $('transport-fields').style.display = draft.checkTransport ? 'block' : 'none';
+    $('all-points-map-field').style.display = draft.checkAllPointsMap ? 'block' : 'none';
+    
+    $('main-draft-banner').style.display = 'none';
+    showScreen('screen-create');
+  } catch(e) {}
+});
+
+$t('btn-submit-step1','click', () => {
   gTitle = $('project-title').value.trim() || 'Без названия';
   gDate = $('project-date').value.trim() || '—';
   gMeetTime = $('time-meeting').value.trim() || '00:00';
   gDepTime = $('time-departure').value.trim() || '00:00';
   gPlace = $('meeting-place').value.trim() || '—';
-  gAddress = $('meeting-address').value.trim();
-  gMap = $('meeting-map').value.trim();
-  gCoords = $('meeting-coords').value.trim();
-  
-  gBrand = $('car-brand').value.trim();
+  gAddress = $('meeting-address').value.trim() || '';
+  gMap = $('meeting-map').value.trim() || '';
+  gCoords = $('meeting-coords').value.trim() || '';
   
   $('builder-title').textContent = gTitle;
-  $('builder-date').textContent = '📅 ' + gDate;
+  $('builder-date').textContent = gDate;
   
-  // Наполнение сводки сбора
-  let hL = `<div class="summary-item-label">🟢 Сбор</div><div class="summary-time-value" style="color:var(--green);">${gMeetTime}</div>`;
-  hL += `<div class="summary-item-sub" style="margin-top:6px; font-size:13px;"><b>${esc(gPlace)}</b></div>`;
-  if(gAddress) hL += `<div style="font-size:12px; color:var(--text2); margin-top:2px;">${esc(gAddress)}</div>`;
-  if(gMap) hL += `<div style="font-size:12px; margin-top:4px;"><a href="${esc(gMap)}" target="_blank">🗺 Карта сбора</a></div>`;
-  if($('check-coords').checked && gCoords) hL += `<div style="font-size:11px; color:var(--text2); font-family:monospace; margin-top:2px;">📡 ${esc(gCoords)}</div>`;
+  // Сборка инфо
+  $('summary-col-left').innerHTML = `
+    <div>
+      <div class="summary-item-label" style="color:var(--green);">🟢 Сбор</div>
+      <div class="summary-time-value">${gMeetTime}</div>
+    </div>
+    <div style="margin-top:6px;">
+      <div class="summary-item-label">📍 Место</div>
+      <div class="summary-item-value">${gPlace}</div>
+    </div>
+  `;
   
-  let hR = `<div class="summary-item-label">🔴 Выезд</div><div class="summary-time-value" style="color:var(--red);">${gDepTime}</div>`;
+  $('summary-col-right').innerHTML = `
+    <div>
+      <div class="summary-item-label" style="color:var(--red);">🔴 Выезд</div>
+      <div class="summary-time-value">${gDepTime}</div>
+    </div>
+    <div style="margin-top:6px;">
+      <div class="summary-item-label">🗺 Адрес</div>
+      <div class="summary-item-value">${gAddress || '—'}</div>
+    </div>
+  `;
   
-  $('summary-col-left').innerHTML = hL;
-  $('summary-col-right').innerHTML = hR;
-  
-  // Сводка транспорта
-  if($('check-transport').checked && (gBrand || $('car-number').value || $('driver-name').value)) {
+  if($('check-transport').checked) {
     $('block-transport-summary').style.display = 'block';
-    let tH = `<div class="transport-card"><div class="transport-info">`;
-    if(gBrand) tH += `<div class="transport-info-row"><span class="transport-info-label">Авто:</span> <b>${esc(gBrand)}</b></div>`;
-    if($('car-number').value) tH += `<div class="transport-info-row"><span class="transport-info-label">Номер:</span> <b>${esc($('car-number').value)}</b></div>`;
-    if($('driver-name').value || $('driver-phone').value) {
-      tH += `<div class="transport-info-row" style="margin-top:4px;"><span class="transport-info-label">Водитель:</span><br><b>${esc($('driver-name').value)}</b> ${esc($('driver-phone').value)}</div>`;
-    }
-    tH += `</div>`;
-    if(uploadedCarPhotoBase64) {
-      tH += `<div class="transport-photo"><img src="${uploadedCarPhotoBase64}" alt=""></div>`;
-    }
-    tH += `</div>`;
-    $('block-transport-inner').innerHTML = tH;
+    $('block-transport-inner').innerHTML = `
+      <div class="transport-card">
+        <div class="transport-info">
+          <div class="transport-info-row"><span class="transport-info-label">Авто:</span> <b>${$('car-brand').value || '—'}</b></div>
+          <div class="transport-info-row"><span class="transport-info-label">Номер:</span> <b>${$('car-number').value || '—'}</b></div>
+          <div class="transport-info-row"><span class="transport-info-label">Водитель:</span> ${$('driver-name').value || '—'} (${$('driver-phone').value || '—'})</div>
+        </div>
+        ${uploadedCarPhotoBase64 ? `<div class="transport-photo"><img src="${uploadedCarPhotoBase64}"></div>` : ''}
+      </div>
+    `;
   } else {
     $('block-transport-summary').style.display = 'none';
   }
   
-  renderRouteList();
+  updateRouteList();
   showScreen('screen-builder');
 });
 
-$t('btn-back-to-step1','click',()=>goBack());
-
-// ── ROUTE CALCULATION & RENDER ──
-function renderRouteList(){
-  const list = $('route-points-list');
-  list.innerHTML = '';
+function updateRouteList() {
+  const container = $('route-points-list');
+  if(!container) return;
+  
+  // Очистка кроме empty state
+  container.innerHTML = '';
   
   if(routePoints.length === 0) {
-    $('builder-empty-state').style.display = 'block';
-    list.appendChild($('builder-empty-state'));
+    container.innerHTML = `<div class="empty-state" id="builder-empty-state" style="margin:20px 0;">Точки маршрута ещё не добавлены</div>`;
     $('summary-return').textContent = '🏁 Возвращение: —';
     return;
   }
-  $('builder-empty-state').style.display = 'none';
   
-  let curTime = gDepTime;
+  let currentTime = gDepTime;
   
-  routePoints.forEach((p, idx)=>{
+  routePoints.forEach((p, idx) => {
+    let itemDuration = (parseInt(p.hours || 0) * 60) + parseInt(p.mins || 0);
+    let startTime = currentTime;
+    let endTime = addM(startTime, itemDuration);
+    currentTime = endTime;
+    
     const item = document.createElement('div');
-    item.className = 'route-item type-' + p.type;
-    if(p.isHidden) item.classList.add('hidden-point');
+    item.className = `route-item type-${p.type}`;
     
-    let tpl = '', calcTimeRange = '';
-    
-    // Считаем временные отрезки
-    let durationMins = parseInt(p.hours||0)*60 + parseInt(p.mins||0);
+    let title = '—', sub = '';
     if(p.type === 'location') {
-      let endTime = addM(curTime, durationMins);
-      calcTimeRange = curTime + ' – ' + endTime;
-      curTime = endTime;
-      
-      tpl = `<div class="route-text-block">
-        <div class="route-item-title">📍 ${esc(p.title || 'Локация')}</div>
-        <div class="route-item-time">${calcTimeRange} (${dur(durationMins)})</div>`;
-      if(p.map) tpl += `<div class="route-item-sub">🗺 <a href="${esc(p.map)}" target="_blank">Точка на карте</a></div>`;
-      if(p.link) tpl += `<div class="route-item-sub">🖼 <a href="${esc(p.link)}" target="_blank">Фото локации</a></div>`;
-      if(p.checkCoords && p.coords) tpl += `<div class="route-item-sub" style="font-family:monospace; font-size:11px;">📡 ${esc(p.coords)}</div>`;
-      tpl += `</div>`;
-    } 
-    else if(p.type === 'transit') {
-      let endTime = addM(curTime, durationMins);
-      calcTimeRange = curTime + ' – ' + endTime;
-      curTime = endTime;
-      
-      tpl = `<div class="route-text-block">
-        <div class="route-item-title">🚗 Переезд</div>
-        <div class="route-item-time">${calcTimeRange} (${dur(durationMins)})</div>
-      </div>`;
-    } 
-    else if(p.type === 'lunch') {
-      let endTime = addM(curTime, durationMins);
-      calcTimeRange = curTime + ' – ' + endTime;
-      curTime = endTime;
-      
-      tpl = `<div class="route-text-block">
-        <div class="route-item-title">🍽 Ланч</div>
-        <div class="route-item-time">${calcTimeRange} (${dur(durationMins)})</div>
-      </div>`;
+      title = `📍 ${p.title || 'Локация'}`;
+      sub = p.map ? `<a href="${p.map}" target="_blank">Карта</a>` : 'Нет карты';
+    } else if(p.type === 'transit') {
+      title = `🚗 Переезд`;
+      sub = `В пути: ${dur(itemDuration)}`;
+    } else if(p.type === 'lunch') {
+      title = `🍽 Ланч`;
+      sub = `Длительность: ${dur(itemDuration)}`;
     }
     
-    item.innerHTML = tpl;
-    
-    // Блок действий (Редактировать, Скрыть/Показать, Удалить) внутри конструктора
-    const acts = document.createElement('div');
-    acts.className = 'route-item-actions';
-    
-    // Кнопка Редактировать (только для локаций)
-    if(p.type === 'location') {
-      const btnEdit = document.createElement('button');
-      btnEdit.className = 'btn-point-action';
-      btnEdit.innerHTML = '✏️';
-      btnEdit.onclick = (e) => { e.stopPropagation(); openEditPoint(idx); };
-      acts.appendChild(btnEdit);
-    }
-    
-    // Кнопка Скрыть / Показать
-    const btnHide = document.createElement('button');
-    btnHide.className = 'btn-point-action';
-    btnHide.innerHTML = p.isHidden ? '👁' : '🙈';
-    btnHide.onclick = (e) => { e.stopPropagation(); toggleHidePoint(idx); };
-    acts.appendChild(btnHide);
-    
-    // Кнопка Удалить
-    const btnDel = document.createElement('button');
-    btnDel.className = 'btn-point-action danger';
-    btnDel.innerHTML = '🗑';
-    btnDel.onclick = (e) => { e.stopPropagation(); deletePoint(idx); };
-    acts.appendChild(btnDel);
-    
-    item.appendChild(acts);
-    list.appendChild(item);
+    item.innerHTML = `
+      <div class="route-text-block">
+        <div class="route-item-title">${esc(title)}</div>
+        <div class="route-item-time">${startTime} - ${endTime}</div>
+        <div class="route-item-sub">${sub}</div>
+      </div>
+      <div class="route-item-actions">
+        <button class="btn-point-action danger" onclick="deleteRoutePoint(${idx})">✕</button>
+      </div>
+    `;
+    container.appendChild(item);
   });
   
-  $('summary-return').textContent = '🏁 Возвращение: примерно ' + curTime;
+  $('summary-return').textContent = `🏁 Возвращение: ~${currentTime}`;
 }
 
-// Управление точками маршрута
-function toggleHidePoint(idx) {
+function deleteRoutePoint(idx) {
   haptic('light');
-  routePoints[idx].isHidden = !routePoints[idx].isHidden;
-  saveDraft();
-  renderRouteList();
-}
-
-function deletePoint(idx) {
-  haptic('medium');
   routePoints.splice(idx, 1);
   saveDraft();
-  renderRouteList();
+  updateRouteList();
 }
 
-function openEditPoint(idx) {
-  editingIndex = idx;
-  const p = routePoints[idx];
-  $('sheet-loc-header').textContent = '✏️ Редактировать локацию';
-  $('sheet-loc-title').value = p.title || '';
-  $('sheet-loc-link').value = p.link || '';
-  $('sheet-loc-map').value = p.map || '';
-  $('sheet-loc-check-coords').checked = !!p.checkCoords;
-  $('sheet-loc-coords-field').style.display = p.checkCoords ? 'block' : 'none';
-  $('sheet-loc-coords').value = p.coords || '';
-  $('sheet-loc-hours').value = p.hours || '';
-  $('sheet-loc-mins').value = p.mins || '';
-  openSheet('overlay-location');
-}
-
-// ── CONSTRUCTOR DIALOGS SAVE ──
-$t('btn-add-location','click',function(){
-  $('sheet-loc-header').textContent = '📍 Новая локация';
-  $('sheet-loc-title').value = ''; $('sheet-loc-link').value = ''; $('sheet-loc-map').value = '';
-  $('sheet-loc-check-coords').checked = false; $('sheet-loc-coords-field').style.display = 'none';
-  $('sheet-loc-coords').value = ''; $('sheet-loc-hours').value = ''; $('sheet-loc-mins').value = '';
-  editingIndex = null;
+// ── CONSTRUCTOR ACTIONS ──
+$t('btn-add-location','click', () => {
+  $('sheet-loc-title').value = '';
+  $('sheet-loc-link').value = '';
+  $('sheet-loc-map').value = '';
+  $('sheet-loc-coords').value = '';
+  $('sheet-loc-hours').value = '';
+  $('sheet-loc-mins').value = '';
+  $('sheet-loc-check-coords').checked = false;
+  $('sheet-loc-coords-field').style.display = 'none';
   openSheet('overlay-location');
 });
-$t('btn-sheet-loc-save','click',function(){
-  const title = $('sheet-loc-title').value.trim();
-  const h = parseInt($('sheet-loc-hours').value)||0;
-  const m = parseInt($('sheet-loc-mins').value)||0;
-  if(!title){ alert('Введи название локации'); return; }
-  if(h===0 && m===0){ alert('Укажи время на локации'); return; }
-  
-  const obj = {
+
+$t('btn-sheet-loc-close','click', () => closeSheet('overlay-location'));
+$t('btn-sheet-loc-save','click', () => {
+  routePoints.push({
     type: 'location',
-    title,
+    title: $('sheet-loc-title').value.trim() || 'Локация',
     link: $('sheet-loc-link').value.trim(),
     map: $('sheet-loc-map').value.trim(),
-    checkCoords: $('sheet-loc-check-coords').checked,
     coords: $('sheet-loc-coords').value.trim(),
-    hours: h, mins: m,
-    isHidden: editingIndex !== null ? routePoints[editingIndex].isHidden : false
-  };
-  
-  if(editingIndex !== null) routePoints[editingIndex] = obj;
-  else routePoints.push(obj);
-  
-  closeSheet('overlay-location'); saveDraft(); renderRouteList();
+    hours: $('sheet-loc-hours').value || 0,
+    mins: $('sheet-loc-mins').value || 0
+  });
+  saveDraft();
+  closeSheet('overlay-location');
+  updateRouteList();
 });
-$t('btn-sheet-loc-close','click',()=>closeSheet('overlay-location'));
 
-// Переезд
-$t('btn-add-transit','click',function(){
-  $('sheet-transit-hours').value = ''; $('sheet-transit-mins').value = '';
+$t('btn-add-transit','click', () => {
+  $('sheet-transit-hours').value = '';
+  $('sheet-transit-mins').value = '';
   openSheet('overlay-transit');
 });
-$t('btn-sheet-transit-save','click',function(){
-  const h = parseInt($('sheet-transit-hours').value)||0;
-  const m = parseInt($('sheet-transit-mins').value)||0;
-  if(h===0 && m===0){ alert('Укажи время в пути'); return; }
-  routePoints.push({ type:'transit', hours:h, mins:m, isHidden:false });
-  closeSheet('overlay-transit'); saveDraft(); renderRouteList();
+$t('btn-sheet-transit-close','click', () => closeSheet('overlay-transit'));
+$t('btn-sheet-transit-save','click', () => {
+  routePoints.push({
+    type: 'transit',
+    hours: $('sheet-transit-hours').value || 0,
+    mins: $('sheet-transit-mins').value || 0
+  });
+  saveDraft();
+  closeSheet('overlay-transit');
+  updateRouteList();
 });
-$t('btn-sheet-transit-close','click',()=>closeSheet('overlay-transit'));
 
-// Ланч
-$t('btn-add-lunch','click',function(){
-  $('sheet-lunch-hours').value = ''; $('sheet-lunch-mins').value = '';
+$t('btn-add-lunch','click', () => {
+  $('sheet-lunch-hours').value = '';
+  $('sheet-lunch-mins').value = '';
   openSheet('overlay-lunch');
 });
-$t('btn-sheet-lunch-save','click',function(){
-  const h = parseInt($('sheet-lunch-hours').value)||0;
-  const m = parseInt($('sheet-lunch-mins').value)||0;
-  if(h===0 && m===0){ alert('Укажи длительность ланча'); return; }
-  routePoints.push({ type:'lunch', hours:h, mins:m, isHidden:false });
-  closeSheet('overlay-lunch'); saveDraft(); renderRouteList();
-});
-$t('btn-sheet-lunch-close','click',()=>closeSheet('overlay-lunch'));
-
-// ── GENERATE TEXT MESSAGE ──
-function buildTextMessage(){
-  let s = `🎬 *${esc(gTitle)}*\n📅 Дата: *${esc(gDate)}*\n\n`;
-  s += `🟢 *СБОР:* *${esc(gMeetTime)}*\n📍 Место: *${esc(gPlace)}*\n`;
-  if(gAddress) s += `🏠 Адрес: ${esc(gAddress)}\n`;
-  if(gMap) s += `🗺 [Место сбор на карте](${esc(gMap)})\n`;
-  if($('check-coords').checked && gCoords) s += `📡 Координаты: \`${esc(gCoords)}\`\n`;
-  
-  s += `\n🔴 *ВЫЕЗД:* *${esc(gDepTime)}*\n\n`;
-  
-  if($('check-transport').checked && (gBrand || $('car-number').value || $('driver-name').value)) {
-    s += `🚘 *ТРАНСПОРТ:*\n`;
-    if(gBrand) s += `• Авто: ${esc(gBrand)}\n`;
-    if($('car-number').value) s += `• Номер: \`${esc($('car-number').value)}\`\n`;
-    if($('driver-name').value || $('driver-phone').value) {
-      s += `• Водитель: ${esc($('driver-name').value)} ${esc($('driver-phone').value)}\n`;
-    }
-    s += `\n`;
-  }
-  
-  s += `📋 *МАРШРУТ:* \n`;
-  if($('check-all-points-map').checked && $('all-points-map').value.trim()) {
-    s += `🗺 [ОБЩАЯ КАРТА МАРШРУТА](${$('all-points-map').value.trim()})\n`;
-  }
-  
-  let curTime = gDepTime;
-  routePoints.forEach((p)=>{
-    if(p.isHidden) return; // Пропускаем скрытые из генерации смс
-    let durationMins = parseInt(p.hours||0)*60 + parseInt(p.mins||0);
-    let endTime = addM(curTime, durationMins);
-    
-    if(p.type === 'location') {
-      s += `📍 *${curTime} – ${endTime}* \n— *${esc(p.title)}* (${dur(durationMins)})\n`;
-      if(p.map) s += `  • [Точка на карте](${esc(p.map)})\n`;
-      if(p.link) s += `  • [Фото локации](${esc(p.link)})\n`;
-      if(p.checkCoords && p.coords) s += `  • Координаты: \`${esc(p.coords)}\`\n`;
-    } 
-    else if(p.type === 'transit') {
-      s += `🚗 *${curTime} – ${endTime}* — В пути (${dur(durationMins)})\n`;
-    } 
-    else if(p.type === 'lunch') {
-      s += `🍽 *${curTime} – ${endTime}* — Ланч (${dur(durationMins)})\n`;
-    }
-    curTime = endTime;
+$t('btn-sheet-lunch-close','click', () => closeSheet('overlay-lunch'));
+$t('btn-sheet-lunch-save','click', () => {
+  routePoints.push({
+    type: 'lunch',
+    hours: $('sheet-lunch-hours').value || 0,
+    mins: $('sheet-lunch-mins').value || 0
   });
-  
-  s += `\n🏁 Примерное возвращение: *${curTime}*`;
-  return s;
-}
-
-// ── PREVIEW SCREEN ──
-$t('btn-preview','click',function(){
-  $('preview-content').innerHTML = buildTextMessage().replace(/\n/g,'<br>');
-  showScreen('screen-preview');
+  saveDraft();
+  closeSheet('overlay-lunch');
+  updateRouteList();
 });
-$t('btn-back-from-preview','click',()=>goBack());
 
-// ── SAVE & CLOSE ──
-$t('btn-save-close','click',function(){
-  const pr = getProjects();
-  const curData = {
+$t('btn-save-close','click', () => {
+  let p = getProjects();
+  const prData = {
     title: gTitle, date: gDate, meetingTime: gMeetTime, departureTime: gDepTime,
     place: gPlace, address: gAddress, map: gMap, allPointsMap: $('all-points-map').value,
     checkAllPointsMap: $('check-all-points-map').checked, coords: gCoords,
     checkCoords: $('check-coords').checked, checkTransport: $('check-transport').checked,
     carBrand: $('car-brand').value, carNumber: $('car-number').value,
     driverName: $('driver-name').value, driverPhone: $('driver-phone').value,
-    carPhotoBase64: uploadedCarPhotoBase64, routePoints: routePoints,
-    status: 'active', updatedAt: Date.now()
+    routePoints: routePoints, carPhotoBase64: uploadedCarPhotoBase64,
+    status: 'active'
   };
   
-  if(editingProjectIdx !== null && editingProjectIdx >= 0) {
-    curData.status = pr[editingProjectIdx].status || 'active';
-    pr[editingProjectIdx] = curData;
+  if(editingProjectIdx !== null) {
+    p[editingProjectIdx] = prData;
   } else {
-    pr.push(curData);
+    p.push(prData);
   }
   
-  saveProjects(pr);
+  saveProjects(p);
   localStorage.removeItem('scout_draft');
+  $('main-draft-banner').style.display = 'none';
   clearInputs();
   showScreen('screen-main', false);
-  // Очищаем стек до главного экрана
-  screenStack.length = 1;
-  renderProjectsList();
+  renderProjects();
 });
 
-// ── SEND TO SERVER LOGIC ──
-async function sendPlanToServer(statusId) {
-  haptic('medium');
-  showStatus(statusId, 'loading', 'Отправка плана в Telegram...');
-  
-  const textMsg = buildTextMessage();
-  const payload = {
-    initData: tg.initData || '',
-    text: textMsg,
-    carPhoto: uploadedCarPhotoBase64 || null
-  };
-  
-  try {
-    const res = await fetch(BACKEND_URL + '/api/send-plan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    if(data.success) {
-      hapticN('success');
-      showStatus(statusId, 'success', '🚀 План успешно отправлен в чат!');
-    } else {
-      hapticN('error');
-      showStatus(statusId, 'error', 'Ошибка: ' + (data.error || 'неизвестно'));
-    }
-  } catch(e) {
-    hapticN('error');
-    showStatus(statusId, 'error', 'Ошибка сети при отправке.');
-  }
-}
-
-$t('btn-send-plan','click',()=>sendPlanToServer('send-status'));
-$t('btn-send-from-preview','click',()=>sendPlanToServer('preview-send-status'));
-
-$t('ctx-send','click',async function(){
-  if(ctxProjectIdx===null)return;
+// Настройка контекстного меню редактирования
+$t('ctx-open','click', () => {
   const p = getProjects()[ctxProjectIdx];
-  closeCtx();
+  if(!p) return;
   
-  // Временно заносим в глобальные переменные для переиспользования логики генерации
-  gTitle=p.title; gDate=p.date; gMeetTime=p.meetingTime; gDepTime=p.departureTime;
-  gPlace=p.place; gAddress=p.address; gMap=p.map; gCoords=p.coords;
-  uploadedCarPhotoBase64=p.carPhotoBase64; routePoints=p.routePoints||[];
+  editingProjectIdx = ctxProjectIdx;
   
-  // Имитируем отображение загрузки на вкладке через Telegram Alert
-  if(tg.showPopup) {
-    tg.showPopup({ message: 'Отправляем проект "'+p.title+'" в чат...' });
+  $('project-title').value = p.title || '';
+  $('project-date').value = p.date || '';
+  $('time-meeting').value = p.meetingTime || '';
+  $('time-departure').value = p.departureTime || '';
+  $('meeting-place').value = p.place || '';
+  $('meeting-address').value = p.address || '';
+  $('meeting-map').value = p.map || '';
+  $('all-points-map').value = p.allPointsMap || '';
+  $('check-all-points-map').checked = p.checkAllPointsMap || false;
+  $('meeting-coords').value = p.coords || '';
+  $('check-coords').checked = p.checkCoords || false;
+  $('check-transport').checked = p.checkTransport || false;
+  $('car-brand').value = p.carBrand || '';
+  $('car-number').value = p.carNumber || '';
+  $('driver-name').value = p.driverName || '';
+  $('driver-phone').value = p.driverPhone || '';
+  
+  routePoints = p.routePoints || [];
+  uploadedCarPhotoBase64 = p.carPhotoBase64 || '';
+  
+  if(uploadedCarPhotoBase64) {
+    $('car-photo-preview').src = uploadedCarPhotoBase64;
+    $('car-photo-preview-wrap').style.display = 'block';
+  } else {
+    $('car-photo-preview-wrap').style.display = 'none';
   }
   
-  const textMsg = buildTextMessage();
-  try {
-    const res = await fetch(BACKEND_URL + '/api/send-plan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ initData: tg.initData||'', text: textMsg, carPhoto: p.carPhotoBase64||null })
-    });
-    const data = await res.json();
-    if(data.success) hapticN('success'); else hapticN('error');
-  } catch(e){ hapticN('error'); }
+  $('coords-field').style.display = p.checkCoords ? 'block' : 'none';
+  $('transport-fields').style.display = p.checkTransport ? 'block' : 'none';
+  $('all-points-map-field').style.display = p.checkAllPointsMap ? 'block' : 'none';
   
-  clearInputs();
+  closeContextMenu();
+  showScreen('screen-create');
 });
-
-// ── INIT ──
-window.onload = function(){
-  initTheme();
-  renderProjectsList();
-};
 </script>
 </body>
 </html>
