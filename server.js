@@ -138,41 +138,43 @@ app.post('/send-plan', async (req, res) => {
         console.log('Sending to chatId:', chatId);
         console.log('Message preview:', messageText.slice(0, 300));
 
-        // Если есть фото авто — отправляем ОДНИМ сообщением: фото + весь план как caption
+        // Если есть фото авто — всегда пробуем отправить фото + план вместе
         if (data.hasTransport && data.carPhotoBase64) {
             try {
                 const photoBase64 = data.carPhotoBase64.replace(/^data:image\/\w+;base64,/, '');
-                const formData = new FormData();
-                formData.append('chat_id', String(chatId));
-                const blob = new Blob([Buffer.from(photoBase64, 'base64')], { type: 'image/jpeg' });
-                formData.append('photo', blob, 'car.jpg');
-                // Весь план идёт как caption к фото
-                // Telegram ограничивает caption до 1024 символов
-                // Если план длиннее — обрезаем caption и отправляем текст отдельно
+                const photoBuffer = Buffer.from(photoBase64, 'base64');
+
                 if (messageText.length <= 1024) {
+                    // Короткий план — всё в одном сообщении (фото + caption)
+                    const formData = new FormData();
+                    formData.append('chat_id', String(chatId));
+                    formData.append('photo', new Blob([photoBuffer], {type:'image/jpeg'}), 'car.jpg');
                     formData.append('caption', messageText);
                     formData.append('parse_mode', 'HTML');
-
-                    const photoRes = await fetch(`${TELEGRAM_API}/sendPhoto`, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const photoData = await photoRes.json();
-                    console.log('Photo+caption response:', JSON.stringify(photoData).slice(0, 300));
-
-                    if (!photoData.ok) {
-                        console.error('Photo error:', photoData);
-                        // Fallback — отправляем фото отдельно, потом текст
-                        await sendPhotoOnly(data, chatId);
-                        await sendTextMessage(chatId, messageText);
-                    }
-                } else {
-                    // План длинный — фото отдельно, текст отдельно
-                    formData.append('caption', '📋 План прикреплён ниже');
-                    await fetch(`${TELEGRAM_API}/sendPhoto`, { method: 'POST', body: formData });
-                    await sendTextMessage(chatId, messageText);
+                    const r = await fetch(`${TELEGRAM_API}/sendPhoto`, {method:'POST', body:formData});
+                    const rd = await r.json();
+                    if (rd.ok) return res.json({ ok: true });
+                    console.error('Short caption failed:', rd);
                 }
 
+                // Длинный план (или caption не прошёл) —
+                // фото с короткой подписью, затем сразу текст плана
+                // Они придут вместе как два сообщения подряд — выглядит как одно
+                const formData2 = new FormData();
+                formData2.append('chat_id', String(chatId));
+                formData2.append('photo', new Blob([photoBuffer], {type:'image/jpeg'}), 'car.jpg');
+                // Короткая подпись с данными авто
+                let shortCaption = '';
+                if (data.carBrand)  shortCaption += `🚘 ${data.carBrand}`;
+                if (data.carNumber) shortCaption += (shortCaption ? ' · ' : '🚘 ') + data.carNumber;
+                if (data.driverName) shortCaption += `
+👤 ${data.driverName}`;
+                if (data.driverPhone) shortCaption += ` · ${data.driverPhone}`;
+                formData2.append('caption', shortCaption || '🚘 Фото транспорта');
+                await fetch(`${TELEGRAM_API}/sendPhoto`, {method:'POST', body:formData2});
+
+                // Сразу следом — полный план текстом
+                await sendTextMessage(chatId, messageText);
                 return res.json({ ok: true });
 
             } catch (photoErr) {
