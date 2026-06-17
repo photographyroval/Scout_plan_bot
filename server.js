@@ -31,7 +31,8 @@ function formatDuration(mins) {
     return `${m} мин`;
 }
 
-function buildMessage(data) {
+// includeTransport — включать ли блок транспорта в текст
+function buildMessage(data, includeTransport = true) {
     const {
         title, date, meetingTime, departureTime,
         meetingPlace, meetingAddress, meetingMapUrl,
@@ -42,15 +43,15 @@ function buildMessage(data) {
 
     const lines = [];
 
-    // Заголовок — название, дата, ссылка на карту всех точек
+    // Заголовок
     lines.push(`📋 <b>${esc(title || 'План')}</b> — ${esc(date || '')}`);
     if (allPointsMapUrl) {
         lines.push(`🗺 <a href="${allPointsMapUrl}">Все точки на карте</a>`);
     }
     lines.push(`━━━━━━━━━━━━━━━━━━`);
 
-    // Транспорт — без лишних подписей, только значения
-    if (hasTransport && (carBrand || carNumber || driverName)) {
+    // Транспорт — только если includeTransport=true
+    if (includeTransport && hasTransport && (carBrand || carNumber || driverName)) {
         lines.push(`🚘 <b>Транспорт:</b>`);
         if (carBrand)  lines.push(`<b>${esc(carBrand)}</b>`);
         if (carNumber) lines.push(`<b>${esc(carNumber)}</b>`);
@@ -101,7 +102,6 @@ function buildMessage(data) {
         } else if (point.type === 'location') {
             const end = addMinutes(runTime, dur);
             const em = emojis[locN - 1] || `${locN}.`;
-
             let locLine = `${em} `;
             if (point.link) {
                 locLine += `<a href="${point.link}">${esc(point.title || 'Локация')}</a>`;
@@ -111,10 +111,8 @@ function buildMessage(data) {
             locLine += ` — ${esc(runTime)}–${esc(end)}`;
             lines.push(locLine);
             lines.push(`   ⏱ ${formatDuration(dur)}`);
-
             if (point.mapUrl) lines.push(`   📍 <a href="${point.mapUrl}">Точка на карте</a>`);
             if (point.coords) lines.push(`   📡 <code>${esc(point.coords)}</code>`);
-
             lines.push('');
             locN++;
             runTime = end;
@@ -127,6 +125,48 @@ function buildMessage(data) {
     return lines.join('\n');
 }
 
+// Подпись к фото авто (отдельное сообщение)
+function buildCarCaption(data) {
+    const { carBrand, carNumber, driverName, driverPhone } = data;
+    const lines = ['🚘 <b>Транспорт:</b>'];
+    if (carBrand)  lines.push(`<b>${esc(carBrand)}</b>`);
+    if (carNumber) lines.push(`<b>${esc(carNumber)}</b>`);
+    if (driverName) {
+        let dl = `👤 ${esc(driverName)}`;
+        if (driverPhone) dl += ` · ${esc(driverPhone)}`;
+        lines.push(dl);
+    }
+    return lines.join('\n');
+}
+
+async function sendPhoto(chatId, photoBuffer, caption, parseMode = 'HTML') {
+    const formData = new FormData();
+    formData.append('chat_id', String(chatId));
+    formData.append('photo', new Blob([photoBuffer], { type: 'image/jpeg' }), 'car.jpg');
+    if (caption) {
+        formData.append('caption', caption);
+        formData.append('parse_mode', parseMode);
+    }
+    const res = await fetch(`${TELEGRAM_API}/sendPhoto`, { method: 'POST', body: formData });
+    return res.json();
+}
+
+async function sendText(chatId, text) {
+    const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            chat_id: String(chatId),
+            text,
+            parse_mode: 'HTML',
+            disable_web_page_preview: true
+        })
+    });
+    const d = await res.json();
+    if (!d.ok) throw new Error(d.description || 'Telegram error');
+    return d;
+}
+
 app.post('/send-plan', async (req, res) => {
     try {
         const { chatId, data } = req.body;
@@ -134,57 +174,38 @@ app.post('/send-plan', async (req, res) => {
             return res.status(400).json({ error: 'chatId и data обязательны' });
         }
 
-        const messageText = buildMessage(data);
-        console.log('Sending to chatId:', chatId);
-        console.log('Message preview:', messageText.slice(0, 300));
+        const hasPhoto = data.hasTransport && data.carPhotoBase64;
 
-        // Если есть фото авто — всегда пробуем отправить фото + план вместе
-        if (data.hasTransport && data.carPhotoBase64) {
-            try {
-                const photoBase64 = data.carPhotoBase64.replace(/^data:image\/\w+;base64,/, '');
-                const photoBuffer = Buffer.from(photoBase64, 'base64');
+        if (hasPhoto) {
+            const photoBase64 = data.carPhotoBase64.replace(/^data:image\/\w+;base64,/, '');
+            const photoBuffer = Buffer.from(photoBase64, 'base64');
 
-                if (messageText.length <= 1024) {
-                    // Короткий план — всё в одном сообщении (фото + caption)
-                    const formData = new FormData();
-                    formData.append('chat_id', String(chatId));
-                    formData.append('photo', new Blob([photoBuffer], {type:'image/jpeg'}), 'car.jpg');
-                    formData.append('caption', messageText);
-                    formData.append('parse_mode', 'HTML');
-                    const r = await fetch(`${TELEGRAM_API}/sendPhoto`, {method:'POST', body:formData});
-                    const rd = await r.json();
-                    if (rd.ok) return res.json({ ok: true });
-                    console.error('Short caption failed:', rd);
-                }
+            // Полный план С транспортом
+            const fullText = buildMessage(data, true);
 
-                // Длинный план (или caption не прошёл) —
-                // фото с короткой подписью, затем сразу текст плана
-                // Они придут вместе как два сообщения подряд — выглядит как одно
-                const formData2 = new FormData();
-                formData2.append('chat_id', String(chatId));
-                formData2.append('photo', new Blob([photoBuffer], {type:'image/jpeg'}), 'car.jpg');
-                // Короткая подпись с данными авто
-                let shortCaption = '';
-                if (data.carBrand)  shortCaption += `🚘 ${data.carBrand}`;
-                if (data.carNumber) shortCaption += (shortCaption ? ' · ' : '🚘 ') + data.carNumber;
-                if (data.driverName) shortCaption += `
-👤 ${data.driverName}`;
-                if (data.driverPhone) shortCaption += ` · ${data.driverPhone}`;
-                formData2.append('caption', shortCaption || '🚘 Фото транспорта');
-                await fetch(`${TELEGRAM_API}/sendPhoto`, {method:'POST', body:formData2});
-
-                // Сразу следом — полный план текстом
-                await sendTextMessage(chatId, messageText);
-                return res.json({ ok: true });
-
-            } catch (photoErr) {
-                console.error('Photo send error:', photoErr);
-                // Fallback — просто текст
+            if (fullText.length <= 1024) {
+                // ✅ Всё влезает — одно сообщение: фото + весь план
+                const r = await sendPhoto(chatId, photoBuffer, fullText, 'HTML');
+                if (r.ok) return res.json({ ok: true });
+                console.error('Combined send failed:', r);
             }
+
+            // ❌ Не влезает — два сообщения:
+            // 1) Фото + данные авто
+            // 2) План БЕЗ блока транспорта (чтобы не дублировать)
+            console.log('Plan too long, sending separately');
+            const carCaption = buildCarCaption(data);
+            await sendPhoto(chatId, photoBuffer, carCaption, 'HTML');
+
+            const planWithoutTransport = buildMessage(data, false);
+            await sendText(chatId, planWithoutTransport);
+
+            return res.json({ ok: true });
         }
 
-        // Нет фото — просто текстовое сообщение
-        await sendTextMessage(chatId, messageText);
+        // Нет фото — просто текст (транспорт включён в план)
+        const textOnly = buildMessage(data, true);
+        await sendText(chatId, textOnly);
         res.json({ ok: true });
 
     } catch (err) {
@@ -192,34 +213,6 @@ app.post('/send-plan', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
-async function sendPhotoOnly(data, chatId) {
-    try {
-        const photoBase64 = data.carPhotoBase64.replace(/^data:image\/\w+;base64,/, '');
-        const formData = new FormData();
-        formData.append('chat_id', String(chatId));
-        const blob = new Blob([Buffer.from(photoBase64, 'base64')], { type: 'image/jpeg' });
-        formData.append('photo', blob, 'car.jpg');
-        await fetch(`${TELEGRAM_API}/sendPhoto`, { method: 'POST', body: formData });
-    } catch(e) { console.error(e); }
-}
-
-async function sendTextMessage(chatId, text) {
-    const tgRes = await fetch(`${TELEGRAM_API}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            chat_id: String(chatId),
-            text: text,
-            parse_mode: 'HTML',
-            disable_web_page_preview: true
-        })
-    });
-    const tgData = await tgRes.json();
-    console.log('Text response:', JSON.stringify(tgData).slice(0, 300));
-    if (!tgData.ok) throw new Error(tgData.description || 'Telegram error');
-    return tgData;
-}
 
 app.get('/', (req, res) => res.send('Scout Planner Bot — работает ✅'));
 
