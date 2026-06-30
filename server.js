@@ -211,4 +211,7 @@ app.post('/send-plan', async (req, res) => {
 app.get('/', (req, res) => res.send('Scout Planner Bot — работает ✅'));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Явно добавляем '0.0.0.0' в параметры listen, чтобы сервер был доступен снаружи контейнера
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Сервер запущен на порту ${PORT}`);
+});
