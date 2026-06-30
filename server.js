@@ -2,213 +2,117 @@ const express = require('express');
 const cors = require('cors');
 
 const app = express();
+// Разрешаем CORS, чтобы наш фронтенд (например, с GitHub Pages) мог слать запросы
 app.use(cors());
-app.use(express.json({ limit: '15mb' })); // Немного увеличили лимит под Base64 фото
+// Ограничение на размер прилетающего плана (важно для Base64 картинок машин)
+app.use(express.json({ limit: '50mb' }));
 
-const BOT_TOKEN = process.env.BOT_TOKEN || '';
-const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
+// Токен бота и ID чата берем из переменных окружения сервера (например, на Railway)
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-function esc(text) {
-    if (!text) return '';
-    return String(text)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-}
+// Проверочный роут, чтобы видеть, что сервер живой
+app.get('/', (req, res) => {
+  res.send('Scout Planner Server ис alive!');
+});
 
-function addMinutes(timeStr, mins) {
-    if (!timeStr) timeStr = '00:00';
-    const [h, m] = timeStr.split(':').map(Number);
-    const total = (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m) + parseInt(mins || 0);
-    return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
-}
-
-function formatDuration(mins) {
-    mins = parseInt(mins) || 0;
-    const h = Math.floor(mins / 60), m = mins % 60;
-    if (h > 0 && m > 0) return `${h} ч ${m} мин`;
-    if (h > 0) return `${h} ч`;
-    return `${m} мин`;
-}
-
-function buildMessage(data, includeTransport = true) {
-    const {
-        title, date, meetingTime, departureTime,
-        meetingPlace, meetingAddress, meetingMapUrl,
-        allPointsMapUrl, coordinates,
-        hasTransport, carBrand, carNumber, driverName, driverPhone,
-        routePoints = []
-    } = data;
-
-    const lines = [];
-
-    lines.push(`📋 <b>${esc(title || 'План')}</b> — ${esc(date || '')}`);
-    if (allPointsMapUrl) {
-        lines.push(`🗺 <a href="${allPointsMapUrl}">Все точки на карте</a>`);
-    }
-    lines.push(`━━━━━━━━━━━━━━━━━━`);
-
-    if (includeTransport && hasTransport && (carBrand || carNumber || driverName)) {
-        lines.push(`🚘 <b>Транспорт:</b>`);
-        if (carBrand) lines.push(`<b>${esc(carBrand)}</b>`);
-        if (carNumber) lines.push(`<b>${esc(carNumber)}</b>`);
-        if (driverName) {
-            let dl = `👤 ${esc(driverName)}`;
-            if (driverPhone) dl += ` · ${esc(driverPhone)}`;
-            lines.push(dl);
-        }
-        lines.push('');
+// Главный роут отправки плана
+app.post('/send-plan', async (req, res) => {
+  try {
+    const { chatId, data } = req.body;
+    
+    if (!data) {
+      return res.status(400).json({ ok: false, error: 'Нет данных плана' });
     }
 
-    lines.push(`━━━━━━━━━━━━━━━━━━`);
+    // Формируем красивый текстовый маркдаун для Telegram
+    let message = `📋 *ПЛАН СКАУТА: ${data.title || 'Без названия'}*\n`;
+    message += `📅 Дата: ${data.date || '—'}\n`;
+    message += `🟢 Сбор: *${data.meetingTime || '—'}* · Выезд: *${data.departureTime || '—'}*\n`;
+    message += `📍 Место: ${data.meetingPlace || '—'}\n`;
+    if (data.meetingAddress) message += `🏠 Адрес: ${data.meetingAddress}\n`;
+    if (data.meetingMapUrl) message += `🗺 [Место сбора на карте](${data.meetingMapUrl})\n`;
+    if (data.coordinates) message += `📡 GPS: \`${data.coordinates}\`\n`;
 
-    let sborLine = `🟢 <b>Сбор:</b> `;
-    if (meetingMapUrl) {
-        sborLine += `<a href="${meetingMapUrl}">${esc(meetingPlace || 'Место')}</a>`;
-    } else {
-        sborLine += `<b>${esc(meetingPlace || '—')}</b>`;
+    if (data.hasTransport) {
+      message += `\n🚘 *Транспорт:*\n`;
+      message += `· Авто: ${data.carBrand || '—'} (${data.carNumber || '—'})\n`;
+      message += `· Водитель: ${data.driverName || '—'} ${data.driverPhone || ''}\n`;
     }
-    sborLine += ` — 🕐 ${esc(meetingTime || '—')}`;
-    lines.push(sborLine);
 
-    if (meetingAddress) lines.push(`📌 ${esc(meetingAddress)}`);
-    if (coordinates) lines.push(`📡 <code>${esc(coordinates)}</code>`);
-    lines.push(`🔴 <b>Выезд:</b> ${esc(departureTime || '—')}`);
-    lines.push('');
-
-    const emojis = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
-    let runTime = departureTime || '00:00';
-    let locN = 1;
-
-    routePoints.forEach(point => {
-        const dur = parseInt(point.duration) || 0;
-
-        if (point.type === 'transit') {
-            lines.push(`   🚗 <i>Переезд</i> ~${formatDuration(dur)}`);
-            lines.push('');
-            runTime = addMinutes(runTime, dur);
-        } else if (point.type === 'lunch') {
-            const end = addMinutes(runTime, dur);
-            lines.push(`🍽 <b>Ланч</b> — ${esc(runTime)}–${esc(end)} (${formatDuration(dur)})`);
-            lines.push('');
-            runTime = end;
-        } else if (point.type === 'location') {
-            const end = addMinutes(runTime, dur);
-            const em = emojis[locN - 1] || `${locN}.`;
-            let locLine = `${em} `;
-            if (point.link) {
-                locLine += `<a href="${point.link}">${esc(point.title || 'Локация')}</a>`;
-            } else {
-                locLine += `<b>${esc(point.title || 'Локация')}</b>`;
-            }
-            locLine += ` — ${esc(runTime)}–${esc(end)}`;
-            lines.push(locLine);
-            lines.push(`   ⏱ ${formatDuration(dur)}`);
-            if (point.mapUrl) lines.push(`   📍 <a href="${point.mapUrl}">Точка на карте</a>`);
-            if (point.coords) lines.push(`   📡 <code>${esc(point.coords)}</code>`);
-            lines.push('');
-            locN++;
-            runTime = end;
-        }
-    });
-
-    lines.push(`━━━━━━━━━━━━━━━━━━`);
-    lines.push(`🏁 <b>Возвращение: ~${esc(runTime)}</b>`);
-
-    return lines.join('\n');
-}
-
-function buildCarCaption(data) {
-    const { carBrand, carNumber, driverName, driverPhone } = data;
-    const lines = ['🚘 <b>Транспорт:</b>'];
-    if (carBrand) lines.push(`<b>${esc(carBrand)}</b>`);
-    if (carNumber) lines.push(`<b>${esc(carNumber)}</b>`);
-    if (driverName) {
-        let dl = `👤 ${esc(driverName)}`;
-        if (driverPhone) dl += ` · ${esc(driverPhone)}`;
-        lines.push(dl);
+    if (data.allPointsMapUrl) {
+      message += `\n🗺 *[ОБЩАЯ КАРТА МАРШРУТА](${data.allPointsMapUrl})*\n`;
     }
-    return lines.join('\n');
-}
 
-// Надежный метод отправки через встроенный Node.js fetch и стандартный Multipart без багов Blob
-async function sendPhoto(chatId, photoBuffer, caption) {
-    const boundary = `----WebKitFormBoundary${Math.random().toString(36).substring(2)}`;
-    const header = `--${boundary}\r\nContent-Disposition: form-data; name="chat_id"\r\n\r\n${chatId}\r\n` +
-                   `--${boundary}\r\nContent-Disposition: form-data; name="photo"; filename="car.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`;
-    const footer = `\r\n--${boundary}\r\nContent-Disposition: form-data; name="caption"\r\n\r\n${caption}\r\n` +
-                   `--${boundary}\r\nContent-Disposition: form-data; name="parse_mode"\r\n\r\nHTML\r\n--${boundary}--`
+    if (data.routePoints && data.routePoints.length > 0) {
+      message += `\n📍 *Маршрутный лист:*\n`;
+      data.routePoints.forEach((p, idx) => {
+        let icon = '🔹';
+        if (p.type === 'location') icon = '📍';
+        if (p.type === 'transit') icon = '🚗';
+        if (p.type === 'lunch') icon = '🍽';
+        
+        message += `${idx + 1}. ${icon} *${p.title}* (${p.duration} мин)\n`;
+        if (p.mapUrl) message += `   └ 🗺 [Точка на карте](${p.mapUrl})\n`;
+        if (p.link) message += `   └ 📷 [Фото локации](${p.link})\n`;
+        if (p.coords) message += `   └ 📡 GPS: \`${p.coords}\`\n`;
+      });
+    }
 
-    const bodyBuffer = Buffer.concat([
-        Buffer.from(header, 'utf-8'),
-        photoBuffer,
-        Buffer.from(footer, 'utf-8')
-    ]);
+    const targetChatId = TELEGRAM_CHAT_ID || chatId;
 
-    const res = await fetch(`${TELEGRAM_API}/sendPhoto`, {
+    // Если у нас есть фото машины в Base64, отправляем как фото с подписью
+    if (data.hasTransport && data.carPhotoBase64 && data.carPhotoBase64.startsWith('data:image')) {
+      // Отсекаем заголовок data:image/...;base64,
+      const base64Data = data.carPhotoBase64.split(',')[1];
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      const formData = new FormData();
+      formData.append('chat_id', targetChatId);
+      formData.append('caption', message);
+      formData.append('parse_mode', 'Markdown');
+      
+      // Создаем blob для отправки файла в теле запроса
+      const blob = new Blob([buffer], { type: 'image/jpeg' });
+      formData.append('photo', blob, 'car.jpg');
+
+      const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
         method: 'POST',
-        headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
-        body: bodyBuffer
-    });
-    return res.json();
-}
+        body: formData
+      });
+      const resData = await response.json();
 
-async function sendText(chatId, text) {
-    const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
+      if (!resData.ok) {
+        throw new Error(resData.description || 'Ошибка Telegram API при отправке фото');
+      }
+    } else {
+      // Иначе шлем обычным текстовым сообщением
+      const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            chat_id: String(chatId),
-            text,
-            parse_mode: 'HTML',
-            disable_web_page_preview: true
+          chat_id: targetChatId,
+          text: message,
+          parse_mode: 'Markdown',
+          disable_web_page_preview: false
         })
-    });
-    const d = await res.json();
-    if (!d.ok) throw new Error(d.description || 'Telegram error');
-    return d;
-}
+      });
+      const resData = await response.json();
 
-app.post('/send-plan', async (req, res) => {
-    try {
-        const { chatId, data } = req.body;
-        if (!chatId || !data) {
-            return res.status(400).json({ error: 'chatId и data обязательны' });
-        }
-
-        const hasPhoto = data.hasTransport && data.carPhotoBase64;
-
-        if (hasPhoto) {
-            const photoBase64 = data.carPhotoBase64.replace(/^data:image\/\w+;base64,/, '');
-            const photoBuffer = Buffer.from(photoBase64, 'base64');
-            const fullText = buildMessage(data, true);
-
-            if (fullText.length <= 1024) {
-                const r = await sendPhoto(chatId, photoBuffer, fullText);
-                if (r.ok) return res.json({ ok: true });
-                console.error('Combined send failed:', r);
-            }
-
-            const carCaption = buildCarCaption(data);
-            await sendPhoto(chatId, photoBuffer, carCaption);
-
-            const planWithoutTransport = buildMessage(data, false);
-            await sendText(chatId, planWithoutTransport);
-
-            return res.json({ ok: true });
-        }
-
-        const textOnly = buildMessage(data, true);
-        await sendText(chatId, textOnly);
-        res.json({ ok: true });
-
-    } catch (err) {
-        console.error('Server error:', err);
-        res.status(500).json({ error: err.message });
+      if (!resData.ok) {
+        throw new Error(resData.description || 'Ошибка Telegram API при отправке текста');
+      }
     }
+
+    res.json({ ok: true });
+
+  } catch (error) {
+    console.error('Ошибка на сервере:', error);
+    res.status(500).json({ ok: false, error: error.message });
+  }
 });
 
-app.get('/', (req, res) => res.send('Scout Planner Bot — работает ✅'));
-
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Сервер запущен на порту ${PORT}`);
+});
