@@ -220,4 +220,569 @@ body.sheet-open{overflow:hidden!important;}
     <div class="empty-state" id="archive-empty-state">Нет скрытых проектов</div>
     <div id="projects-list-archive"></div>
   </div>
-  <div id="content
+  <div id="content-trash" style="display:none;">
+    <div class="empty-state" id="trash-empty-state">Корзина пуста</div>
+    <div id="projects-list-trash"></div>
+  </div>
+</div>
+
+<div id="screen-create" class="screen">
+  <div class="screen-header">
+    <button class="btn-back" id="btn-cancel-step1">←</button>
+    <div class="header">Что планируем?</div>
+  </div>
+  <div class="section-block">
+    <div class="section-block-title">Основное</div>
+    <div class="form-group">
+      <label class="form-label">Название проекта</label>
+      <input type="text" id="project-title" class="form-input" placeholder="Например: Скаут Тбилиси">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Дата</label>
+      <input type="text" id="project-date" class="form-input" placeholder="ДД.ММ.ГГ" inputmode="numeric" maxlength="8">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" style="color:var(--green);">🟢 Время сбора</label>
+        <input type="text" id="time-meeting" class="form-input time-mask" placeholder="ЧЧ:ММ" inputmode="numeric" maxlength="5">
+        <div id="warn-time-meeting" class="time-warning">Выставили :00 — верно?</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="color:var(--red);">🔴 Время выезда</label>
+        <input type="text" id="time-departure" class="form-input time-mask" placeholder="ЧЧ:ММ" inputmode="numeric" maxlength="5">
+        <div id="warn-time-departure" class="time-warning">Выставили :00 — верно?</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-block">
+    <div class="section-block-title">Место сбора</div>
+    <div class="form-group">
+      <label class="form-label">Место (кратко)</label>
+      <input type="text" id="meeting-place" class="form-input" placeholder="Например: Метро Руставели">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Адрес</label>
+      <input type="text" id="meeting-address" class="form-input" placeholder="Улица, дом...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ссылка на карту (место сбора)</label>
+      <input type="url" id="meeting-map" class="form-input" placeholder="Google / Yandex Maps">
+    </div>
+    <label class="checkbox-container">
+      <input type="checkbox" id="check-coords">
+      <span class="form-label" style="margin:0;">📡 Добавить GPS координаты</span>
+    </label>
+    <div id="coords-field" class="form-group hidden-field">
+      <input type="text" id="meeting-coords" class="form-input" placeholder="41.7151, 44.7932">
+    </div>
+  </div>
+
+  <div class="section-block">
+    <div class="section-block-title">Транспорт</div>
+    <label class="checkbox-container">
+      <input type="checkbox" id="check-transport">
+      <span class="form-label" style="margin:0;">🚘 Добавить данные транспорта</span>
+    </label>
+    <div id="transport-fields" class="hidden-field" style="margin-top:10px;">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Марка / Цвет</label>
+          <input type="text" id="car-brand" class="form-input" placeholder="Белый Mercedes">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Номер авто</label>
+          <input type="text" id="car-number" class="form-input" placeholder="AA-123-BB">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Имя водителя</label>
+          <input type="text" id="driver-name" class="form-input" placeholder="Имя">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Телефон</label>
+          <input type="tel" id="driver-phone" class="form-input" placeholder="+995 555 00-00-00">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Фото автомобиля</label>
+        <label class="file-upload-btn" for="car-photo-input">📷 Выбрать фото</label>
+        <input type="file" id="car-photo-input" accept="image/*" style="display:none;">
+        <div id="car-photo-preview-wrap" class="preview-container">
+          <img id="car-photo-preview" class="preview-img" alt="">
+          <div id="btn-delete-photo" class="btn-remove-photo">✕</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button class="btn-primary" id="btn-submit-step1">Далее →</button>
+</div>
+
+<div id="screen-builder" class="screen">
+  <div class="screen-header">
+    <button class="btn-back" id="btn-back-to-step1">←</button>
+    <div class="header" id="builder-title">—</div>
+  </div>
+  <div class="builder-header-date" id="builder-date">—</div>
+
+  <div class="section-label">Информация о сборе</div>
+  <div class="summary-section">
+    <div class="summary-two-col">
+      <div class="summary-col" id="summary-col-left"></div>
+      <div class="summary-col summary-col-right" id="summary-col-right"></div>
+    </div>
+    <div class="summary-return" id="summary-return">🏁 Возвращение: —</div>
+  </div>
+
+  <div id="block-transport-summary" style="display:none;">
+    <div class="section-label">Транспорт</div>
+    <div class="summary-section" id="block-transport-inner"></div>
+  </div>
+
+  <div class="section-label">Маршрутный лист</div>
+  <div class="section-block" style="padding:12px 16px;margin-bottom:10px;">
+    <label class="checkbox-container" style="margin:0;">
+      <input type="checkbox" id="check-all-points-map">
+      <span class="form-label" style="margin:0;">🗺 Все точки на карте</span>
+    </label>
+    <div id="all-points-map-field" class="form-group hidden-field" style="margin-top:10px;margin-bottom:0;">
+      <input type="url" id="all-points-map" class="form-input" placeholder="Ссылка на общую карту маршрута">
+    </div>
+  </div>
+
+  <div class="route-list-container">
+    <div id="route-points-list">
+      <div class="empty-state" id="builder-empty-state" style="margin:20px 0;">Точки маршрута ещё не добавлены</div>
+    </div>
+  </div>
+
+  <div class="constructor-buttons">
+    <button class="btn-add" id="btn-add-location">📍 Добавить локацию</button>
+    <button class="btn-add" id="btn-add-transit">🚗 Добавить переезд</button>
+    <button class="btn-add" id="btn-add-lunch">🍽 Добавить ланч</button>
+  </div>
+
+  <div class="action-buttons">
+    <button class="btn-primary btn-green" id="btn-save-close">✅ Сохранить и закрыть</button>
+    <button class="btn-outline" id="btn-preview">👁 Предпросмотр сообщения</button>
+    <button class="btn-primary" id="btn-send-plan">📤 Отправить план в Telegram</button>
+  </div>
+  <div id="send-status" class="send-status"></div>
+</div>
+
+<div id="screen-preview" class="screen">
+  <div class="screen-header">
+    <button class="btn-back" id="btn-back-from-preview">←</button>
+    <div class="header">Предпросмотр</div>
+  </div>
+  <div class="preview-bubble" id="preview-content"></div>
+  <button class="btn-primary" id="btn-send-from-preview">📤 Отправить план в Telegram</button>
+  <div id="preview-send-status" class="send-status"></div>
+</div>
+
+</div><div class="ctx-overlay" id="ctx-overlay"></div>
+<div class="ctx-menu" id="ctx-menu">
+  <div class="ctx-item" id="ctx-open">✏️ Открыть и редактировать</div>
+  <div class="ctx-item" id="ctx-send">📤 Отправить план в чат</div>
+  <div class="ctx-item" id="ctx-hide">🙈 Скрыть проект</div>
+  <div class="ctx-item" id="ctx-restore" style="display:none;">♻️ Восстановить</div>
+  <div class="ctx-item danger" id="ctx-delete">🗑 Удалить</div>
+</div>
+
+<div class="bottom-sheet-overlay" id="overlay-location">
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="header" id="sheet-loc-header" style="font-size:18px;margin-bottom:14px;">📍 Новая локация</div>
+    <div class="form-group"><label class="form-label">Название</label><input type="text" id="sheet-loc-title" class="form-input" placeholder="Например: Загородный дом"></div>
+    <div class="form-group"><label class="form-label">Ссылка на фото (Drive / Dropbox)</label><input type="url" id="sheet-loc-link" class="form-input" placeholder="https://..."></div>
+    <div class="form-group"><label class="form-label">Ссылка на карту (точка)</label><input type="url" id="sheet-loc-map" class="form-input" placeholder="Google / Yandex Maps"></div>
+    <label class="checkbox-container"><input type="checkbox" id="sheet-loc-check-coords"><span class="form-label" style="margin:0;">📡 GPS координаты точки</span></label>
+    <div id="sheet-loc-coords-field" class="form-group hidden-field"><input type="text" id="sheet-loc-coords" class="form-input" placeholder="41.7151, 44.7932"></div>
+    <div class="form-group"><label class="form-label">Время на локации</label>
+      <div class="form-row">
+        <div style="flex:1;"><input type="number" id="sheet-loc-hours" class="form-input" placeholder="Часы" min="0" max="23" inputmode="numeric"></div>
+        <div style="flex:1;"><input type="number" id="sheet-loc-mins" class="form-input" placeholder="Минуты" min="0" max="59" inputmode="numeric"></div>
+      </div>
+    </div>
+    <button class="btn-primary" id="btn-sheet-loc-save">Добавить в план</button>
+    <button class="btn-secondary" id="btn-sheet-loc-close">Отмена</button>
+  </div>
+</div>
+
+<div class="bottom-sheet-overlay" id="overlay-transit">
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="header" id="sheet-transit-header" style="font-size:18px;margin-bottom:14px;">🚗 Переезд</div>
+    <div class="form-group"><label class="form-label">Время в пути</label>
+      <div class="form-row">
+        <div style="flex:1;"><input type="number" id="sheet-transit-hours" class="form-input" placeholder="Часы" min="0" max="23" inputmode="numeric"></div>
+        <div style="flex:1;"><input type="number" id="sheet-transit-mins" class="form-input" placeholder="Минуты" min="0" max="59" inputmode="numeric"></div>
+      </div>
+    </div>
+    <button class="btn-primary" id="btn-sheet-transit-save">Добавить</button>
+    <button class="btn-secondary" id="btn-sheet-transit-close">Отмена</button>
+  </div>
+</div>
+
+<div class="bottom-sheet-overlay" id="overlay-lunch">
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="header" id="sheet-lunch-header" style="font-size:18px;margin-bottom:14px;">🍽 Ланч</div>
+    <div class="form-group"><label class="form-label">Длительность</label>
+      <div class="form-row">
+        <div style="flex:1;"><input type="number" id="sheet-lunch-hours" class="form-input" placeholder="Часы" min="0" max="23" inputmode="numeric"></div>
+        <div style="flex:1;"><input type="number" id="sheet-lunch-mins" class="form-input" placeholder="Минуты" min="0" max="59" inputmode="numeric"></div>
+      </div>
+    </div>
+    <button class="btn-primary" id="btn-sheet-lunch-save">Добавить</button>
+    <button class="btn-secondary" id="btn-sheet-lunch-close">Отмена</button>
+  </div>
+</div>
+
+<script>
+const BACKEND_URL = 'https://scoutplanbot-production.up.railway.app';
+const tg = (window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:{ready:()=>{},expand:()=>{},HapticFeedback:null,initDataUnsafe:{},close:()=>{}};
+tg.ready(); tg.expand();
+
+function haptic(t){try{if(tg.HapticFeedback)tg.HapticFeedback.impactOccurred(t);}catch(e){}}
+function hapticN(t){try{if(tg.HapticFeedback)tg.HapticFeedback.notificationOccurred(t);}catch(e){}}
+
+function $(id){return document.getElementById(id);}
+function $t(id,ev,fn){const el=$(id); if(el) el.addEventListener(ev,fn);}
+
+// STATE
+let uploadedCarPhotoBase64='', routePoints=[];
+const screenStack = ['screen-main'];
+let editingIndex=null, ctxProjectIdx=null, ctxProjectStatus='active';
+let editingProjectIdx=null; 
+
+// THEME
+function initTheme() {
+  let saved = localStorage.getItem('scout_theme');
+  if (!saved) saved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  applyTheme(saved);
+}
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const btn = $('theme-toggle-btn');
+  if (btn) { if (theme === 'dark') btn.classList.add('on'); else btn.classList.remove('on'); }
+  localStorage.setItem('scout_theme', theme);
+}
+$t('theme-toggle-btn','click',function(){
+  applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+});
+
+// NAVIGATION
+function showScreen(id, pushToStack=true) {
+  haptic('medium');
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+  if (pushToStack && screenStack[screenStack.length-1] !== id) screenStack.push(id);
+}
+function goBack() {
+  if (screenStack.length > 1) {
+    screenStack.pop();
+    showScreen(screenStack[screenStack.length-1], false);
+  } else {
+    showScreen('screen-main', false);
+  }
+}
+
+// UTILS
+function dur(m){if(!m||isNaN(m))return'0 мин';const h=Math.floor(m/60),r=m%60;if(h&&r)return h+' ч '+r+' мин';if(h)return h+' ч';return r+' мин';}
+function addM(t,m){if(!t||t.indexOf(':')===-1)t='00:00';const[h,mm]=t.split(':').map(Number);const tot=(isNaN(h)?0:h)*60+(isNaN(mm)?0:mm)+parseInt(m||0);return String(Math.floor(tot/60)%24).padStart(2,'0')+':'+String(tot%60).padStart(2,'0');}
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// STORAGE
+function getProjects(){try{return JSON.parse(localStorage.getItem('scout_projects')||'[]');}catch(e){return[];}}
+function saveProjects(p){try{localStorage.setItem('scout_projects',JSON.stringify(p));}catch(e){}}
+
+function clearInputs(){
+  ['project-title','project-date','time-meeting','time-departure','meeting-place','meeting-address','meeting-map','all-points-map','meeting-coords','car-brand','car-number','driver-name','driver-phone'].forEach(id=>{const el=$(id); if(el)el.value='';});
+  ['check-coords','check-transport','check-all-points-map'].forEach(id=>{const el=$(id); if(el)el.checked=false;});
+  $('coords-field').style.display='none';
+  $('transport-fields').style.display='none';
+  $('all-points-map-field').style.display='none';
+  uploadedCarPhotoBase64='';
+  $('car-photo-preview').src='';
+  $('car-photo-preview-wrap').style.display='none';
+  routePoints=[];
+  editingProjectIdx=null;
+}
+
+// MASKS
+function initMasks(){
+  document.querySelectorAll('.time-mask').forEach(input=>{
+    input.addEventListener('input',e=>{
+      let v=e.target.value.replace(/\D/g,'');
+      if(v.length>2) v=v.slice(0,2)+':'+v.slice(2,4);
+      e.target.value=v;
+    });
+  });
+  $t('project-date','input',e=>{
+    let v=e.target.value.replace(/\D/g,'');
+    if(v.length>4) v=v.slice(0,2)+'.'+v.slice(2,4)+'.'+v.slice(4,6);
+    else if(v.length>2) v=v.slice(0,2)+'.'+v.slice(2);
+    e.target.value=v;
+  });
+}
+
+// RENDER PROJECTS
+function renderProjects(){
+  const all=getProjects();
+  ['active','archive','trash'].forEach(status=>{
+    const box=$(`projects-list-${status}`);
+    const empty=$(`${status}-empty-state`);
+    if(!box)return;
+    box.innerHTML='';
+    const filtered=all.filter(p=>p.status===status||(!p.status&&status==='active'));
+    if(empty) empty.style.display=filtered.length===0?'block':'none';
+    filtered.forEach((p,idx)=>{
+      const card=document.createElement('div');
+      card.className='project-card';
+      card.innerHTML=`<div class="project-card-body">
+        <div class="project-card-title">${esc(p.title)||'Без названия'}</div>
+        <div class="project-card-meta">${esc(p.date)||''} · Сбор: ${esc(p.meetingTime)||'—'}</div>
+      </div>`;
+      card.addEventListener('click',e=>{
+        const globalIdx=all.findIndex(item=>item.id===p.id);
+        openCtxMenu(e,globalIdx,status);
+      });
+      box.appendChild(card);
+    });
+  });
+}
+
+// CONTEXT MENU
+function openCtxMenu(e,idx,status){
+  e.preventDefault();
+  ctxProjectIdx=idx;
+  ctxProjectStatus=status;
+  haptic('light');
+  $('ctx-restore').style.display=status==='trash'?'flex':'none';
+  $('ctx-hide').style.display=status==='active'?'flex':'none';
+  const menu=$('ctx-menu');
+  menu.style.display='block';
+  $('ctx-overlay').style.display='block';
+  const mWidth=menu.offsetWidth, mHeight=menu.offsetHeight;
+  let x=e.clientX, y=e.clientY;
+  if(x+mWidth>window.innerWidth) x=window.innerWidth-mWidth-10;
+  if(y+mHeight>window.innerHeight) y=window.innerHeight-mHeight-10;
+  menu.style.left=x+'px';
+  menu.style.top=y+'px';
+}
+function closeCtxMenu(){
+  $('ctx-menu').style.display='none';
+  $('ctx-overlay').style.display='none';
+}
+
+// LISTENERS INITIALIZATION
+window.addEventListener('DOMContentLoaded',()=>{
+  initTheme();
+  initMasks();
+  renderProjects();
+
+  $t('tab-active','click',()=>{ document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); $('tab-active').classList.add('active'); $('content-active').style.display='block'; $('content-archive').style.display='none'; $('content-trash').style.display='none'; });
+  $t('tab-archive','click',()=>{ document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); $('tab-archive').classList.add('active'); $('content-active').style.display='none'; $('content-archive').style.display='block'; $('content-trash').style.display='none'; });
+  $t('tab-trash','click',()=>{ document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); $('tab-trash').classList.add('active'); $('content-active').style.display='none'; $('content-archive').style.display='none'; $('content-trash').style.display='block'; });
+
+  $t('btn-create-project','click',()=>{ clearInputs(); showScreen('screen-create'); });
+  $t('btn-cancel-step1','click',goBack);
+  $t('btn-back-to-step1','click',goBack);
+  $t('btn-back-from-preview','click',goBack);
+  $t('ctx-overlay','click',closeCtxMenu);
+
+  // Checkboxes
+  $t('check-coords','change',e=>$('coords-field').style.display=e.target.checked?'block':'none');
+  $t('check-transport','change',e=>$('transport-fields').style.display=e.target.checked?'block':'none');
+  $t('check-all-points-map','change',e=>$('all-points-map-field').style.display=e.target.checked?'block':'none');
+  $t('sheet-loc-check-coords','change',e=>$('sheet-loc-coords-field').style.display=e.target.checked?'block':'none');
+
+  // Photo
+  $t('car-photo-input','change',e=>{
+    const f=e.target.files[0]; if(!f)return;
+    const r=new FileReader(); r.onload=ev=>{
+      uploadedCarPhotoBase64=ev.target.result;
+      $('car-photo-preview').src=uploadedCarPhotoBase64;
+      $('car-photo-preview-wrap').style.display='block';
+    }; r.readAsDataURL(f);
+  });
+  $t('btn-delete-photo','click',()=>{
+    uploadedCarPhotoBase64=''; $('car-photo-preview').src=''; $('car-photo-preview-wrap').style.display='none'; $('car-photo-input').value='';
+  });
+
+  // Step 1 -> Step 2
+  $t('btn-submit-step1','click',()=>{
+    $('builder-title').textContent=$('project-title').value||'Новый план';
+    $('builder-date').textContent=$('project-date').value||'';
+    renderBuilderSummary();
+    showScreen('screen-builder');
+  });
+
+  // Sheets Open/Close
+  $t('btn-add-location','click',()=>openSheet('overlay-location'));
+  $t('btn-add-transit','click',()=>openSheet('overlay-transit'));
+  $t('btn-add-lunch','click',()=>openSheet('overlay-lunch'));
+  $t('btn-sheet-loc-close','click',()=>closeSheet('overlay-location'));
+  $t('btn-sheet-transit-close','click',()=>closeSheet('overlay-transit'));
+  $t('btn-sheet-lunch-close','click',()=>closeSheet('overlay-lunch'));
+
+  // Sheets Save
+  $t('btn-sheet-loc-save','click',()=>{
+    const h=parseInt($('sheet-loc-hours').value)||0, m=parseInt($('sheet-loc-mins').value)||0;
+    routePoints.push({
+      type:'location', title:$('sheet-loc-title').value||'Локация',
+      link:$('sheet-loc-link').value||'', mapUrl:$('sheet-loc-map').value||'',
+      coords:$('sheet-loc-coords').value||'', duration:(h*60)+m
+    });
+    closeSheet('overlay-location'); updateRoutePointsList();
+  });
+  $t('btn-sheet-transit-save','click',()=>{
+    const h=parseInt($('sheet-transit-hours').value)||0, m=parseInt($('sheet-transit-mins').value)||0;
+    routePoints.push({ type:'transit', title:'Переезд', duration:(h*60)+m });
+    closeSheet('overlay-transit'); updateRoutePointsList();
+  });
+  $t('btn-sheet-lunch-save','click',()=>{
+    const h=parseInt($('sheet-lunch-hours').value)||0, m=parseInt($('sheet-lunch-mins').value)||0;
+    routePoints.push({ type:'lunch', title:'Ланч', duration:(h*60)+m });
+    closeSheet('overlay-lunch'); updateRoutePointsList();
+  });
+
+  // Final Actions
+  $t('btn-save-close','click',saveProjectToStorage);
+  $t('btn-preview','click',openPreview);
+  $t('btn-send-plan','click',()=>sendPlan('send-status'));
+  $t('btn-send-from-preview','click',()=>sendPlan('preview-send-status'));
+
+  // Context Actions
+  $t('ctx-open','click',()=>{
+    const all=getProjects(); const p=all[ctxProjectIdx]; closeCtxMenu(); if(!p)return;
+    clearInputs(); editingProjectIdx=ctxProjectIdx;
+    $('project-title').value=p.title||''; $('project-date').value=p.date||'';
+    $('time-meeting').value=p.meetingTime||''; $('time-departure').value=p.departureTime||'';
+    $('meeting-place').value=p.meetingPlace||''; $('meeting-address').value=p.meetingAddress||'';
+    $('meeting-map').value=p.meetingMapUrl||''; $('all-points-map').value=p.allPointsMapUrl||'';
+    $('meeting-coords').value=p.coordinates||'';
+    $('check-coords').checked=!!p.coordinates; $('coords-field').style.display=p.coordinates?'block':'none';
+    $('check-all-points-map').checked=!!p.allPointsMapUrl; $('all-points-map-field').style.display=p.allPointsMapUrl?'block':'none';
+    $('check-transport').checked=!!p.hasTransport; $('transport-fields').style.display=p.hasTransport?'block':'none';
+    if(p.hasTransport){
+      $('car-brand').value=p.carBrand||''; $('car-number').value=p.carNumber||'';
+      $('driver-name').value=p.driverName||''; $('driver-phone').value=p.driverPhone||'';
+      if(p.carPhotoBase64){
+        uploadedCarPhotoBase64=p.carPhotoBase64; $('car-photo-preview').src=uploadedCarPhotoBase64; $('car-photo-preview-wrap').style.display='block';
+      }
+    }
+    routePoints=p.routePoints||[];
+    showScreen('screen-create');
+  });
+  $t('ctx-send','click',()=>{ const all=getProjects(); sendPlanDirect(all[ctxProjectIdx]); closeCtxMenu(); });
+  $t('ctx-hide','click',()=>{ changeStatus(ctxProjectIdx,'archive'); closeCtxMenu(); });
+  $t('ctx-restore','click',()=>{ changeStatus(ctxProjectIdx,'active'); closeCtxMenu(); });
+  $t('ctx-delete','click',()=>{
+    if(ctxProjectStatus==='trash'){ if(confirm('Удалить навсегда?')){ const all=getProjects(); all.splice(ctxProjectIdx,1); saveProjects(all); renderProjects(); } }
+    else { changeStatus(ctxProjectIdx,'trash'); } closeCtxMenu();
+  });
+});
+
+function renderBuilderSummary(){
+  $('summary-col-left').innerHTML=`<div class="summary-item-label">Время сбора</div><div class="summary-time-value" style="color:var(--green)">${$('time-meeting').value||'—'}</div><div class="summary-item-value">${esc($('meeting-place').value)}</div>`;
+  $('summary-col-right').innerHTML=`<div class="summary-item-label">Выезд с точки</div><div class="summary-time-value" style="color:var(--red)">${$('time-departure').value||'—'}</div><div class="summary-item-value">${esc($('meeting-address').value)}</div>`;
+  if($('check-transport').checked){
+    $('block-transport-summary').style.display='block';
+    $('block-transport-inner').innerHTML=`<div class="transport-card"><div class="transport-info">
+      <div class="transport-info-row"><b>${esc($('car-brand').value)||\'Авто\'}</b> · ${esc($('car-number').value)}</div>
+      <div class="transport-info-row">👤 ${esc($('driver-name').value)} · ${esc($('driver-phone').value)}</div>
+    </div><div class="transport-photo">${uploadedCarPhotoBase64?`<img src="${uploadedCarPhotoBase64}">`:`<div class="transport-photo-placeholder">🚘</div>`}</div></div>`;
+  } else $('block-transport-summary').style.display='none';
+  updateRoutePointsList();
+}
+
+function updateRoutePointsList(){
+  const container=$('route-points-list'); container.innerHTML='';
+  if(routePoints.length===0){ container.innerHTML='<div class="empty-state">Точки маршрута ещё не добавлены</div>'; $('summary-return').textContent='🏁 Возвращение: —'; return; }
+  let cur=$('time-departure').value||'00:00';
+  routePoints.forEach((p,idx)=>{
+    const item=document.createElement('div');
+    item.className=`route-item type-${p.type}`;
+    const start=cur; cur=addM(cur,p.duration);
+    item.innerHTML=`<div class="drag-handle"><span></span><span></span><span></span></div>
+      <div class="route-text-block">
+        <div class="route-item-title">${esc(p.title)}</div>
+        <div class="route-item-time">${start} — ${cur} <span style="color:var(--text2);font-weight:normal;font-size:12px;">(${dur(p.duration)})</span></div>
+      </div><button class="btn-delete-point">✕</button>`;
+    item.querySelector('.btn-delete-point').addEventListener('click',()=>{ routePoints.splice(idx,1); updateRoutePointsList(); });
+    container.appendChild(item);
+  });
+  $('summary-return').textContent=`🏁 Возвращение: ${cur}`;
+}
+
+function changeStatus(idx,status){const all=getProjects(); if(all[idx]){all[idx].status=status; saveProjects(all); renderProjects();}}
+
+function getPayload(){
+  return {
+    chatId: tg.initDataUnsafe?.user?.id || "123456",
+    data: {
+      id: editingProjectIdx!==null && editingProjectIdx>=0 ? getProjects()[editingProjectIdx].id : Date.now(),
+      title: $('project-title').value, date: $('project-date').value,
+      meetingTime: $('time-meeting').value, departureTime: $('time-departure').value,
+      meetingPlace: $('meeting-place').value, meetingAddress: $('meeting-address').value,
+      meetingMapUrl: $('meeting-map').value, allPointsMapUrl: $('all-points-map').value,
+      coordinates: $('meeting-coords').value, hasTransport: $('check-transport').checked,
+      carBrand: $('car-brand').value, carNumber: $('car-number').value,
+      driverName: $('driver-name').value, driverPhone: $('driver-phone').value,
+      carPhotoBase64: uploadedCarPhotoBase64, routePoints: routePoints, status: 'active'
+    }
+  };
+}
+
+function saveProjectToStorage(){
+  const all=getProjects(); const p=getPayload().data;
+  if(editingProjectIdx!==null && editingProjectIdx>=0) all[editingProjectIdx]=p; else all.push(p);
+  saveProjects(all); renderProjects(); showScreen('screen-main', false);
+}
+
+function openPreview(){
+  const p=getPayload().data; let cur=p.departureTime||'00:00';
+  let t=`📝 <b>ПЛАН СКАУТА: ${p.title||'—'}</b>\n📅 Дата: ${p.date||'—'}\n\n🟢 <b>СБОР: ${p.meetingTime||'—'}</b>\n📍 Место: ${p.meetingPlace||'—'}\n🏠 Адрес: ${p.meetingAddress||'—'}\n${p.meetingMapUrl?`🗺 Карта: ${p.meetingMapUrl}\n`:''}${p.coordinates?`📡 GPS: ${p.coordinates}\n`:''}\n🔴 <b>ВЫЕЗД: ${p.departureTime||'—'}</b>\n\n`;
+  if(p.hasTransport) t+=`🚘 <b>ТРАНСПОРТ:</b>\n${p.carBrand||'—'} [${p.carNumber||'—'}]\n👤 Водитель: ${p.driverName||'—'} (${p.driverPhone||'—'})\n\n`;
+  if(p.routePoints&&p.routePoints.length>0){
+    t+=`📋 <b>МАРШРУТ:</b>\n`;
+    p.routePoints.forEach(pt=>{
+      const s=cur; cur=addM(cur,pt.duration);
+      if(pt.type==='location') t+=`📍 <b>${pt.title}</b> (${s} — ${cur})\n${pt.mapUrl?`   • Карта: ${pt.mapUrl}\n`:''}`;
+      else if(pt.type==='transit') t+=`🚗 <b>Переезд</b> (${s} — ${cur} · ${dur(pt.duration)})\n`;
+      else if(pt.type==='lunch') t+=`🍽 <b>Ланч</b> (${s} — ${cur} · ${dur(pt.duration)})\n`;
+    });
+  }
+  t+=`\n🏁 <b>Расчётное возвращение: ${cur}</b>`;
+  if(p.allPointsMapUrl) t+=`\n\n🗺 <b>Общая карта маршрута:</b>\n${p.allPointsMapUrl}`;
+  $('preview-content').innerHTML=t.replace(/\n/g,'<br>');
+  showScreen('screen-preview');
+}
+
+async function sendPlan(statusId){
+  const el=$(statusId); el.style.display='block'; el.className='send-status loading'; el.textContent='🚀 Отправка плана в Telegram...';
+  try {
+    const res=await fetch(`${BACKEND_URL}/send-plan`,{
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(getPayload())
+    });
+    const data=await res.json();
+    if(data.ok){ el.className='send-status success'; el.textContent='✅ План успешно отправлен!'; setTimeout(()=>tg.close(),1500); }
+    else throw new Error(data.error||'Ошибка отправки');
+  } catch(e){ el.className='send-status error'; el.textContent='❌ '+e.message; }
+}
+
+async function sendPlanDirect(projectData){
+  if(!projectData)return;
+  try {
+    await fetch(`${BACKEND_URL}/send-plan`,{
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ chatId:tg.initDataUnsafe?.user?.id||"123456", data:projectData })
+    });
+    hapticN('success'); alert('План отправлен в чат!');
+  } catch(e){ hapticN('error'); alert('Ошибка отправки: '+e.message); }
+}
+</script>
+</body>
+</html>
