@@ -127,7 +127,7 @@ body.sheet-open{overflow:hidden!important;}
 .builder-header-date{font-size:15px;font-weight:600;text-align:center;color:var(--text2);margin-bottom:18px;}
 .section-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin:16px 0 8px;text-align:center;}
 
-/* ── TRANSPORT CARD ── */
+/* ── TRANSPORT CARD (двухколоночный) ── */
 .transport-card{display:flex;gap:12px;align-items:stretch;}
 .transport-info{flex:1;display:flex;flex-direction:column;gap:5px;}
 .transport-info-row{font-size:13px;color:var(--text);line-height:1.5;}
@@ -193,6 +193,9 @@ body.sheet-open{overflow:hidden!important;}
 <body>
 <div class="app-wrapper">
 
+<!-- ══════════════════════════════════
+     ГЛАВНЫЙ ЭКРАН
+═══════════════════════════════════ -->
 <div id="screen-main" class="screen active">
   <div class="top-bar">
     <div class="theme-toggle">
@@ -226,6 +229,9 @@ body.sheet-open{overflow:hidden!important;}
   </div>
 </div>
 
+<!-- ══════════════════════════════════
+     ШАГ 1: СОЗДАНИЕ
+═══════════════════════════════════ -->
 <div id="screen-create" class="screen">
   <div class="screen-header">
     <button class="btn-back" id="btn-cancel-step1">←</button>
@@ -321,6 +327,9 @@ body.sheet-open{overflow:hidden!important;}
   <button class="btn-primary" id="btn-submit-step1">Далее →</button>
 </div>
 
+<!-- ══════════════════════════════════
+     ШАГ 2: МАРШРУТ
+═══════════════════════════════════ -->
 <div id="screen-builder" class="screen">
   <div class="screen-header">
     <button class="btn-back" id="btn-back-to-step1">←</button>
@@ -373,6 +382,9 @@ body.sheet-open{overflow:hidden!important;}
   <div id="send-status" class="send-status"></div>
 </div>
 
+<!-- ══════════════════════════════════
+     ПРЕДПРОСМОТР
+═══════════════════════════════════ -->
 <div id="screen-preview" class="screen">
   <div class="screen-header">
     <button class="btn-back" id="btn-back-from-preview">←</button>
@@ -383,7 +395,10 @@ body.sheet-open{overflow:hidden!important;}
   <div id="preview-send-status" class="send-status"></div>
 </div>
 
-</div><div class="ctx-overlay" id="ctx-overlay"></div>
+</div><!-- /app-wrapper -->
+
+<!-- CTX MENU -->
+<div class="ctx-overlay" id="ctx-overlay"></div>
 <div class="ctx-menu" id="ctx-menu">
   <div class="ctx-item" id="ctx-open">✏️ Открыть и редактировать</div>
   <div class="ctx-item" id="ctx-send">📤 Отправить план в чат</div>
@@ -392,6 +407,7 @@ body.sheet-open{overflow:hidden!important;}
   <div class="ctx-item danger" id="ctx-delete">🗑 Удалить</div>
 </div>
 
+<!-- ШТОРКА: ЛОКАЦИЯ -->
 <div class="bottom-sheet-overlay" id="overlay-location">
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
@@ -412,6 +428,7 @@ body.sheet-open{overflow:hidden!important;}
   </div>
 </div>
 
+<!-- ШТОРКА: ПЕРЕЕЗД -->
 <div class="bottom-sheet-overlay" id="overlay-transit">
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
@@ -427,6 +444,7 @@ body.sheet-open{overflow:hidden!important;}
   </div>
 </div>
 
+<!-- ШТОРКА: ЛАНЧ -->
 <div class="bottom-sheet-overlay" id="overlay-lunch">
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
@@ -443,20 +461,15 @@ body.sheet-open{overflow:hidden!important;}
 </div>
 
 <script>
-// ── HELPERS BLOCK (Объявлены первыми, чтобы функции ниже не падали) ──────
-function $(id){return document.getElementById(id);}
-function $t(id,ev,fn){const el=document.getElementById(id); if(el)el.addEventListener(ev,fn);}
-
 const BACKEND_URL = 'https://scoutplanbot-production.up.railway.app';
 const tg = (window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:{ready:()=>{},expand:()=>{},HapticFeedback:null,initDataUnsafe:{}};
 tg.ready(); tg.expand();
-
-// Безопасные обертки вибрации
-function haptic(t){try{if(tg && tg.HapticFeedback && typeof tg.HapticFeedback.impactOccurred === 'function')tg.HapticFeedback.impactOccurred(t);}catch(e){console.log(e);}}
-function hapticN(t){try{if(tg && tg.HapticFeedback && typeof tg.HapticFeedback.notificationOccurred === 'function')tg.HapticFeedback.notificationOccurred(t);}catch(e){console.log(e);}}
+function haptic(t){try{if(tg.HapticFeedback)tg.HapticFeedback.impactOccurred(t);}catch(e){}}
+function hapticN(t){try{if(tg.HapticFeedback)tg.HapticFeedback.notificationOccurred(t);}catch(e){}}
 
 // ── THEME ────────────────────────────────────────────────────────────────
 function initTheme() {
+  // Определяем тему: из localStorage или системная
   let saved = localStorage.getItem('scout_theme');
   if (!saved) {
     saved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -466,9 +479,7 @@ function initTheme() {
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   const btn = $('theme-toggle-btn');
-  if (btn) {
-    if (theme === 'dark') btn.classList.add('on'); else btn.classList.remove('on');
-  }
+  if (theme === 'dark') btn.classList.add('on'); else btn.classList.remove('on');
   localStorage.setItem('scout_theme', theme);
 }
 $t('theme-toggle-btn','click',function(){
@@ -476,16 +487,23 @@ $t('theme-toggle-btn','click',function(){
   applyTheme(cur === 'dark' ? 'light' : 'dark');
 });
 
+// ── HELPERS ─────────────────────────────────────────────────────────────
+function $(id){return document.getElementById(id);}
+function $t(id,ev,fn){document.getElementById(id).addEventListener(ev,fn);}
+function haptic(t){try{if(tg.HapticFeedback)tg.HapticFeedback.impactOccurred(t);}catch(e){}}
+function hapticN(t){try{if(tg.HapticFeedback)tg.HapticFeedback.notificationOccurred(t);}catch(e){}}
+
 // ── NAVIGATION STACK ─────────────────────────────────────────────────────
+// Поддерживаем стек экранов для корректной навигации назад
 const screenStack = ['screen-main'];
 
 function showScreen(id, pushToStack=true) {
   haptic('medium');
   document.querySelectorAll('.screen').forEach(s=>s.style.display='none');
-  const target = $(id);
-  if(target) target.style.display='block';
+  $(id).style.display='block';
   window.scrollTo(0,0);
   if (pushToStack) {
+    // Убираем дубли
     if (screenStack[screenStack.length-1] !== id) screenStack.push(id);
   }
 }
@@ -496,8 +514,7 @@ function goBack() {
     const prev = screenStack[screenStack.length-1];
     haptic('medium');
     document.querySelectorAll('.screen').forEach(s=>s.style.display='none');
-    const target = $(prev);
-    if(target) target.style.display='block';
+    $(prev).style.display='block';
     window.scrollTo(0,0);
   } else {
     showScreen('screen-main', false);
@@ -510,16 +527,16 @@ let gTitle='',gDate='',gMeetTime='',gDepTime='';
 let gPlace='',gAddress='',gMap='',gAllMap='',gCoords='';
 let gBrand='';
 let editingIndex=null, ctxProjectIdx=null, ctxProjectStatus='active';
-let editingProjectIdx=null; 
+let editingProjectIdx=null; // индекс редактируемого проекта (-1 = новый)
 
 // ── UTILS ────────────────────────────────────────────────────────────────
 function dur(m){if(!m||isNaN(m))return'0 мин';const h=Math.floor(m/60),r=m%60;if(h&&r)return h+' ч '+r+' мин';if(h)return h+' ч';return r+' мин';}
 function addM(t,m){if(!t)t='00:00';const[h,mm]=t.split(':').map(Number);const tot=(isNaN(h)?0:h)*60+(isNaN(mm)?0:mm)+parseInt(m||0);return String(Math.floor(tot/60)%24).padStart(2,'0')+':'+String(tot%60).padStart(2,'0');}
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function showStatus(id,type,text){const el=$(id); if(!el) return; el.className='send-status '+type; el.textContent=text; if(type!=='loading')setTimeout(()=>{el.style.display='none';},4000);}
+function showStatus(id,type,text){const el=$(id);el.className='send-status '+type;el.textContent=text;if(type!=='loading')setTimeout(()=>{el.style.display='none';},4000);}
 
-function openSheet(id){haptic('light');document.body.classList.add('sheet-open');const el=$(id); if(el)el.style.display='block';}
-function closeSheet(id){document.body.classList.remove('sheet-open');const el=$(id); if(el)el.style.display='none'; editingIndex=null;}
+function openSheet(id){haptic('light');document.body.classList.add('sheet-open');$(id).style.display='block';}
+function closeSheet(id){document.body.classList.remove('sheet-open');$(id).style.display='none';editingIndex=null;}
 
 // ── STORAGE ──────────────────────────────────────────────────────────────
 function getProjects(){try{return JSON.parse(localStorage.getItem('scout_projects')||'[]');}catch(e){return[];}}
@@ -527,11 +544,12 @@ function saveProjects(p){
   try {
     localStorage.setItem('scout_projects', JSON.stringify(p));
   } catch(e) {
+    // Quota exceeded — удаляем мусор из корзины и повторяем
     console.warn('Storage quota exceeded, cleaning trash...');
     try {
       const cleaned = p
-        .filter(pr => pr.status !== 'trash') 
-        .map(pr => ({...pr, carPhotoBase64:''})); 
+        .filter(pr => pr.status !== 'trash') // убираем корзину
+        .map(pr => ({...pr, carPhotoBase64:''})); // убираем фото на всякий случай
       localStorage.setItem('scout_projects', JSON.stringify(cleaned));
       console.log('Saved after cleanup');
     } catch(e2) {
@@ -561,15 +579,670 @@ function clearInputs(){
    'meeting-map','all-points-map','meeting-coords','car-brand','car-number','driver-name','driver-phone'
   ].forEach(id=>{const el=$(id);if(el)el.value='';});
   uploadedCarPhotoBase64='';
-  const previewWrap = $('car-photo-preview-wrap');
-  if(previewWrap) previewWrap.style.display='none';
-  ['check-coords','check-transport','check-all-points-map'].forEach(id=>{const el=$(id); if(el)el.checked=false;});
-  ['coords-field','transport-fields','all-points-map-field'].forEach(id=>{const el=$(id); if(el)el.style.display='none';});
+  $('car-photo-preview-wrap').style.display='none';
+  ['check-coords','check-transport','check-all-points-map'].forEach(id=>{$(id).checked=false;});
+  ['coords-field','transport-fields','all-points-map-field'].forEach(id=>{$(id).style.display='none';});
   routePoints=[];
+  editingProjectIdx=null;
 }
 
-// Запуск инициализации темы при старте
+// ── BUILD PREVIEW HTML ────────────────────────────────────────────────────
+function buildPreviewHtml(data) {
+  const {title,date,meetingTime,departureTime,meetingPlace,meetingAddress,
+    meetingMapUrl,allPointsMapUrl,coordinates,hasTransport,
+    carBrand,carNumber,driverName,driverPhone,routePoints:rp=[]} = data;
+
+  let runTime = departureTime||'00:00';
+  let locN=1;
+  const emojis=['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+  let html='';
+
+  html += `<b>📋 ${esc(title||'План')} — ${esc(date||'')}</b>\n`;
+  html += `━━━━━━━━━━━━━━━━━━\n`;
+  if(allPointsMapUrl) html += `🗺 <a href="${allPointsMapUrl}">Все точки на карте</a>\n`;
+
+  if(hasTransport&&(carBrand||carNumber||driverName)){
+    html+='\n<b>🚘 Транспорт:</b>\n';
+    if(carBrand) html+=`${esc(carBrand)}\n`;
+    if(carNumber) html+=`Номер: <b>${esc(carNumber)}</b>\n`;
+    if(driverName){let dl=`👤 ${esc(driverName)}`;if(driverPhone)dl+=` · ${esc(driverPhone)}`;html+=dl+'\n';}
+  }
+
+  html+=`\n━━━━━━━━━━━━━━━━━━\n`;
+  let sborLine=`🟢 <b>Сбор:</b> `;
+  if(meetingMapUrl) sborLine+=`<a href="${meetingMapUrl}">${esc(meetingPlace||'Место')}</a>`;
+  else sborLine+=`<b>${esc(meetingPlace||'—')}</b>`;
+  sborLine+=` — ${esc(meetingTime||'—')}`;
+  html+=sborLine+'\n';
+  if(meetingAddress) html+=`📌 ${esc(meetingAddress)}\n`;
+  if(coordinates) html+=`📡 <span style="font-family:monospace;font-size:12px;">${esc(coordinates)}</span>\n`;
+  html+=`🔴 <b>Выезд:</b> ${esc(departureTime||'—')}\n\n`;
+
+  rp.forEach(point=>{
+    const d=parseInt(point.duration)||0;
+    if(point.type==='transit'){
+      html+=`   🚗 <i>Переезд</i> ~${dur(d)}\n\n`;
+      runTime=addM(runTime,d);
+    } else if(point.type==='lunch'){
+      const e=addM(runTime,d);
+      html+=`🍽 <b>Ланч</b> — ${esc(runTime)}–${esc(e)} (${dur(d)})\n\n`;
+      runTime=e;
+    } else if(point.type==='location'){
+      const e=addM(runTime,d);
+      const em=emojis[locN-1]||`${locN}.`;
+      let line=`${em} `;
+      if(point.link) line+=`<a href="${point.link}">${esc(point.title||'Локация')}</a>`;
+      else line+=`<b>${esc(point.title||'Локация')}</b>`;
+      line+=` — ${esc(runTime)}–${esc(e)}`;
+      html+=line+'\n';
+      html+=`   ⏱ ${dur(d)}\n`;
+      if(point.mapUrl) html+=`   📍 <a href="${point.mapUrl}">Точка на карте</a>\n`;
+      if(point.coords) html+=`   📡 <span style="font-family:monospace;font-size:12px;">${esc(point.coords)}</span>\n`;
+      html+='\n';
+      locN++; runTime=e;
+    }
+  });
+
+  html+=`━━━━━━━━━━━━━━━━━━\n`;
+  html+=`🏁 <b>Возвращение: ~${esc(runTime)}</b>`;
+  return html.replace(/\n/g,'<br>');
+}
+
+// ── COLLECT PLAN DATA ─────────────────────────────────────────────────────
+function collectPlanData(){
+  const hasTr=$('check-transport').checked;
+  const hasAP=$('check-all-points-map').checked;
+  let rt=gDepTime||'00:00';
+  routePoints.forEach(p=>{rt=addM(rt,parseInt(p.duration)||0);});
+  return {
+    title:gTitle, date:gDate, meetingTime:gMeetTime, departureTime:gDepTime,
+    meetingPlace:gPlace, meetingAddress:gAddress, meetingMapUrl:gMap,
+    allPointsMapUrl:hasAP?($('all-points-map').value||''):'',
+    coordinates:$('check-coords').checked?gCoords:'',
+    hasTransport:hasTr,
+    carBrand:hasTr?$('car-brand').value:'',
+    carNumber:hasTr?$('car-number').value:'',
+    driverName:hasTr?$('driver-name').value:'',
+    driverPhone:hasTr?$('driver-phone').value:'',
+    carPhotoBase64:'',
+    routePoints:[...routePoints], returnTime:rt, status:'active'
+  };
+}
+
+// Для отправки — добавляем фото из памяти (не из localStorage)
+function collectPlanDataForSend(){
+  const data = collectPlanData();
+  if(data.hasTransport) data.carPhotoBase64 = uploadedCarPhotoBase64||'';
+  return data;
+}
+
+// ── SAVE PROJECT ──────────────────────────────────────────────────────────
+function saveProjectToStorage(data){
+  try {
+    const projects=getProjects();
+    const toStore={...data, carPhotoBase64:''};
+    if(editingProjectIdx!==null&&editingProjectIdx>=0){
+      toStore.status=projects[editingProjectIdx].status||'active';
+      projects[editingProjectIdx]=toStore;
+    } else {
+      projects.unshift(toStore);
+    }
+    saveProjects(projects);
+    return true;
+  } catch(e){
+    console.error('Save failed:',e.message);
+    return false;
+  }
+}
+
+// ── RENDER PROJECTS ───────────────────────────────────────────────────────
+function renderAllProjects(){
+  const projects=getProjects();
+  ['active','archive','trash'].forEach(status=>{
+    const ids={active:'projects-list-active',archive:'projects-list-archive',trash:'projects-list-trash'};
+    const eids={active:'main-empty-state',archive:'archive-empty-state',trash:'trash-empty-state'};
+    const list=projects.filter(p=>p.status===status);
+    const container=$(ids[status]), emptyEl=$(eids[status]);
+    container.innerHTML='';
+    if(!list.length){emptyEl.style.display='block';return;}
+    emptyEl.style.display='none';
+    list.forEach(proj=>{
+      const idx=projects.indexOf(proj);
+      const card=document.createElement('div');
+      card.className='project-card';
+      card.innerHTML=
+        '<div class="project-card-body">'+
+          '<div class="project-card-title">'+(proj.title||'Без названия')+'</div>'+
+          '<div class="project-card-meta">📅 '+(proj.date||'—')+'</div>'+
+          '<div class="project-card-info">📍 '+(proj.meetingPlace||'—')+' · 🕐 '+(proj.meetingTime||'—')+'</div>'+
+          '<div class="project-card-return">🏁 Возврат: ~'+(proj.returnTime||'—')+'</div>'+
+        '</div>'+
+        '<div class="project-card-actions">'+
+          (status==='active'?'<button class="card-action-btn" data-action="edit">✏️ Открыть</button><div class="card-divider"></div><button class="card-action-btn" data-action="send">📤 Отправить</button><div class="card-divider"></div>':'')+
+          (status!=='active'?'<button class="card-action-btn" data-action="restore">♻️ Восстановить</button><div class="card-divider"></div>':'')+
+          '<button class="card-action-btn" data-action="menu">•••</button>'+
+        '</div>';
+      card.querySelector('.project-card-body').addEventListener('click',()=>openProjectForEdit(idx));
+      card.querySelectorAll('.card-action-btn').forEach(btn=>{
+        btn.addEventListener('click',e=>{
+          e.stopPropagation();
+          const a=btn.getAttribute('data-action');
+          if(a==='edit') openProjectForEdit(idx);
+          else if(a==='send') sendProjectToTg(idx,btn);
+          else if(a==='restore') changeStatus(idx,'active');
+          else if(a==='menu') openCtxMenu(idx,status,btn);
+        });
+      });
+      container.appendChild(card);
+    });
+  });
+  try{$('main-draft-banner').style.display=localStorage.getItem('scout_draft')?'flex':'none';}catch(e){}
+}
+
+function changeStatus(idx,s){const p=getProjects();p[idx].status=s;saveProjects(p);renderAllProjects();}
+function deleteForever(idx){const p=getProjects();p.splice(idx,1);saveProjects(p);renderAllProjects();}
+
+// ── CTX MENU ──────────────────────────────────────────────────────────────
+function openCtxMenu(idx,status,anchor){
+  ctxProjectIdx=idx; ctxProjectStatus=status;
+  $('ctx-hide').style.display=status==='active'?'flex':'none';
+  $('ctx-restore').style.display=status!=='active'?'flex':'none';
+  $('ctx-delete').textContent=status==='trash'?'🗑 Удалить навсегда':'🗑 В корзину';
+  const menu=$('ctx-menu');
+  menu.style.display='block';
+  const rect=anchor.getBoundingClientRect();
+  const mh=menu.offsetHeight||200;
+  let top=rect.bottom+6;
+  if(top+mh>window.innerHeight-10) top=rect.top-mh-6;
+  menu.style.top=top+'px'; menu.style.right='16px'; menu.style.left='auto';
+  $('ctx-overlay').style.display='block';
+}
+function closeCtxMenu(){$('ctx-menu').style.display='none';$('ctx-overlay').style.display='none';}
+
+$t('ctx-overlay','click',closeCtxMenu);
+$t('ctx-open','click',()=>{closeCtxMenu();openProjectForEdit(ctxProjectIdx);});
+$t('ctx-send','click',()=>{closeCtxMenu();sendProjectToTg(ctxProjectIdx,null);});
+$t('ctx-hide','click',()=>{closeCtxMenu();changeStatus(ctxProjectIdx,'archive');});
+$t('ctx-restore','click',()=>{closeCtxMenu();changeStatus(ctxProjectIdx,'active');});
+$t('ctx-delete','click',()=>{
+  closeCtxMenu();
+  if(ctxProjectStatus==='trash') deleteForever(ctxProjectIdx);
+  else changeStatus(ctxProjectIdx,'trash');
+});
+
+// ── OPEN PROJECT FOR EDIT ─────────────────────────────────────────────────
+function openProjectForEdit(idx){
+  const projects=getProjects();
+  const proj=projects[idx];
+  if(!proj) return;
+  haptic('medium');
+  editingProjectIdx=idx;
+
+  // Заполняем форму шага 1
+  $('project-title').value=proj.title||'';
+  $('project-date').value=proj.date||'';
+  $('time-meeting').value=proj.meetingTime||'';
+  $('time-departure').value=proj.departureTime||'';
+  $('meeting-place').value=proj.meetingPlace||proj.place||'';
+  $('meeting-address').value=proj.meetingAddress||'';
+  $('meeting-map').value=proj.meetingMapUrl||'';
+  $('all-points-map').value=proj.allPointsMapUrl||'';
+  $('meeting-coords').value=proj.coordinates||'';
+  $('check-coords').checked=!!proj.coordinates;
+  $('coords-field').style.display=proj.coordinates?'block':'none';
+  $('check-transport').checked=!!proj.hasTransport;
+  $('transport-fields').style.display=proj.hasTransport?'block':'none';
+  $('car-brand').value=proj.carBrand||'';
+  $('car-number').value=proj.carNumber||'';
+  $('driver-name').value=proj.driverName||'';
+  $('driver-phone').value=proj.driverPhone||'';
+  const hasAM=!!(proj.allPointsMapUrl);
+  $('check-all-points-map').checked=hasAM;
+  $('all-points-map-field').style.display=hasAM?'block':'none';
+
+  if(proj.carPhotoBase64){
+    uploadedCarPhotoBase64=proj.carPhotoBase64;
+    $('car-photo-preview').src=proj.carPhotoBase64;
+    $('car-photo-preview-wrap').style.display='block';
+  } else {
+    uploadedCarPhotoBase64='';
+    $('car-photo-preview-wrap').style.display='none';
+  }
+  routePoints=(proj.routePoints||[]).map(p=>({...p}));
+
+  // Открываем шаг 1 чтобы юзер мог редактировать с самого начала
+  screenStack.length=0;
+  screenStack.push('screen-main');
+  showScreen('screen-create');
+}
+
+// ── SEND TO TELEGRAM ──────────────────────────────────────────────────────
+async function sendProjectToTg(idx,btn){
+  const projects=getProjects();
+  const proj=projects[idx];
+  const userId=tg.initDataUnsafe&&tg.initDataUnsafe.user?tg.initDataUnsafe.user.id:null;
+  if(!userId){alert('Откройте через Telegram');return;}
+  if(btn){btn.textContent='⏳';btn.disabled=true;}
+  try{
+    const res=await fetch(BACKEND_URL+'/send-plan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chatId:userId,data:proj})});
+    const r=await res.json();
+    if(!r.ok) throw new Error(r.error||'Ошибка');
+    if(btn){btn.textContent='✅';btn.style.color='#27ae60';setTimeout(()=>{btn.textContent='📤 Отправить';btn.style.color='';btn.disabled=false;},2000);}
+    hapticN('success');
+  } catch(err){
+    if(btn){btn.textContent='❌';setTimeout(()=>{btn.textContent='📤 Отправить';btn.disabled=false;},2500);}
+    hapticN('error');
+  }
+}
+
+// ── DRAFT RESTORE ─────────────────────────────────────────────────────────
+$t('btn-restore-draft','click',()=>{
+  try{
+    const d=JSON.parse(localStorage.getItem('scout_draft')||'{}');
+    const sv=(id,v)=>{const el=$(id);if(el)el.value=v||'';};
+    sv('project-title',d.title); sv('project-date',d.date);
+    sv('time-meeting',d.meetingTime); sv('time-departure',d.departureTime);
+    sv('meeting-place',d.place); sv('meeting-address',d.address);
+    sv('meeting-map',d.map); sv('all-points-map',d.allPointsMap);
+    sv('meeting-coords',d.coords); sv('car-brand',d.carBrand);
+    sv('car-number',d.carNumber); sv('driver-name',d.driverName); sv('driver-phone',d.driverPhone);
+    $('check-coords').checked=!!d.checkCoords; $('coords-field').style.display=d.checkCoords?'block':'none';
+    $('check-transport').checked=!!d.checkTransport; $('transport-fields').style.display=d.checkTransport?'block':'none';
+    $('check-all-points-map').checked=!!d.checkAllPointsMap; $('all-points-map-field').style.display=d.checkAllPointsMap?'block':'none';
+    if(d.carPhoto){uploadedCarPhotoBase64=d.carPhoto;$('car-photo-preview').src=d.carPhoto;$('car-photo-preview-wrap').style.display='block';}
+    routePoints=d.routePoints||[];
+    editingProjectIdx=d.editingProjectIdx??null;
+    $('main-draft-banner').style.display='none';
+    showScreen('screen-create');
+  }catch(e){}
+});
+
+// Track inputs for draft
+['project-title','project-date','time-meeting','time-departure','meeting-place','meeting-address',
+ 'meeting-map','all-points-map','meeting-coords','car-brand','car-number','driver-name','driver-phone'
+].forEach(id=>{const el=$(id);if(el)el.addEventListener('input',saveDraft);});
+['check-coords','check-transport','check-all-points-map'].forEach(id=>$(id).addEventListener('change',saveDraft));
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────
+document.querySelectorAll('.bottom-sheet-overlay').forEach(ov=>{
+  ov.addEventListener('click',function(e){if(e.target===this)closeSheet(this.id);});
+});
+
+['active','archive','trash'].forEach(t=>{
+  $('tab-'+t).addEventListener('click',function(){
+    ['active','archive','trash'].forEach(x=>{$('tab-'+x).classList.remove('active');$('content-'+x).style.display='none';});
+    this.classList.add('active'); $('content-'+t).style.display='block';
+  });
+});
+
+$t('btn-create-project','click',()=>{clearInputs();screenStack.length=0;screenStack.push('screen-main');showScreen('screen-create');});
+$t('btn-cancel-step1','click',goBack);
+$t('btn-back-to-step1','click',goBack);
+$t('btn-back-from-preview','click',goBack);
+
+$('check-coords').addEventListener('change',function(){$('coords-field').style.display=this.checked?'block':'none';});
+$('check-transport').addEventListener('change',function(){$('transport-fields').style.display=this.checked?'block':'none';});
+$('check-all-points-map').addEventListener('change',function(){$('all-points-map-field').style.display=this.checked?'block':'none';saveDraft();});
+$('sheet-loc-check-coords').addEventListener('change',function(){$('sheet-loc-coords-field').style.display=this.checked?'block':'none';});
+
+// Car number & phone masks
+$('car-number').addEventListener('input',function(){
+  let v=this.value.toUpperCase().replace(/[^A-ZА-ЯЁ0-9\-]/g,'').replace(/-{2,}/g,'-');
+  v=v.replace(/^([A-ZА-ЯЁ]{2})([0-9])/,'$1-$2');
+  v=v.replace(/([0-9]{1,3})([A-ZА-ЯЁ])/,'$1-$2');
+  this.value=v;
+});
+$('driver-phone').addEventListener('input',function(){
+  this.value=this.value.replace(/[^\d+\-() ]/g,'').replace(/(?!^)\+/g,'');
+});
+
+// Photo
+$('car-photo-input').addEventListener('change',function(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{uploadedCarPhotoBase64=ev.target.result;$('car-photo-preview').src=ev.target.result;$('car-photo-preview-wrap').style.display='block';saveDraft();};
+  r.readAsDataURL(f);
+});
+$t('btn-delete-photo','click',function(e){
+  e.preventDefault();uploadedCarPhotoBase64='';
+  $('car-photo-input').value='';$('car-photo-preview').src='';
+  $('car-photo-preview-wrap').style.display='none';saveDraft();
+});
+
+// ── STEP 1 → STEP 2 ──────────────────────────────────────────────────────
+$t('btn-submit-step1','click',()=>{
+  forceT($('time-meeting')); forceT($('time-departure'));
+  gTitle=$('project-title').value||'Проект';
+  gDate=$('project-date').value||'';
+  gMeetTime=$('time-meeting').value||'';
+  gDepTime=$('time-departure').value||'';
+  gPlace=$('meeting-place').value||'';
+  gAddress=$('meeting-address').value||'';
+  gMap=$('meeting-map').value||'';
+  gAllMap=$('all-points-map').value||'';
+  gCoords=$('meeting-coords').value||'';
+  gBrand=$('car-brand').value||'';
+
+  $('builder-title').innerText=gTitle;
+  $('builder-date').innerText=gDate||'—';
+  updateSummary(gDepTime||'—');
+
+  // Транспортный блок — двухколоночный макет
+  const hasTr=$('check-transport').checked;
+  const btr=$('block-transport-summary');
+  if(hasTr){
+    const brand=$('car-brand').value||'';
+    const cn=$('car-number').value||'';
+    const dn=$('driver-name').value||'';
+    const dp=$('driver-phone').value||'';
+    let infoHtml='<div class="transport-info">';
+    if(brand) infoHtml+=`<div><div class="transport-info-label">Марка / Цвет</div><div class="transport-info-row"><b>${brand}</b></div></div>`;
+    if(cn) infoHtml+=`<div><div class="transport-info-label">Номер</div><div class="transport-info-row"><b>${cn}</b></div></div>`;
+    if(dn) infoHtml+=`<div><div class="transport-info-label">Водитель</div><div class="transport-info-row">${dn}</div></div>`;
+    if(dp) infoHtml+=`<div><div class="transport-info-label">Телефон</div><div class="transport-info-row">${dp}</div></div>`;
+    infoHtml+='</div>';
+    let photoHtml='<div class="transport-photo">';
+    if(uploadedCarPhotoBase64) photoHtml+=`<img src="${uploadedCarPhotoBase64}" alt="">`;
+    else photoHtml+='<div class="transport-photo-placeholder">🚗</div>';
+    photoHtml+='</div>';
+    $('block-transport-inner').innerHTML='<div class="transport-card">'+infoHtml+photoHtml+'</div>';
+    btr.style.display='block';
+  } else { btr.style.display='none'; }
+
+  renderRoute(); showScreen('screen-builder');
+});
+
+// ── SUMMARY ────────────────────────────────────────────────────────────────
+function updateSummary(ret){
+  let lh='';
+  lh+=`<div><div class="summary-item-label">Место</div><div class="summary-item-value">${gPlace||'—'}</div></div>`;
+  if(gAddress) lh+=`<div><div class="summary-item-label">Адрес</div><div class="summary-item-value" style="font-size:13px;">${gAddress}</div></div>`;
+  if($('check-coords').checked&&gCoords) lh+=`<div><div class="summary-item-label">GPS</div><div class="summary-item-value" style="font-size:12px;font-family:monospace;">${gCoords}</div></div>`;
+
+  let rh='';
+  rh+=`<div><div class="summary-item-label" style="color:var(--green);">Сбор</div><div class="summary-time-value" style="color:var(--green);">${gMeetTime||'—'}</div></div>`;
+  rh+=`<div><div class="summary-item-label" style="color:var(--red);">Выезд</div><div class="summary-time-value" style="color:var(--red);">${gDepTime||'—'}</div></div>`;
+
+  $('summary-col-left').innerHTML=lh;
+  $('summary-col-right').innerHTML=rh;
+  $('summary-return').textContent='🏁 Возвращение: '+ret;
+}
+
+// ── RENDER ROUTE ──────────────────────────────────────────────────────────
+function renderRoute(){
+  const c=$('route-points-list'), em=$('builder-empty-state');
+  c.querySelectorAll('.route-item').forEach(el=>el.remove());
+  if(!routePoints.length){em.style.display='block';updateSummary(gDepTime||'—');return;}
+  em.style.display='none';
+  let rt=gDepTime||'00:00', ln=1;
+  routePoints.forEach((p,i)=>{
+    const d=parseInt(p.duration)||0;
+    const item=document.createElement('div');
+    item.className='route-item type-'+p.type;
+    item.setAttribute('data-index',i); item.id='rp-'+i;
+    let tt='',sub=[],dt='';
+    if(p.type==='location'){
+      const e=addM(rt,d);tt=rt+' – '+e+' ('+dur(d)+')';
+      if(p.link) sub.push('<span style="color:var(--green);">🖼 Фото</span>');
+      if(p.mapUrl) sub.push('<span style="color:var(--accent);">📍 Карта</span>');
+      if(p.coords) sub.push('<span style="font-family:monospace;font-size:11px;">📡 '+p.coords+'</span>');
+      dt=ln+'. '+(p.title||'Локация');ln++;rt=e;
+    } else if(p.type==='transit'){
+      tt='⏱ в пути '+dur(d);sub=['Переезд к следующей точке'];dt='🚗 Переезд';rt=addM(rt,d);
+    } else if(p.type==='lunch'){
+      const e=addM(rt,d);tt=rt+' – '+e+' ('+dur(d)+')';sub=['Перерыв'];dt='🍽 Ланч';rt=e;
+    }
+    item.innerHTML=
+      '<div class="drag-handle"><span></span><span></span><span></span></div>'+
+      '<div class="route-text-block">'+
+        '<div class="route-item-title">'+dt+'</div>'+
+        '<div class="route-item-time">'+tt+'</div>'+
+        (sub.length?'<div class="route-item-sub">'+sub.join(' · ')+'</div>':'')+
+      '</div>'+
+      '<button class="btn-delete-point">✕</button>';
+    item.querySelector('.btn-delete-point').addEventListener('click',function(e){
+      e.stopPropagation();
+      item.style.transition='opacity 0.18s,transform 0.18s';item.style.opacity='0';item.style.transform='scale(0.94)';
+      setTimeout(()=>{routePoints.splice(i,1);saveDraft();renderRoute();},170);
+    });
+    item.addEventListener('click',function(e){
+      if(!e.target.closest('.btn-delete-point')&&!e.target.closest('.drag-handle')) openEditSheet(i);
+    });
+    setupDnD(item); c.appendChild(item);
+  });
+  updateSummary(rt);
+}
+
+// ── DRAG & DROP (ghost clone, no renderRoute during drag) ─────────────────
+let dLock=false, holdT=null;
+
+function setupDnD(el){
+  el.addEventListener('touchstart',onTouchStart,{passive:true});
+  el.addEventListener('mousedown',onMouseStart);
+}
+
+function startDrag(dragEl,clientY){
+  if(dLock)return null;
+  dLock=true; haptic('medium');
+  const container=$('route-points-list');
+  const rect=dragEl.getBoundingClientRect();
+
+  const ghost=dragEl.cloneNode(true);
+  ghost.style.cssText=[
+    'position:fixed','left:'+rect.left+'px','top:'+rect.top+'px',
+    'width:'+rect.width+'px','height:'+rect.height+'px','margin:0',
+    'z-index:99999','pointer-events:none','border-radius:12px',
+    'box-shadow:0 20px 50px rgba(0,0,0,0.25)',
+    'border:1.5px solid var(--accent)',
+    'background:var(--card)',
+    'transform:scale(1.04)','opacity:0.97',
+  ].join(';');
+  document.body.appendChild(ghost);
+  dragEl.style.opacity='0.2';
+  dragEl.style.pointerEvents='none';
+
+  let curY=clientY, ghostY=rect.top, rafId=null, lastBefore=null;
+
+  function loop(){
+    const tY=curY-rect.height/2;
+    ghostY+=(tY-ghostY)*0.28;
+    ghost.style.top=ghostY+'px';
+    rafId=requestAnimationFrame(loop);
+  }
+  rafId=requestAnimationFrame(loop);
+
+  function onMove(cy){
+    const cr=container.getBoundingClientRect();
+    curY=Math.max(cr.top+rect.height/2,Math.min(cy,cr.bottom-rect.height/2));
+    const others=[...container.querySelectorAll('.route-item')].filter(i=>i!==dragEl);
+    let ins=null;
+    for(const it of others){const r=it.getBoundingClientRect();if(cy<r.top+r.height/2){ins=it;break;}}
+    if(ins!==lastBefore){
+      lastBefore=ins;
+      const snap={};others.forEach(i=>{snap[i.id]=i.getBoundingClientRect().top;});
+      if(ins) container.insertBefore(dragEl,ins); else container.appendChild(dragEl);
+      others.forEach(i=>{
+        const dl=snap[i.id]-i.getBoundingClientRect().top;
+        if(Math.abs(dl)>0.5) i.animate([{transform:'translateY('+dl+'px)'},{transform:'translateY(0)'}],{duration:240,easing:'cubic-bezier(0.25,0.46,0.45,0.94)'});
+      });
+    }
+  }
+
+  function end(){
+    cancelAnimationFrame(rafId);
+    const fr=dragEl.getBoundingClientRect();
+    ghost.style.transition='top 0.2s cubic-bezier(0.34,1.2,0.64,1),transform 0.2s,opacity 0.15s';
+    ghost.style.top=fr.top+'px'; ghost.style.transform='scale(1)'; ghost.style.opacity='0';
+    setTimeout(()=>{
+      ghost.remove(); dragEl.style.opacity=''; dragEl.style.pointerEvents='';
+      const newOrder=[...container.querySelectorAll('.route-item')].map(el=>parseInt(el.getAttribute('data-index')));
+      const old=[...routePoints];
+      routePoints=newOrder.map(i=>old[i]);
+      saveDraft(); renderRoute(); dLock=false;
+    },210);
+  }
+  return {onMove,end};
+}
+
+function onTouchStart(e){
+  if(e.target.closest('.btn-delete-point')||dLock)return;
+  const el=this,sy=e.touches[0].clientY,sx=e.touches[0].clientX;
+  let ctx=null;
+  holdT=setTimeout(()=>{
+    ctx=startDrag(el,e.touches[0].clientY);
+    if(!ctx)return;
+    const mv=ev=>{if(!ctx)return;if(ev.cancelable)ev.preventDefault();ctx.onMove(ev.touches[0].clientY);};
+    const up=()=>{if(ctx){ctx.end();ctx=null;}document.removeEventListener('touchmove',mv);document.removeEventListener('touchend',up);document.removeEventListener('touchcancel',up);};
+    document.addEventListener('touchmove',mv,{passive:false});
+    document.addEventListener('touchend',up); document.addEventListener('touchcancel',up);
+  },350);
+  const cancel=ev=>{if(Math.abs(ev.touches[0].clientY-sy)>8||Math.abs(ev.touches[0].clientX-sx)>8){clearTimeout(holdT);el.removeEventListener('touchmove',cancel);}};
+  el.addEventListener('touchmove',cancel,{passive:true});
+}
+
+function onMouseStart(e){
+  if(e.target.closest('.btn-delete-point')||dLock||e.button!==0)return;
+  const el=this,sy=e.clientY;
+  let ctx=null;
+  const mv=ev=>{
+    if(!ctx){if(Math.abs(ev.clientY-sy)<6)return;ctx=startDrag(el,ev.clientY);if(!ctx)return;document.body.style.cursor='grabbing';}
+    ctx.onMove(ev.clientY);
+  };
+  const up=()=>{
+    document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);
+    document.body.style.cursor='';
+    if(ctx){ctx.end();ctx=null;}else{dLock=false;}
+  };
+  document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+}
+
+// ── SHEETS ────────────────────────────────────────────────────────────────
+function openEditSheet(i){
+  editingIndex=i; const p=routePoints[i];
+  const h=Math.floor((parseInt(p.duration)||0)/60),m=(parseInt(p.duration)||0)%60;
+  if(p.type==='location'){
+    $('sheet-loc-header').innerText='✏️ Изменить локацию';$('btn-sheet-loc-save').innerText='Сохранить';
+    $('sheet-loc-title').value=p.title||'';$('sheet-loc-link').value=p.link||'';
+    $('sheet-loc-map').value=p.mapUrl||'';$('sheet-loc-coords').value=p.coords||'';
+    const hc=!!p.coords;$('sheet-loc-check-coords').checked=hc;$('sheet-loc-coords-field').style.display=hc?'block':'none';
+    $('sheet-loc-hours').value=h||'';$('sheet-loc-mins').value=m||'';openSheet('overlay-location');
+  } else if(p.type==='transit'){
+    $('sheet-transit-header').innerText='✏️ Изменить переезд';$('btn-sheet-transit-save').innerText='Сохранить';
+    $('sheet-transit-hours').value=h||'';$('sheet-transit-mins').value=m||'';openSheet('overlay-transit');
+  } else if(p.type==='lunch'){
+    $('sheet-lunch-header').innerText='✏️ Изменить ланч';$('btn-sheet-lunch-save').innerText='Сохранить';
+    $('sheet-lunch-hours').value=h||'';$('sheet-lunch-mins').value=m||'';openSheet('overlay-lunch');
+  }
+}
+
+$t('btn-sheet-loc-save','click',()=>{
+  const pd={type:'location',title:$('sheet-loc-title').value||'Локация',link:$('sheet-loc-link').value||'',
+    mapUrl:$('sheet-loc-map').value||'',coords:$('sheet-loc-check-coords').checked?$('sheet-loc-coords').value:'',
+    duration:(parseInt($('sheet-loc-hours').value)||0)*60+(parseInt($('sheet-loc-mins').value)||0)};
+  if(editingIndex!==null)routePoints[editingIndex]=pd;else routePoints.push(pd);
+  closeSheet('overlay-location');saveDraft();renderRoute();
+});
+$t('btn-sheet-transit-save','click',()=>{
+  const d=(parseInt($('sheet-transit-hours').value)||0)*60+(parseInt($('sheet-transit-mins').value)||0);
+  if(editingIndex!==null)routePoints[editingIndex].duration=d;else routePoints.push({type:'transit',title:'🚗 Переезд',duration:d});
+  closeSheet('overlay-transit');saveDraft();renderRoute();
+});
+$t('btn-sheet-lunch-save','click',()=>{
+  const d=(parseInt($('sheet-lunch-hours').value)||0)*60+(parseInt($('sheet-lunch-mins').value)||0);
+  if(editingIndex!==null)routePoints[editingIndex].duration=d;else routePoints.push({type:'lunch',title:'🍽 Ланч',duration:d});
+  closeSheet('overlay-lunch');saveDraft();renderRoute();
+});
+$t('btn-add-location','click',()=>{
+  editingIndex=null;$('sheet-loc-header').innerText='📍 Новая локация';$('btn-sheet-loc-save').innerText='Добавить в план';
+  ['sheet-loc-title','sheet-loc-link','sheet-loc-map','sheet-loc-coords','sheet-loc-hours','sheet-loc-mins'].forEach(id=>$(id).value='');
+  $('sheet-loc-check-coords').checked=false;$('sheet-loc-coords-field').style.display='none';openSheet('overlay-location');
+});
+$t('btn-add-transit','click',()=>{
+  editingIndex=null;$('sheet-transit-header').innerText='🚗 Добавить переезд';$('btn-sheet-transit-save').innerText='Добавить';
+  ['sheet-transit-hours','sheet-transit-mins'].forEach(id=>$(id).value='');openSheet('overlay-transit');
+});
+$t('btn-add-lunch','click',()=>{
+  editingIndex=null;$('sheet-lunch-header').innerText='🍽 Добавить ланч';$('btn-sheet-lunch-save').innerText='Добавить';
+  ['sheet-lunch-hours','sheet-lunch-mins'].forEach(id=>$(id).value='');openSheet('overlay-lunch');
+});
+$t('btn-sheet-loc-close','click',()=>closeSheet('overlay-location'));
+$t('btn-sheet-transit-close','click',()=>closeSheet('overlay-transit'));
+$t('btn-sheet-lunch-close','click',()=>closeSheet('overlay-lunch'));
+
+// ── 3 ACTION BUTTONS ──────────────────────────────────────────────────────
+$t('btn-save-close','click',()=>{
+  haptic('medium');
+  const data=collectPlanData();
+  const saved=saveProjectToStorage(data);
+  if(saved){
+    localStorage.removeItem('scout_draft');
+    clearInputs(); renderAllProjects();
+    screenStack.length=0; screenStack.push('screen-main');
+    showScreen('screen-main',false);
+    hapticN('success');
+  } else {
+    showStatus('send-status','error','❌ Ошибка сохранения — попробуй ещё раз');
+  }
+});
+
+$t('btn-preview','click',()=>{
+  haptic('light');
+  const data=collectPlanDataForSend();
+  $('preview-content').innerHTML=buildPreviewHtml(data);
+  $('btn-send-from-preview')._planData=data;
+  showScreen('screen-preview');
+});
+
+async function doSend(data,statusId,btnEl){
+  const userId=tg.initDataUnsafe&&tg.initDataUnsafe.user?tg.initDataUnsafe.user.id:null;
+  if(!userId){showStatus(statusId,'error','❌ Откройте через Telegram');return;}
+  if(btnEl)btnEl.disabled=true;
+  showStatus(statusId,'loading','⏳ Отправляем...');
+  try{
+    const res=await fetch(BACKEND_URL+'/send-plan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chatId:userId,data})});
+    const r=await res.json();
+    if(!r.ok) throw new Error(r.error||'Ошибка сервера');
+    saveProjectToStorage(data);
+    localStorage.removeItem('scout_draft');
+    showStatus(statusId,'success','✅ План отправлен в Telegram!');
+    hapticN('success');
+    clearInputs(); renderAllProjects();
+    setTimeout(()=>{screenStack.length=0;screenStack.push('screen-main');showScreen('screen-main',false);},1600);
+  }catch(err){showStatus(statusId,'error','❌ '+err.message);hapticN('error');}
+  if(btnEl)btnEl.disabled=false;
+}
+
+$t('btn-send-plan','click',function(){doSend(collectPlanDataForSend(),'send-status',this);});
+$t('btn-send-from-preview','click',function(){doSend(this._planData||collectPlanDataForSend(),'preview-send-status',this);});
+
+// ── INPUT MASKS ───────────────────────────────────────────────────────────
+$('project-date').addEventListener('input',function(){
+  let v=this.value.replace(/\D/g,'').slice(0,6);
+  let f=v.slice(0,2);if(v.length>2)f+='.'+v.slice(2,4);if(v.length>4)f+='.'+v.slice(4,6);
+  this.value=f;
+});
+document.querySelectorAll('.time-mask').forEach(function(inp){
+  const wid='warn-'+inp.id;
+  inp.addEventListener('input',function(){
+    let v=this.value.replace(/\D/g,'').slice(0,4);
+    if(v.length>=1&&parseInt(v[0])>2)v='';
+    if(v.length>=2&&parseInt(v.slice(0,2))>23)v=v[0];
+    if(v.length>=3&&parseInt(v[2])>5)v=v.slice(0,2);
+    this.value=v.length>2?v.slice(0,2)+':'+v.slice(2):v;
+    const w=$(wid);if(w)w.style.display='none';
+  });
+  inp.addEventListener('blur',function(){timeComplete(this,$(wid));});
+});
+function timeComplete(inp,wEl){
+  const v=inp.value.replace(/\D/g,'');if(!v)return;
+  if(v.length===2||v.length===3){inp.value=v.slice(0,2)+':00';if(wEl)wEl.style.display='block';}
+  saveDraft();
+}
+function forceT(inp){timeComplete(inp,$('warn-'+inp.id));}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
 initTheme();
+renderAllProjects();
 </script>
 </body>
 </html>
