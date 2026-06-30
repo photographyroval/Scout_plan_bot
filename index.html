@@ -19,6 +19,7 @@
   --red: #e74c3c;
   --orange: #e67e22;
   --shadow: rgba(0,0,0,0.06);
+  --theme-switch-bg: #e9e9eb;
 }
 [data-theme="dark"] {
   --bg: #1c1c1e;
@@ -29,6 +30,7 @@
   --card: #2c2c2e;
   --border: #3a3a3c;
   --shadow: rgba(0,0,0,0.25);
+  --theme-switch-bg: #2c2c2e;
 }
 html,body{width:100%;margin:0;padding:0;background-color:var(--bg);color:var(--text);box-sizing:border-box;transition:background-color 0.3s,color 0.3s;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:16px;overflow-x:hidden;overflow-y:auto;-webkit-tap-highlight-color:transparent;}
@@ -36,15 +38,57 @@ body.sheet-open{overflow:hidden!important;}
 *{box-sizing:border-box;}
 .app-wrapper{width:100%;position:relative;z-index:1;}
 
-/* ── THEME TOGGLE ── */
-.top-bar{display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:20px;}
+/* ── TOP BAR & THEME TOGGLE ── */
+.top-bar{display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:24px;min-height:40px;}
 .top-bar .header{margin:0;font-size:22px;font-weight:700;}
-.theme-toggle{position:absolute;left:0;display:flex;align-items:center;gap:8px;}
-.toggle-track{width:44px;height:26px;background:var(--bg2);border-radius:13px;position:relative;cursor:pointer;transition:background 0.3s;border:1.5px solid var(--border);}
-.toggle-track.on{background:var(--accent);}
-.toggle-thumb{position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 2px 6px rgba(0,0,0,0.2);}
-.toggle-track.on .toggle-thumb{transform:translateX(18px);}
-.toggle-icon{font-size:14px;}
+
+/* Красивый свитч Солнце / Луна справа */
+.theme-switch-wrapper {
+  position:absolute;
+  right:0;
+  top:50%;
+  transform:translateY(-50%);
+}
+.theme-switch {
+  display:inline-flex;
+  align-items:center;
+  justify-content:space-between;
+  position:relative;
+  width:64px;
+  height:32px;
+  background-color:var(--theme-switch-bg);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:0 6px;
+  cursor:pointer;
+  transition:background-color 0.3s;
+}
+.theme-switch-track {
+  display:flex;
+  width:100%;
+  justify-content:space-between;
+  align-items:center;
+  font-size:14px;
+  z-index:1;
+  pointer-events:none;
+}
+.theme-switch-thumb {
+  position:absolute;
+  top:3px;
+  left:3px;
+  width:24px;
+  height:24px;
+  background-color:#ffffff;
+  border-radius:50%;
+  box-shadow:0 2px 5px rgba(0,0,0,0.2);
+  transition:transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.3s;
+  z-index:2;
+}
+/* Поведение при темной теме */
+[data-theme="dark"] .theme-switch-thumb {
+  transform:translateX(32px);
+  background-color:#1c1c1e;
+}
 
 /* ── SCREENS ── */
 .screen{display:none;width:100%;}
@@ -112,29 +156,6 @@ body.sheet-open{overflow:hidden!important;}
 .card-divider{width:1px;height:32px;background:var(--border);}
 .empty-state{text-align:center;color:var(--text2);margin:40px 0;font-size:15px;}
 
-/* ── CTX MENU ── */
-.ctx-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:88888;display:none;}
-.ctx-menu{position:fixed;background:var(--card);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.22);z-index:88889;min-width:210px;overflow:hidden;display:none;border:1px solid var(--border);}
-.ctx-item{padding:13px 18px;font-size:14px;font-weight:500;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;color:var(--text);}
-.ctx-item:last-child{border-bottom:none;}
-.ctx-item:active{background:var(--bg2);}
-.ctx-item.danger{color:var(--red);}
-
-/* ── BUILDER ── */
-.builder-header-title{font-size:22px;font-weight:800;text-align:center;margin-bottom:3px;color:var(--text);}
-.builder-header-date{font-size:15px;font-weight:600;text-align:center;color:var(--text2);margin-bottom:18px;}
-.section-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin:16px 0 8px;text-align:center;}
-
-/* ── TRANSPORT CARD ── */
-.transport-card{display:flex;gap:12px;align-items:stretch;}
-.transport-info{flex:1;display:flex;flex-direction:column;gap:5px;}
-.transport-info-row{font-size:13px;color:var(--text);line-height:1.5;}
-.transport-info-row b{font-weight:700;}
-.transport-info-label{font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;}
-.transport-photo{width:90px;flex-shrink:0;border-radius:10px;overflow:hidden;background:var(--bg2);display:none;}
-.transport-photo.has-img{display:block;}
-.transport-photo img{width:100%;height:100%;object-fit:cover;display:block;}
-
 /* ── SUMMARY ── */
 .summary-section{background:var(--bg2);border-radius:14px;padding:14px;margin-bottom:10px;transition:background 0.3s;}
 .summary-two-col{display:flex;gap:10px;}
@@ -150,14 +171,11 @@ body.sheet-open{overflow:hidden!important;}
 #route-points-list{width:100%;display:flex;flex-direction:column;}
 .route-item{background:var(--card);border:1px solid var(--border);padding:12px;border-radius:12px;margin-bottom:8px;display:flex;align-items:center;user-select:none;-webkit-user-select:none;position:relative;cursor:grab;transition:box-shadow 0.2s,background 0.3s;}
 .route-item:last-child{margin-bottom:0;}
-.drag-handle{width:28px;height:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;flex-shrink:0;padding-right:4px;}
-.drag-handle span{display:block;width:16px;height:2px;background:var(--text2);border-radius:2px;opacity:0.5;}
 .route-item.type-location{border-left:3px solid var(--green);}
 .route-item.type-transit{border-left:3px solid var(--orange);}
 .route-item.type-lunch{border-left:3px solid var(--accent);}
 .route-text-block{flex:1;pointer-events:none;min-width:0;}
 .route-item-title{font-weight:700;font-size:15px;margin-bottom:2px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.route-item-time{color:var(--accent);font-family:monospace;font-size:13px;font-weight:600;}
 .route-item-sub{font-size:12px;color:var(--text2);margin-top:2px;}
 .btn-delete-point{background:none;border:none;color:var(--text2);font-size:18px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;border-radius:50%;transition:background 0.15s;}
 .btn-delete-point:hover{background:rgba(235,87,87,0.12);color:#eb5757;}
@@ -183,9 +201,6 @@ body.sheet-open{overflow:hidden!important;}
 [data-theme="dark"] .send-status.loading{background:#1a3a55;color:#7ec8f5;}
 [data-theme="dark"] .send-status.success{background:#1a3d28;color:#6fcf97;}
 [data-theme="dark"] .send-status.error{background:#3d1a1e;color:#f5a0a0;}
-
-@keyframes itemDrop{0%{transform:scale(1.03)}60%{transform:scale(0.98)}100%{transform:scale(1)}}
-.item-dropped{animation:itemDrop 0.25s ease;}
 </style>
 </head>
 <body>
@@ -193,13 +208,19 @@ body.sheet-open{overflow:hidden!important;}
 
 <div id="screen-main" class="screen active">
   <div class="top-bar">
-    <div class="theme-toggle">
-      <div class="toggle-track" id="theme-toggle-btn">
-        <div class="toggle-thumb"></div>
+    <div class="header">Scout Planner</div>
+    
+    <div class="theme-switch-wrapper">
+      <div class="theme-switch" id="theme-toggle-btn">
+        <div class="theme-switch-track">
+          <span>☀️</span>
+          <span>🌙</span>
+        </div>
+        <div class="theme-switch-thumb"></div>
       </div>
     </div>
-    <div class="header">Scout Planner</div>
   </div>
+  
   <div class="tabs-container">
     <div class="tab active" id="tab-active" onclick="switchTab('active', event)">Активные</div>
     <div class="tab" id="tab-archive" onclick="switchTab('archive', event)">Скрытые</div>
@@ -243,11 +264,11 @@ body.sheet-open{overflow:hidden!important;}
     <div class="form-row">
       <div class="form-group">
         <label class="form-label" style="color:var(--green);">🟢 Время сбора</label>
-        <input type="text" id="time-meeting" class="form-input time-mask" placeholder="ЧЧ:ММ" inputmode="numeric" maxlength="5">
+        <input type="text" id="time-meeting" class="form-input" placeholder="ЧЧ:ММ" inputmode="numeric" maxlength="5">
       </div>
       <div class="form-group">
         <label class="form-label" style="color:var(--red);">🔴 Время выезда</label>
-        <input type="text" id="time-departure" class="form-input time-mask" placeholder="ЧЧ:ММ" inputmode="numeric" maxlength="5">
+        <input type="text" id="time-departure" class="form-input" placeholder="ЧЧ:ММ" inputmode="numeric" maxlength="5">
       </div>
     </div>
   </div>
@@ -442,7 +463,19 @@ let projects = [];
 
 function $(id) { return document.getElementById(id); }
 
+// Логика переключения темы через новый красивый свитч
+$('theme-toggle-btn').addEventListener('click', () => {
+  const currentTheme = document.documentElement.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('scout_theme', newTheme);
+});
+
 window.addEventListener('load', () => {
+  // Инициализация сохраненной темы
+  const savedTheme = localStorage.getItem('scout_theme') || 'light';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+
   try {
     projects = JSON.parse(localStorage.getItem('scout_projects') || '[]');
   } catch(e) { projects = []; }
@@ -503,10 +536,9 @@ function openSheet(id) { $(id).style.display = 'block'; }
 function closeSheet(id) { $(id).style.display = 'none'; }
 
 function goToStep2() {
-  $('builder-title').textContent = $('project-title').value || 'Новый план';
+  $('builder-title').textContent = $('project-title').value || 'Новый plan';
   $('builder-date').textContent = $('project-date').value || '';
   
-  // Рендерим сводку сбора
   $('summary-col-left').innerHTML = `<div class="summary-item-label">Время сбора</div><div class="summary-time-value" style="color:var(--green)">${$('time-meeting').value || '—'}</div>`;
   $('summary-col-right').innerHTML = `<div class="summary-item-label">Выезд с точки</div><div class="summary-time-value" style="color:var(--red)">${$('time-departure').value || '—'}</div>`;
   
@@ -551,128 +583,4 @@ function addRoutePoint(type) {
     title = 'Ланч';
     h = parseInt($('sheet-lunch-hours').value) || 0;
     m = parseInt($('sheet-lunch-mins').value) || 0;
-    closeSheet('overlay-lunch');
-  }
-  
-  routePoints.push({ type, title, link, mapUrl, coords, duration: (h * 60) + m });
-  updateRouteList();
-}
-
-function updateRouteList() {
-  const container = $('route-points-list');
-  container.innerHTML = '';
-  if (routePoints.length === 0) {
-    container.innerHTML = '<div class="empty-state" id="builder-empty-state" style="margin:20px 0;">Точки маршрута ещё не добавлены</div>';
-    return;
-  }
-  
-  routePoints.forEach((p, idx) => {
-    const item = document.createElement('div');
-    item.className = `route-item type-${p.type}`;
-    item.innerHTML = `
-      <div class="route-text-block">
-        <div class="route-item-title">${p.title}</div>
-        <div class="route-item-sub">Длительность: ${p.duration} мин</div>
-      </div>
-      <button class="btn-delete-point" onclick="removeRoutePoint(${idx})">✕</button>`;
-    container.appendChild(item);
-  });
-}
-
-function removeRoutePoint(idx) {
-  routePoints.splice(idx, 1);
-  updateRouteList();
-}
-
-function getPayload() {
-  return {
-    chatId: tg.initDataUnsafe?.user?.id || "123456",
-    data: {
-      title: $('project-title').value,
-      date: $('project-date').value,
-      meetingTime: $('time-meeting').value,
-      departureTime: $('time-departure').value,
-      meetingPlace: $('meeting-place').value,
-      meetingAddress: $('meeting-address').value,
-      meetingMapUrl: $('meeting-map').value,
-      allPointsMapUrl: $('all-points-map').value,
-      coordinates: $('meeting-coords').value,
-      hasTransport: $('check-transport').checked,
-      carBrand: $('car-brand').value,
-      carNumber: $('car-number').value,
-      driverName: $('driver-name').value,
-      driverPhone: $('driver-phone').value,
-      carPhotoBase64: uploadedCarPhotoBase64,
-      routePoints: routePoints
-    }
-  };
-}
-
-function openPreview() {
-  $('preview-content').textContent = JSON.stringify(getPayload().data, null, 2);
-  showScreen('screen-preview');
-}
-
-function saveAndClose() {
-  const payload = getPayload();
-  projects.push({ ...payload.data, id: Date.now(), status: 'active' });
-  try {
-    localStorage.setItem('scout_projects', JSON.stringify(projects));
-  } catch(e) { alert('Ошибка сохранения локально!'); }
-  renderProjectsList();
-  showScreen('screen-main');
-}
-
-function renderProjectsList() {
-  ['active', 'archive', 'trash'].forEach(status => {
-    const list = $('projects-list-' + status);
-    list.innerHTML = '';
-    const filtered = projects.filter(p => p.status === status);
-    $('main-empty-state').style.display = (projects.filter(p => p.status === 'active').length === 0) ? 'block' : 'none';
-    
-    filtered.forEach(p => {
-      const card = document.createElement('div');
-      card.className = 'project-card';
-      card.innerHTML = `<div class="project-card-body"><div class="project-card-title">${p.title}</div><div class="project-card-meta">${p.date}</div></div>`;
-      list.appendChild(card);
-    });
-  });
-}
-
-function sendPlanToServer() {
-  const statusEl = $('send-status');
-  statusEl.style.display = 'block';
-  statusEl.className = 'send-status loading';
-  statusEl.textContent = 'Отправка плана в Telegram...';
-
-  fetch(`${BACKEND_URL}/send-plan`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(getPayload())
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.ok) {
-      statusEl.className = 'send-status success';
-      statusEl.textContent = '⚡️ План успешно отправлен в чат!';
-      setTimeout(() => { tg.close(); }, 1500);
-    } else {
-      throw new Error(res.error || 'Ошибка бэкенда');
-    }
-  })
-  .catch(err => {
-    statusEl.className = 'send-status error';
-    statusEl.textContent = '❌ Не удалось отправить: ' + err.message;
-  });
-}
-
-$('btn-create-project').addEventListener('click', () => {
-  uploadedCarPhotoBase64 = '';
-  routePoints = [];
-  ['project-title','project-date','time-meeting','time-departure','meeting-place','meeting-address','meeting-map','all-points-map','meeting-coords','car-brand','car-number','driver-name','driver-phone'].forEach(id => { $(id).value = ''; });
-  showScreen('screen-create');
-});
-$('btn-cancel-step1').addEventListener('click', () => showScreen('screen-main'));
-</script>
-</body>
-</html>
+    close
