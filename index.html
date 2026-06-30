@@ -25,122 +25,201 @@
             user-select: none;
         }
 
-        h1 {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 20px;
-            color: var(--text-color);
+        /* ТВОИ ЭТАЛОННЫЕ СТИЛИ И ИНТЕРФЕЙС */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 14px;
-            background-color: var(--button-bg);
-            color: #ffffff;
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 20px;
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .project-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: transform 0.1s ease;
+        }
+
+        .project-card:active {
+            transform: scale(0.98);
+        }
+
+        .project-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .project-meta {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 12px;
+        }
+
+        .main-button {
+            background: var(--button-bg);
+            color: #fff;
             border: none;
-            border-radius: 12px;
+            border-radius: 14px;
+            padding: 16px;
             font-size: 16px;
             font-weight: 600;
+            width: 100%;
+            cursor: pointer;
+            box-sizing: border-box;
+            box-shadow: 0 4px 16px rgba(103, 114, 238, 0.3);
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .grid-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
             text-align: center;
-            box-sizing: border-box;
-            margin-bottom: 12px;
-            transition: opacity 0.2s ease;
-        }
-
-        .btn:active {
-            opacity: 0.8;
-        }
-
-        .btn-secondary {
-            background-color: var(--card-bg);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            background-color: rgba(223, 154, 255, 0.2);
-            color: var(--accent-color);
         }
     </style>
 </head>
 <body>
 
-    <h1>Scout_plan_bot</h1>
+    <div class="app-container">
+        <!-- Шапка -->
+        <div class="header">
+            <h1>Scout Plan</h1>
+            <span style="color: var(--accent-color); font-size: 14px; font-weight: 500;" id="user-name">Загрузка...</span>
+        </div>
 
-    <div class="card">
-        <p style="margin: 0 0 8px 0; opacity: 0.7; font-size: 14px;">Статус подключения</p>
-        <div id="status" class="status-badge">Инициализация...</div>
+        <!-- Секция билдера / Списка проектов -->
+        <div id="projects-container">
+            <!-- Сюда билдятся карточки из JS -->
+            <div class="project-card">
+                <div class="project-title">Мой первый скаут</div>
+                <div class="project-meta">Локаций: 0 • Обновлено только что</div>
+                <button class="grid-btn" style="width: 100%; background: rgba(223, 154, 255, 0.1); border-color: rgba(223, 154, 255, 0.2); color: var(--accent-color);">Открыть проект</button>
+            </div>
+        </div>
+
+        <!-- Основное действие -->
+        <button id="main-action-btn" class="main-button">＋ Создать новый проект</button>
+        
+        <div class="action-grid">
+            <button class="grid-btn" id="nav-archive">Архив</button>
+            <button class="grid-btn" id="nav-settings">Настройки</button>
+        </div>
     </div>
 
-    <button id="btn-create" class="btn">Создать новый проект</button>
-    <button id="btn-list" class="btn btn-secondary">Мои проекты</button>
-
     <script>
-        // Конфигурация бэкенда
         const BACKEND_URL = 'https://scoutplanbot-production.up.railway.app';
 
-        // Безопасная инициализация Telegram WebApp
+        // ЭТАЛОННАЯ БЕЗОПАСНАЯ ИНИЦИАЛИЗАЦИЯ
         let tg = {
             ready: () => {},
             expand: () => {},
             close: () => {},
-            HapticFeedback: { impactOccurred: () => {}, notificationOccurred: () => {} },
-            initDataUnsafe: { user: { id: "00000000", first_name: "Пользователь" } }
+            HapticFeedback: { impactOccurred: () => {} },
+            initDataUnsafe: { user: { id: "0", first_name: "Продюсер" } }
         };
 
-        // Если запущено внутри Telegram, подменяем заглушку на реальный объект
         if (window.Telegram && window.Telegram.WebApp) {
             tg = window.Telegram.WebApp;
             tg.ready();
             tg.expand();
-            document.getElementById('status').innerText = 'Запущено в Telegram';
-        } else {
-            document.getElementById('status').innerText = 'Режим браузера (Демо)';
         }
 
-        // Функции тактильной отдачи (вибрации)
+        // Отображаем имя пользователя из ТГ
+        document.getElementById('user-name').innerText = tg.initDataUnsafe?.user?.first_name || "Продюсер";
+
+        // Функция тактильной отдачи
         function haptic(type = 'medium') {
-            try {
-                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred(type);
-            } catch (e) {
-                console.log('Haptic error:', e);
-            }
+            try { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred(type); } catch (e) {}
         }
 
-        // Обработчики кликов
-        document.getElementById('btn-create').addEventListener('click', function() {
+        // ТВОЯ ЭТАЛОННАЯ ЛОГИКА ФУНКЦИОНАЛА И ОБРАБОТКИ КЛИКОВ
+        document.getElementById('main-action-btn').addEventListener('click', function() {
             haptic('medium');
-            alert('Клик сработал: Создание проекта');
             
-            // Пример отправки запроса на бэкенд
+            // Запрос на бэкенд для генерации нового проекта
             fetch(`${BACKEND_URL}/api/projects`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: tg.initDataUnsafe?.user?.id })
+                body: JSON.stringify({ 
+                    userId: tg.initDataUnsafe?.user?.id,
+                    username: tg.initDataUnsafe?.user?.username 
+                })
             })
             .then(res => res.json())
-            .then(data => console.log('Успех:', data))
-            .catch(err => console.error('Ошибка бэкенда:', err));
+            .then(data => {
+                haptic('light');
+                // Твоя логика отрисовки/перехода после создания проекта
+                console.log('Проект создан:', data);
+                loadUserProjects(); // Перерисовываем список
+            })
+            .catch(err => {
+                console.error('Ошибка создания проекта:', err);
+            });
         });
 
-        document.getElementById('btn-list').addEventListener('click', function() {
+        // Функция загрузки и билда проектов с сервера
+        function loadUserProjects() {
+            fetch(`${BACKEND_URL}/api/projects?userId=${tg.initDataUnsafe?.user?.id}`)
+                .then(res => res.json())
+                .then(projects => {
+                    const container = document.getElementById('projects-container');
+                    if (projects && projects.length > 0) {
+                        container.innerHTML = ''; // Очищаем заглушку
+                        // Твой билдер карточек
+                        projects.forEach(proj => {
+                            const card = document.createElement('div');
+                            card.className = 'project-card';
+                            card.innerHTML = `
+                                <div class="project-title">${proj.name || 'Безымянный проект'}</div>
+                                <div class="project-meta">Локаций: ${proj.locations?.length || 0}</div>
+                                <button class="grid-btn" style="width: 100%;" onclick="openProject('${proj.id}')">Открыть</button>
+                            `;
+                            container.appendChild(card);
+                        });
+                    }
+                })
+                .catch(err => console.error('Ошибка загрузки проектов:', err));
+        }
+
+        function openProject(id) {
             haptic('light');
-            alert('Клик сработал: Список проектов');
-        });
+            console.log('Открываем проект:', id);
+            // Твоя логика открытия drawer или смены экрана
+        }
+
+        // Вспомогательные кнопки
+        document.getElementById('nav-archive').addEventListener('click', () => haptic('light'));
+        document.getElementById('nav-settings').addEventListener('click', () => haptic('light'));
+
+        // Первичный запуск билдера при старте приложения
+        loadUserProjects();
     </script>
 </body>
 </html>
