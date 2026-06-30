@@ -3,7 +3,7 @@ const cors = require('cors');
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '15mb' })); // Немного увеличили лимит под Base64 фото
 
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
@@ -19,8 +19,8 @@ function esc(text) {
 function addMinutes(timeStr, mins) {
     if (!timeStr) timeStr = '00:00';
     const [h, m] = timeStr.split(':').map(Number);
-    const total = (isNaN(h)?0:h) * 60 + (isNaN(m)?0:m) + parseInt(mins || 0);
-    return `${String(Math.floor(total/60)%24).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;
+    const total = (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m) + parseInt(mins || 0);
+    return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
 function formatDuration(mins) {
@@ -31,7 +31,6 @@ function formatDuration(mins) {
     return `${m} мин`;
 }
 
-// includeTransport — включать ли блок транспорта в текст
 function buildMessage(data, includeTransport = true) {
     const {
         title, date, meetingTime, departureTime,
@@ -43,17 +42,15 @@ function buildMessage(data, includeTransport = true) {
 
     const lines = [];
 
-    // Заголовок
     lines.push(`📋 <b>${esc(title || 'План')}</b> — ${esc(date || '')}`);
     if (allPointsMapUrl) {
         lines.push(`🗺 <a href="${allPointsMapUrl}">Все точки на карте</a>`);
     }
     lines.push(`━━━━━━━━━━━━━━━━━━`);
 
-    // Транспорт — только если includeTransport=true
     if (includeTransport && hasTransport && (carBrand || carNumber || driverName)) {
         lines.push(`🚘 <b>Транспорт:</b>`);
-        if (carBrand)  lines.push(`<b>${esc(carBrand)}</b>`);
+        if (carBrand) lines.push(`<b>${esc(carBrand)}</b>`);
         if (carNumber) lines.push(`<b>${esc(carNumber)}</b>`);
         if (driverName) {
             let dl = `👤 ${esc(driverName)}`;
@@ -65,7 +62,6 @@ function buildMessage(data, includeTransport = true) {
 
     lines.push(`━━━━━━━━━━━━━━━━━━`);
 
-    // Место сбора
     let sborLine = `🟢 <b>Сбор:</b> `;
     if (meetingMapUrl) {
         sborLine += `<a href="${meetingMapUrl}">${esc(meetingPlace || 'Место')}</a>`;
@@ -76,11 +72,10 @@ function buildMessage(data, includeTransport = true) {
     lines.push(sborLine);
 
     if (meetingAddress) lines.push(`📌 ${esc(meetingAddress)}`);
-    if (coordinates)   lines.push(`📡 <code>${esc(coordinates)}</code>`);
+    if (coordinates) lines.push(`📡 <code>${esc(coordinates)}</code>`);
     lines.push(`🔴 <b>Выезд:</b> ${esc(departureTime || '—')}`);
     lines.push('');
 
-    // Маршрут
     const emojis = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
     let runTime = departureTime || '00:00';
     let locN = 1;
@@ -92,13 +87,11 @@ function buildMessage(data, includeTransport = true) {
             lines.push(`   🚗 <i>Переезд</i> ~${formatDuration(dur)}`);
             lines.push('');
             runTime = addMinutes(runTime, dur);
-
         } else if (point.type === 'lunch') {
             const end = addMinutes(runTime, dur);
             lines.push(`🍽 <b>Ланч</b> — ${esc(runTime)}–${esc(end)} (${formatDuration(dur)})`);
             lines.push('');
             runTime = end;
-
         } else if (point.type === 'location') {
             const end = addMinutes(runTime, dur);
             const em = emojis[locN - 1] || `${locN}.`;
@@ -125,11 +118,10 @@ function buildMessage(data, includeTransport = true) {
     return lines.join('\n');
 }
 
-// Подпись к фото авто (отдельное сообщение)
 function buildCarCaption(data) {
     const { carBrand, carNumber, driverName, driverPhone } = data;
     const lines = ['🚘 <b>Транспорт:</b>'];
-    if (carBrand)  lines.push(`<b>${esc(carBrand)}</b>`);
+    if (carBrand) lines.push(`<b>${esc(carBrand)}</b>`);
     if (carNumber) lines.push(`<b>${esc(carNumber)}</b>`);
     if (driverName) {
         let dl = `👤 ${esc(driverName)}`;
@@ -139,15 +131,25 @@ function buildCarCaption(data) {
     return lines.join('\n');
 }
 
-async function sendPhoto(chatId, photoBuffer, caption, parseMode = 'HTML') {
-    const formData = new FormData();
-    formData.append('chat_id', String(chatId));
-    formData.append('photo', new Blob([photoBuffer], { type: 'image/jpeg' }), 'car.jpg');
-    if (caption) {
-        formData.append('caption', caption);
-        formData.append('parse_mode', parseMode);
-    }
-    const res = await fetch(`${TELEGRAM_API}/sendPhoto`, { method: 'POST', body: formData });
+// Надежный метод отправки через встроенный Node.js fetch и стандартный Multipart без багов Blob
+async function sendPhoto(chatId, photoBuffer, caption) {
+    const boundary = `----WebKitFormBoundary${Math.random().toString(36).substring(2)}`;
+    const header = `--${boundary}\r\nContent-Disposition: form-data; name="chat_id"\r\n\r\n${chatId}\r\n` +
+                   `--${boundary}\r\nContent-Disposition: form-data; name="photo"; filename="car.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`;
+    const footer = `\r\n--${boundary}\r\nContent-Disposition: form-data; name="caption"\r\n\r\n${caption}\r\n` +
+                   `--${boundary}\r\nContent-Disposition: form-data; name="parse_mode"\r\n\r\nHTML\r\n--${boundary}--`
+
+    const bodyBuffer = Buffer.concat([
+        Buffer.from(header, 'utf-8'),
+        photoBuffer,
+        Buffer.from(footer, 'utf-8')
+    ]);
+
+    const res = await fetch(`${TELEGRAM_API}/sendPhoto`, {
+        method: 'POST',
+        headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+        body: bodyBuffer
+    });
     return res.json();
 }
 
@@ -179,23 +181,16 @@ app.post('/send-plan', async (req, res) => {
         if (hasPhoto) {
             const photoBase64 = data.carPhotoBase64.replace(/^data:image\/\w+;base64,/, '');
             const photoBuffer = Buffer.from(photoBase64, 'base64');
-
-            // Полный план С транспортом
             const fullText = buildMessage(data, true);
 
             if (fullText.length <= 1024) {
-                // ✅ Всё влезает — одно сообщение: фото + весь план
-                const r = await sendPhoto(chatId, photoBuffer, fullText, 'HTML');
+                const r = await sendPhoto(chatId, photoBuffer, fullText);
                 if (r.ok) return res.json({ ok: true });
                 console.error('Combined send failed:', r);
             }
 
-            // ❌ Не влезает — два сообщения:
-            // 1) Фото + данные авто
-            // 2) План БЕЗ блока транспорта (чтобы не дублировать)
-            console.log('Plan too long, sending separately');
             const carCaption = buildCarCaption(data);
-            await sendPhoto(chatId, photoBuffer, carCaption, 'HTML');
+            await sendPhoto(chatId, photoBuffer, carCaption);
 
             const planWithoutTransport = buildMessage(data, false);
             await sendText(chatId, planWithoutTransport);
@@ -203,7 +198,6 @@ app.post('/send-plan', async (req, res) => {
             return res.json({ ok: true });
         }
 
-        // Нет фото — просто текст (транспорт включён в план)
         const textOnly = buildMessage(data, true);
         await sendText(chatId, textOnly);
         res.json({ ok: true });
