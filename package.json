@@ -1,0 +1,16 @@
+{
+  "name": "scout-planner-bot",
+  "version": "1.0.0",
+  "description": "Scout Planner Telegram Bot Backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}
