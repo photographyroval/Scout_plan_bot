@@ -114,7 +114,7 @@ body.sheet-open{overflow:hidden!important;}
 .card-divider{width:1px;height:32px;background:var(--border);}
 .empty-state{text-align:center;color:var(--text2);margin:40px 0;font-size:15px;}
 
-/* ── CONSTANTS / CONTEXT MENU ── */
+/* ── CTX MENU ── */
 .ctx-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:88888;display:none;}
 .ctx-menu{position:fixed;background:var(--card);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.22);z-index:88889;min-width:210px;overflow:hidden;display:none;border:1px solid var(--border);}
 .ctx-item{padding:13px 18px;font-size:14px;font-weight:500;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;color:var(--text);}
@@ -229,7 +229,7 @@ body.sheet-open{overflow:hidden!important;}
 <div id="screen-create" class="screen">
   <div class="screen-header">
     <button class="btn-back" id="btn-cancel-step1">←</button>
-    <div class="header">What are we planning?</div>
+    <div class="header">Что планируем?</div>
   </div>
 
   <div class="section-block">
@@ -443,11 +443,15 @@ body.sheet-open{overflow:hidden!important;}
 </div>
 
 <script>
+// ── HELPERS BLOCK (Объявлены первыми, чтобы функции ниже не падали) ──────
+function $(id){return document.getElementById(id);}
+function $t(id,ev,fn){const el=document.getElementById(id); if(el)el.addEventListener(ev,fn);}
+
 const BACKEND_URL = 'https://scoutplanbot-production.up.railway.app';
 const tg = (window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:{ready:()=>{},expand:()=>{},HapticFeedback:null,initDataUnsafe:{}};
 tg.ready(); tg.expand();
 
-// Безопасные обертки вибрации (предотвращают падение скрипта вне Telegram)
+// Безопасные обертки вибрации
 function haptic(t){try{if(tg && tg.HapticFeedback && typeof tg.HapticFeedback.impactOccurred === 'function')tg.HapticFeedback.impactOccurred(t);}catch(e){console.log(e);}}
 function hapticN(t){try{if(tg && tg.HapticFeedback && typeof tg.HapticFeedback.notificationOccurred === 'function')tg.HapticFeedback.notificationOccurred(t);}catch(e){console.log(e);}}
 
@@ -462,7 +466,9 @@ function initTheme() {
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   const btn = $('theme-toggle-btn');
-  if (theme === 'dark') btn.classList.add('on'); else btn.classList.remove('on');
+  if (btn) {
+    if (theme === 'dark') btn.classList.add('on'); else btn.classList.remove('on');
+  }
   localStorage.setItem('scout_theme', theme);
 }
 $t('theme-toggle-btn','click',function(){
@@ -470,17 +476,14 @@ $t('theme-toggle-btn','click',function(){
   applyTheme(cur === 'dark' ? 'light' : 'dark');
 });
 
-// ── HELPERS ─────────────────────────────────────────────────────────────
-function $(id){return document.getElementById(id);}
-function $t(id,ev,fn){document.getElementById(id).addEventListener(ev,fn);}
-
 // ── NAVIGATION STACK ─────────────────────────────────────────────────────
 const screenStack = ['screen-main'];
 
 function showScreen(id, pushToStack=true) {
   haptic('medium');
   document.querySelectorAll('.screen').forEach(s=>s.style.display='none');
-  $(id).style.display='block';
+  const target = $(id);
+  if(target) target.style.display='block';
   window.scrollTo(0,0);
   if (pushToStack) {
     if (screenStack[screenStack.length-1] !== id) screenStack.push(id);
@@ -493,7 +496,8 @@ function goBack() {
     const prev = screenStack[screenStack.length-1];
     haptic('medium');
     document.querySelectorAll('.screen').forEach(s=>s.style.display='none');
-    $(prev).style.display='block';
+    const target = $(prev);
+    if(target) target.style.display='block';
     window.scrollTo(0,0);
   } else {
     showScreen('screen-main', false);
@@ -512,10 +516,10 @@ let editingProjectIdx=null;
 function dur(m){if(!m||isNaN(m))return'0 мин';const h=Math.floor(m/60),r=m%60;if(h&&r)return h+' ч '+r+' мин';if(h)return h+' ч';return r+' мин';}
 function addM(t,m){if(!t)t='00:00';const[h,mm]=t.split(':').map(Number);const tot=(isNaN(h)?0:h)*60+(isNaN(mm)?0:mm)+parseInt(m||0);return String(Math.floor(tot/60)%24).padStart(2,'0')+':'+String(tot%60).padStart(2,'0');}
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function showStatus(id,type,text){const el=$(id);el.className='send-status '+type;el.textContent=text;if(type!=='loading')setTimeout(()=>{el.style.display='none';},4000);}
+function showStatus(id,type,text){const el=$(id); if(!el) return; el.className='send-status '+type; el.textContent=text; if(type!=='loading')setTimeout(()=>{el.style.display='none';},4000);}
 
-function openSheet(id){haptic('light');document.body.classList.add('sheet-open');$(id).style.display='block';}
-function closeSheet(id){document.body.classList.remove('sheet-open');$(id).style.display='none';editingIndex=null;}
+function openSheet(id){haptic('light');document.body.classList.add('sheet-open');const el=$(id); if(el)el.style.display='block';}
+function closeSheet(id){document.body.classList.remove('sheet-open');const el=$(id); if(el)el.style.display='none'; editingIndex=null;}
 
 // ── STORAGE ──────────────────────────────────────────────────────────────
 function getProjects(){try{return JSON.parse(localStorage.getItem('scout_projects')||'[]');}catch(e){return[];}}
@@ -564,7 +568,7 @@ function clearInputs(){
   routePoints=[];
 }
 
-// Первичная инициализация темы при загрузке скрипта
+// Запуск инициализации темы при старте
 initTheme();
 </script>
 </body>
