@@ -1,21 +1,13 @@
 const express = require('express');
 const cors = require('cors');
-const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// Настройки Telegram
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
-// Настройки Supabase (подтягиваются из Railway)
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_KEY = process.env.SUPABASE_KEY || '';
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// Экранирование HTML символов для Telegram
 function esc(text) {
     if (!text) return '';
     return String(text)
@@ -24,33 +16,22 @@ function esc(text) {
         .replace(/>/g, '&gt;');
 }
 
-// Корректное добавление минут
 function addMinutes(timeStr, mins) {
     if (!timeStr) timeStr = '00:00';
     const [h, m] = timeStr.split(':').map(Number);
-    
-    const parsedMins = parseInt(mins, 10);
-    const cleanMins = isNaN(parsedMins) ? 0 : parsedMins;
-    
-    const total = (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m) + cleanMins;
-    
-    const finalHours = Math.floor(total / 60) % 24;
-    const finalMins = total % 60;
-    
-    return `${String(finalHours).padStart(2, '0')}:${String(finalMins).padStart(2, '0')}`;
+    const total = (isNaN(h)?0:h) * 60 + (isNaN(m)?0:m) + parseInt(mins || 0);
+    return `${String(Math.floor(total/60)%24).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;
 }
 
-// Форматирование длительности
 function formatDuration(mins) {
-    mins = parseInt(mins, 10) || 0;
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
+    mins = parseInt(mins) || 0;
+    const h = Math.floor(mins / 60), m = mins % 60;
     if (h > 0 && m > 0) return `${h} ч ${m} мин`;
     if (h > 0) return `${h} ч`;
     return `${m} мин`;
 }
 
-// Сборка текста сообщения для Telegram
+// includeTransport — включать ли блок транспорта в текст
 function buildMessage(data, includeTransport = true) {
     const {
         title, date, meetingTime, departureTime,
@@ -62,12 +43,14 @@ function buildMessage(data, includeTransport = true) {
 
     const lines = [];
 
+    // Заголовок
     lines.push(`📋 <b>${esc(title || 'План')}</b> — ${esc(date || '')}`);
     if (allPointsMapUrl) {
         lines.push(`🗺 <a href="${allPointsMapUrl}">Все точки на карте</a>`);
     }
     lines.push(`━━━━━━━━━━━━━━━━━━`);
 
+    // Транспорт — только если includeTransport=true
     if (includeTransport && hasTransport && (carBrand || carNumber || driverName)) {
         lines.push(`🚘 <b>Транспорт:</b>`);
         if (carBrand)  lines.push(`<b>${esc(carBrand)}</b>`);
@@ -82,6 +65,7 @@ function buildMessage(data, includeTransport = true) {
 
     lines.push(`━━━━━━━━━━━━━━━━━━`);
 
+    // Место сбора
     let sborLine = `🟢 <b>Сбор:</b> `;
     if (meetingMapUrl) {
         sborLine += `<a href="${meetingMapUrl}">${esc(meetingPlace || 'Место')}</a>`;
@@ -96,12 +80,13 @@ function buildMessage(data, includeTransport = true) {
     lines.push(`🔴 <b>Выезд:</b> ${esc(departureTime || '—')}`);
     lines.push('');
 
+    // Маршрут
     const emojis = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
     let runTime = departureTime || '00:00';
     let locN = 1;
 
     routePoints.forEach(point => {
-        const dur = parseInt(point.duration, 10) || 0;
+        const dur = parseInt(point.duration) || 0;
 
         if (point.type === 'transit') {
             lines.push(`   🚗 <i>Переезд</i> ~${formatDuration(dur)}`);
@@ -140,7 +125,7 @@ function buildMessage(data, includeTransport = true) {
     return lines.join('\n');
 }
 
-// Подпись к фото авто
+// Подпись к фото авто (отдельное сообщение)
 function buildCarCaption(data) {
     const { carBrand, carNumber, driverName, driverPhone } = data;
     const lines = ['🚘 <b>Транспорт:</b>'];
@@ -154,26 +139,18 @@ function buildCarCaption(data) {
     return lines.join('\n');
 }
 
-// Отправка фото в Telegram
 async function sendPhoto(chatId, photoBuffer, caption, parseMode = 'HTML') {
     const formData = new FormData();
     formData.append('chat_id', String(chatId));
-    
-    const blob = new Blob([photoBuffer], { type: 'image/jpeg' });
-    formData.append('photo', blob, 'car.jpg');
-    
+    formData.append('photo', new Blob([photoBuffer], { type: 'image/jpeg' }), 'car.jpg');
     if (caption) {
         formData.append('caption', caption);
         formData.append('parse_mode', parseMode);
     }
-
     const res = await fetch(`${TELEGRAM_API}/sendPhoto`, { method: 'POST', body: formData });
-    const d = await res.json();
-    if (!d.ok) throw new Error(d.description || 'Telegram sendPhoto error');
-    return d;
+    return res.json();
 }
 
-// Отправка текста в Telegram
 async function sendText(chatId, text) {
     const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
         method: 'POST',
@@ -186,107 +163,50 @@ async function sendText(chatId, text) {
         })
     });
     const d = await res.json();
-    if (!d.ok) throw new Error(d.description || 'Telegram sendMessage error');
+    if (!d.ok) throw new Error(d.description || 'Telegram error');
     return d;
 }
 
-// Ключевой роут отправки плана и сохранения в БД
 app.post('/send-plan', async (req, res) => {
     try {
-        const { chatId, userId, data } = req.body;
+        const { chatId, data } = req.body;
         if (!chatId || !data) {
             return res.status(400).json({ error: 'chatId и data обязательны' });
         }
 
-        // --- 1. АВТОМАТИЧЕСКОЕ СОХРАНЕНИЕ В SUPABASE ---
-        let savedProjectId = null;
-        
-        if (SUPABASE_URL && SUPABASE_KEY) {
-            console.log('Saving project to Supabase...');
-            
-            // Запись в таблицу projects
-            const { data: projectRow, error: projectError } = await supabase
-                .from('projects')
-                .insert([{
-                    user_id: userId ? parseInt(userId, 10) : null, // Если приложение шлет ID юзера
-                    title: data.title || 'Новый план',
-                    event_date: data.date || null,
-                    meeting_place: data.meetingPlace || null,
-                    meeting_time: data.meetingTime || null,
-                    departure_time: data.departureTime || null,
-                    meeting_address: data.meetingAddress || null,
-                    meeting_map_url: data.meetingMapUrl || null,
-                    show_coordinates: !!data.coordinates,
-                    coordinates: data.coordinates || null,
-                    status: 'active'
-                }])
-                .select()
-                .single();
-
-            if (projectError) {
-                console.error('Supabase project insert error:', projectError.message);
-                // Не прерываем отправку в ТГ, если база дала сбой, но логируем это
-            } else if (projectRow) {
-                savedProjectId = projectRow.id;
-                console.log('Project saved successfully with ID:', savedProjectId);
-
-                // Если есть точки маршрута, сохраняем их в таблицу route_points
-                if (data.routePoints && data.routePoints.length > 0) {
-                    const pointsToInsert = data.routePoints.map((point, index) => ({
-                        project_id: savedProjectId,
-                        position: index + 1, // Индекс для правильной сортировки
-                        type: point.type || 'location',
-                        title: point.title || (point.type === 'lunch' ? 'Ланч' : 'Точка'),
-                        photo_url: point.link || null, // Ссылка на локацию/фото
-                        address: point.address || null,
-                        map_url: point.mapUrl || null,
-                        duration_minutes: parseInt(point.duration, 10) || 0
-                    }));
-
-                    const { error: pointsError } = await supabase
-                        .from('route_points')
-                        .insert(pointsToInsert);
-
-                    if (pointsError) {
-                        console.error('Supabase route_points insert error:', pointsError.message);
-                    } else {
-                        console.log(`Saved ${pointsToInsert.length} route points.`);
-                    }
-                }
-            }
-        }
-
-        // --- 2. ОТПРАВКА В TELEGRAM ---
-        const hasPhoto = data.hasTransport && data.carPhotoBase64 && data.carPhotoBase64.length > 20;
+        const hasPhoto = data.hasTransport && data.carPhotoBase64;
 
         if (hasPhoto) {
             const photoBase64 = data.carPhotoBase64.replace(/^data:image\/\w+;base64,/, '');
             const photoBuffer = Buffer.from(photoBase64, 'base64');
+
+            // Полный план С транспортом
             const fullText = buildMessage(data, true);
 
             if (fullText.length <= 1024) {
-                try {
-                    await sendPhoto(chatId, photoBuffer, fullText, 'HTML');
-                    return res.json({ ok: true, projectId: savedProjectId });
-                } catch (photoErr) {
-                    console.warn('Failed combined send, trying separate:', photoErr.message);
-                }
+                // ✅ Всё влезает — одно сообщение: фото + весь план
+                const r = await sendPhoto(chatId, photoBuffer, fullText, 'HTML');
+                if (r.ok) return res.json({ ok: true });
+                console.error('Combined send failed:', r);
             }
 
+            // ❌ Не влезает — два сообщения:
+            // 1) Фото + данные авто
+            // 2) План БЕЗ блока транспорта (чтобы не дублировать)
+            console.log('Plan too long, sending separately');
             const carCaption = buildCarCaption(data);
             await sendPhoto(chatId, photoBuffer, carCaption, 'HTML');
 
             const planWithoutTransport = buildMessage(data, false);
             await sendText(chatId, planWithoutTransport);
 
-            return res.json({ ok: true, projectId: savedProjectId });
+            return res.json({ ok: true });
         }
 
+        // Нет фото — просто текст (транспорт включён в план)
         const textOnly = buildMessage(data, true);
         await sendText(chatId, textOnly);
-        
-        // Возвращаем клиенту успешный ответ и ID созданного проекта в БД
-        res.json({ ok: true, projectId: savedProjectId });
+        res.json({ ok: true });
 
     } catch (err) {
         console.error('Server error:', err);
@@ -294,7 +214,7 @@ app.post('/send-plan', async (req, res) => {
     }
 });
 
-app.get('/', (req, res) => res.send('Scout Planner Bot — работает ✅ и синхронизирован с Supabase 🚀'));
+app.get('/', (req, res) => res.send('Scout Planner Bot — работает ✅'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
