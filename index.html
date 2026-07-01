@@ -597,80 +597,60 @@ function buildPreviewHtml(data) {
     meetingMapUrl,allPointsMapUrl,coordinates,hasTransport,
     carBrand,carNumber,driverName,driverPhone,routePoints:rp=[]} = data;
 
-  const SEP = '──────────────────';
+  const SEP = '\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500';
   let runTime = departureTime||'00:00';
   let locN=1;
   const nums=['1','2','3','4','5','6','7','8','9','10'];
-  let html='';
+  let lines=[];
 
-  html += `<b>${esc(title||'План')} — ${esc(date||'')}</b>
-`;
-  if(allPointsMapUrl) html += `<a href="${allPointsMapUrl}">Все точки на карте</a>
-`;
-  html += SEP+'
-';
+  lines.push('<b>'+esc(title||'План')+' \u2014 '+esc(date||'')+'</b>');
+  if(allPointsMapUrl) lines.push('<a href="'+allPointsMapUrl+'">Все точки на карте</a>');
+  lines.push(SEP);
 
   if(hasTransport&&(carBrand||carNumber||driverName)){
-    html+=`🚘 <b>Транспорт</b>
-`;
-    let carLine=[carBrand,carNumber].filter(Boolean).map(s=>`<b>${esc(s)}</b>`).join('  ');
-    if(carLine) html+=carLine+'
-';
-    if(driverName){let dl=esc(driverName);if(driverPhone)dl+=`  ${esc(driverPhone)}`;html+=dl+'
-';}
-    html+=SEP+'
-';
+    lines.push('🚘 <b>Транспорт</b>');
+    var carLine=[carBrand,carNumber].filter(Boolean).map(function(s){return '<b>'+esc(s)+'</b>';}).join('  ');
+    if(carLine) lines.push(carLine);
+    if(driverName){var dl=esc(driverName);if(driverPhone)dl+='  '+esc(driverPhone);lines.push(dl);}
+    lines.push(SEP);
   }
 
-  let sborPlace=meetingMapUrl?`<a href="${meetingMapUrl}">${esc(meetingPlace||'Место')}</a>`:esc(meetingPlace||'—');
-  html+=`🟢 <b>Сбор:</b> ${sborPlace} — ${esc(meetingTime||'—')} | 🔴 <b>Выезд:</b> ${esc(departureTime||'—')}
-`;
-  if(meetingAddress) html+=`${esc(meetingAddress)}
-`;
-  if(coordinates) html+=`<span style="font-family:monospace;font-size:12px;">${esc(coordinates)}</span>
-`;
-  html+=SEP+'
+  var sborPlace=meetingMapUrl?'<a href="'+meetingMapUrl+'">'+esc(meetingPlace||'Место')+'</a>':esc(meetingPlace||'\u2014');
+  lines.push('🟢 <b>Сбор:</b> '+sborPlace+' \u2014 '+esc(meetingTime||'\u2014')+' | 🔴 <b>Выезд:</b> '+esc(departureTime||'\u2014'));
+  if(meetingAddress) lines.push(esc(meetingAddress));
+  if(coordinates) lines.push('<span style="font-family:monospace;font-size:12px;">'+esc(coordinates)+'</span>');
+  lines.push(SEP);
+  lines.push('');
 
-';
-
-  rp.forEach(point=>{
-    const d=parseInt(point.duration)||0;
+  rp.forEach(function(point){
+    var d=parseInt(point.duration)||0;
     if(point.type==='transit'){
-      html+=`   🚗 Переезд ~${dur(d)}
-
-`;
+      lines.push('   🚗 Переезд ~'+dur(d));
+      lines.push('');
       runTime=addM(runTime,d);
     } else if(point.type==='lunch'){
-      const e=addM(runTime,d);
-      html+=`🍽 Ланч ${esc(runTime)}–${esc(e)} (${dur(d)})
-
-`;
+      var e=addM(runTime,d);
+      lines.push('🍽 Ланч '+esc(runTime)+'\u2013'+esc(e)+' ('+dur(d)+')');
+      lines.push('');
       runTime=e;
     } else if(point.type==='location'){
-      const e=addM(runTime,d);
-      const num=nums[locN-1]||String(locN);
-      let titleLine=`${num}  `;
-      if(point.link) titleLine+=`<a href="${point.link}"><b>${esc(point.title||'Локация')}</b></a>`;
-      else titleLine+=`<b>${esc(point.title||'Локация')}</b>`;
-      html+=titleLine+'
-';
-      html+=`🕐 ${esc(runTime)}–${esc(e)} (${dur(d)})
-`;
-      if(point.mapUrl) html+=`📍 <a href="${point.mapUrl}">Точка на карте</a>
-`;
-      if(point.coords) html+=`<span style="font-family:monospace;font-size:12px;">${esc(point.coords)}</span>
-`;
-      html+='
-';
+      var e=addM(runTime,d);
+      var num=nums[locN-1]||String(locN);
+      var titleLine=num+'  ';
+      if(point.link) titleLine+='<a href="'+point.link+'"><b>'+esc(point.title||'Локация')+'</b></a>';
+      else titleLine+='<b>'+esc(point.title||'Локация')+'</b>';
+      lines.push(titleLine);
+      lines.push('🕐 '+esc(runTime)+'\u2013'+esc(e)+' ('+dur(d)+')');
+      if(point.mapUrl) lines.push('📍 <a href="'+point.mapUrl+'">Точка на карте</a>');
+      if(point.coords) lines.push('<span style="font-family:monospace;font-size:12px;">'+esc(point.coords)+'</span>');
+      lines.push('');
       locN++; runTime=e;
     }
   });
 
-  html+=SEP+'
-';
-  html+=`🏁 <b>Возвращение: ~${esc(runTime)}</b>`;
-  return html.replace(/
-/g,'<br>');
+  lines.push(SEP);
+  lines.push('🏁 <b>Возвращение: ~'+esc(runTime)+'</b>');
+  return lines.join('<br>');
 }
 
 // ── COLLECT PLAN DATA ─────────────────────────────────────────────────────
