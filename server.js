@@ -75,7 +75,7 @@ function buildMessage(data, includeTransport = true) {
     if (coordinates) lines.push(`<code>${esc(coordinates)}</code>`);
     lines.push(SEP);
 
-    const nums = ['1','2','3','4','5','6','7','8','9','10'];
+    const nums = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','1️⃣1️⃣','1️⃣2️⃣','1️⃣3️⃣','1️⃣4️⃣','1️⃣5️⃣'];
     let runTime = departureTime || '00:00';
     let locN = 1;
 
