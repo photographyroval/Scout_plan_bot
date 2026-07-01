@@ -40,52 +40,42 @@ function buildMessage(data, includeTransport = true) {
         routePoints = []
     } = data;
 
-    // Единый разделитель — фиксированная длина, не зависит от шрифта
-    const SEP = '─────────────────';
-
+    const SEP = '──────────────────';
     const lines = [];
 
-    // Заголовок: жирное название + дата
+    // Заголовок
     lines.push(`<b>${esc(title || 'План')} — ${esc(date || '')}</b>`);
-    // Ссылка на карту всех точек — без эмодзи
     if (allPointsMapUrl) {
         lines.push(`<a href="${allPointsMapUrl}">Все точки на карте</a>`);
     }
     lines.push(SEP);
 
-    // Блок транспорта: марка + номер на одной строке, имя + телефон на второй
+    // Транспорт
     if (includeTransport && hasTransport && (carBrand || carNumber || driverName)) {
         lines.push(`🚘 <b>Транспорт</b>`);
-        // Марка и номер — одна строка
         let carLine = [carBrand, carNumber].filter(Boolean).map(s => `<b>${esc(s)}</b>`).join('  ');
         if (carLine) lines.push(carLine);
-        // Имя и телефон — без эмодзи человечка
         if (driverName) {
-            let driverLine = esc(driverName);
-            if (driverPhone) driverLine += `  ${esc(driverPhone)}`;
-            lines.push(driverLine);
+            let dl = esc(driverName);
+            if (driverPhone) dl += `  ${esc(driverPhone)}`;
+            lines.push(dl);
         }
         lines.push(SEP);
     }
 
-    // Блок сбора
-    // Сбор жирным, место, время жирным — без эмодзи часов
-    let sborLine = `🟢 <b>Сбор:</b> `;
-    if (meetingMapUrl) {
-        sborLine += `<a href="${meetingMapUrl}">${esc(meetingPlace || 'Место')}</a>`;
-    } else {
-        sborLine += `<b>${esc(meetingPlace || '—')}</b>`;
-    }
-    sborLine += `  <b>${esc(meetingTime || '—')}</b>`;
-    lines.push(sborLine);
+    // Сбор и выезд — на одной строке через |
+    let sborPlace = meetingMapUrl
+        ? `<a href="${meetingMapUrl}">${esc(meetingPlace || 'Место')}</a>`
+        : `${esc(meetingPlace || '—')}`;
+    lines.push(`🟢 <b>Сбор:</b> ${sborPlace} — ${esc(meetingTime || '—')} | 🔴 <b>Выезд:</b> ${esc(departureTime || '—')}`);
 
-    if (meetingAddress) lines.push(`📌 ${esc(meetingAddress)}`);
-    // Координаты — без эмодзи, кликабельный код
+    // Адрес — без эмодзи
+    if (meetingAddress) lines.push(esc(meetingAddress));
+    // Координаты — кликабельные, без эмодзи
     if (coordinates) lines.push(`<code>${esc(coordinates)}</code>`);
-    lines.push(`🔴 <b>Выезд: ${esc(departureTime || '—')}</b>`);
-    lines.push('');
+    lines.push(SEP);
 
-    const emojis = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+    const nums = ['1','2','3','4','5','6','7','8','9','10'];
     let runTime = departureTime || '00:00';
     let locN = 1;
 
@@ -93,32 +83,39 @@ function buildMessage(data, includeTransport = true) {
         const dur = parseInt(point.duration) || 0;
 
         if (point.type === 'transit') {
-            // Переезд — два пробела вправо
-            lines.push(`  🚗 Переезд ~${formatDuration(dur)}`);
+            // Переезд — смещение + машинка
+            lines.push(`   🚗 Переезд ~${formatDuration(dur)}`);
             lines.push('');
             runTime = addMinutes(runTime, dur);
+
         } else if (point.type === 'lunch') {
             const end = addMinutes(runTime, dur);
-            // Ланч — время и длительность на одной строке
-            lines.push(`🍽 <b>Ланч</b>  <b>${esc(runTime)}–${esc(end)}</b> (${formatDuration(dur)})`);
+            // Ланч — эмодзи, время, длительность
+            lines.push(`🍽 Ланч ${esc(runTime)}–${esc(end)} (${formatDuration(dur)})`);
             lines.push('');
             runTime = end;
+
         } else if (point.type === 'location') {
             const end = addMinutes(runTime, dur);
-            const em = emojis[locN - 1] || `${locN}.`;
-            // Название жирное, время жирное, длительность в скобках рядом
-            let locLine = `${em} `;
+            const num = nums[locN - 1] || String(locN);
+
+            // Строка 1: номер + название жирное
+            let titleLine = `${num}  `;
             if (point.link) {
-                locLine += `<a href="${point.link}"><b>${esc(point.title || 'Локация')}</b></a>`;
+                titleLine += `<a href="${point.link}"><b>${esc(point.title || 'Локация')}</b></a>`;
             } else {
-                locLine += `<b>${esc(point.title || 'Локация')}</b>`;
+                titleLine += `<b>${esc(point.title || 'Локация')}</b>`;
             }
-            locLine += `  <b>${esc(runTime)}–${esc(end)}</b> (${formatDuration(dur)})`;
-            lines.push(locLine);
-            // Доп. ссылки
-            if (point.mapUrl) lines.push(`   📍 <a href="${point.mapUrl}">Точка на карте</a>`);
-            // Координаты без эмодзи, кликабельные
-            if (point.coords) lines.push(`   <code>${esc(point.coords)}</code>`);
+            lines.push(titleLine);
+
+            // Строка 2: 🕐 время–время (длительность)
+            lines.push(`🕐 ${esc(runTime)}–${esc(end)} (${formatDuration(dur)})`);
+
+            // Ссылка на карту точки
+            if (point.mapUrl) lines.push(`📍 <a href="${point.mapUrl}">Точка на карте</a>`);
+            // Координаты точки
+            if (point.coords) lines.push(`<code>${esc(point.coords)}</code>`);
+
             lines.push('');
             locN++;
             runTime = end;
