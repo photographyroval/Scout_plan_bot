@@ -66,7 +66,7 @@ function mainKeyboard() {
                 { text: '❓ Помощь', callback_data: 'help' },
                 { text: 'ℹ️ О боте', callback_data: 'about' }
             ],
-            [{ text: '🐛 Сообщить о проблеме', callback_data: 'report' }]
+            [{ text: '📨 Сообщить о проблеме', callback_data: 'report' }]
         ]
     };
 }
