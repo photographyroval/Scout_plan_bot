@@ -495,8 +495,6 @@ $t('theme-toggle-btn','click',function(){
 });
 
 // ── HELPERS ─────────────────────────────────────────────────────────────
-function haptic(t){try{if(tg.HapticFeedback)tg.HapticFeedback.impactOccurred(t);}catch(e){}}
-function hapticN(t){try{if(tg.HapticFeedback)tg.HapticFeedback.notificationOccurred(t);}catch(e){}}
 
 // ── NAVIGATION STACK ─────────────────────────────────────────────────────
 // Поддерживаем стек экранов для корректной навигации назад
@@ -665,7 +663,7 @@ function collectPlanData(){
     allPointsMapUrl:hasAP?($('all-points-map').value||''):'',
     coordinates:$('check-coords').checked?gCoords:'',
     hasTransport:hasTr,
-    carBrand:hasTr?$('car-brand').value:'',
+    carBrand:hasTr?(gBrand||$('car-brand').value):'',
     carNumber:hasTr?$('car-number').value:'',
     driverName:hasTr?$('driver-name').value:'',
     driverPhone:hasTr?$('driver-phone').value:'',
