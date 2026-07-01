@@ -464,7 +464,10 @@ body.sheet-open{overflow:hidden!important;}
   </div>
 </div>
 
-<script>
+<script>function $(id){return document.getElementById(id);}
+function $t(id,ev,fn){document.getElementById(id).addEventListener(ev,fn);}
+
+
 const BACKEND_URL = 'https://scoutplanbot-production.up.railway.app';
 const tg = (window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:{ready:()=>{},expand:()=>{},HapticFeedback:null,initDataUnsafe:{}};
 tg.ready(); tg.expand();
@@ -492,8 +495,6 @@ $t('theme-toggle-btn','click',function(){
 });
 
 // ── HELPERS ─────────────────────────────────────────────────────────────
-function $(id){return document.getElementById(id);}
-function $t(id,ev,fn){document.getElementById(id).addEventListener(ev,fn);}
 function haptic(t){try{if(tg.HapticFeedback)tg.HapticFeedback.impactOccurred(t);}catch(e){}}
 function hapticN(t){try{if(tg.HapticFeedback)tg.HapticFeedback.notificationOccurred(t);}catch(e){}}
 
