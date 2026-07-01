@@ -61,12 +61,12 @@ async function sendMessage(chatId, text, extra = {}) {
 function mainKeyboard() {
     return {
         inline_keyboard: [
-            [{ text: '📋 Открыть Scout Planner', web_app: { url: WEBAPP_URL } }],
+            [{ text: '🟢 Открыть Scout Planner', web_app: { url: WEBAPP_URL } }],
             [
                 { text: '❓ Помощь', callback_data: 'help' },
                 { text: 'ℹ️ О боте', callback_data: 'about' }
             ],
-            [{ text: '📨 Сообщить о проблеме', callback_data: 'report' }]
+            [{ text: '🐛 Сообщить о проблеме', callback_data: 'report' }]
         ]
     };
 }
@@ -142,15 +142,6 @@ app.post('/webhook', async (req, res) => {
                 await sendMessage(chatId, TEXT_HELP, { reply_markup: mainKeyboard() });
             } else if (text === '/about') {
                 await sendMessage(chatId, TEXT_ABOUT, { reply_markup: mainKeyboard() });
-            } else if (text === '/plan') {
-                // Быстрый запуск приложения
-                await sendMessage(chatId, '📋 Открываю планировщик...', {
-                    reply_markup: {
-                        inline_keyboard: [[
-                            { text: '📋 Открыть Scout Planner', web_app: { url: WEBAPP_URL } }
-                        ]]
-                    }
-                });
             } else if (msg.web_app_data) {
                 // Данные из мини-апп (если используется sendData)
                 await sendMessage(chatId, '✅ Данные получены от приложения.');
@@ -392,7 +383,6 @@ async function setupWebhook() {
     await tgRequest('setMyCommands', {
         commands: [
             { command: 'start', description: '👋 Начать работу' },
-            { command: 'plan', description: '📋 Открыть планировщик' },
             { command: 'help', description: '❓ Как пользоваться' },
             { command: 'about', description: 'ℹ️ О боте' }
         ]
