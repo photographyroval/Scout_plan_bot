@@ -65,7 +65,8 @@ function mainKeyboard() {
             [
                 { text: '❓ Помощь', callback_data: 'help' },
                 { text: 'ℹ️ О боте', callback_data: 'about' }
-            ]
+            ],
+            [{ text: '🐛 Сообщить о проблеме', callback_data: 'report' }]
         ]
     };
 }
@@ -95,6 +96,14 @@ const TEXT_HELP = `❓ <b>Как пользоваться Scout Planner</b>
 Нажми «📤 Отправить план в Telegram» — и готовое сообщение со всеми ссылками и временами придёт прямо сюда.
 
 <b>Лимит локаций:</b> до 15 точек маршрута.`;
+
+const TEXT_REPORT = `🐛 <b>Сообщить о проблеме</b>
+
+Напишите напрямую разработчику — опишите что пошло не так и приложите скриншот если возможно.
+
+👉 <a href="https://t.me/photographyroval">@photographyroval</a>
+
+Постараемся помочь как можно скорее!`;
 
 const TEXT_ABOUT = `ℹ️ <b>Scout Planner</b>
 
@@ -167,6 +176,8 @@ app.post('/webhook', async (req, res) => {
                 await sendMessage(chatId, TEXT_HELP, { reply_markup: mainKeyboard() });
             } else if (data === 'about') {
                 await sendMessage(chatId, TEXT_ABOUT, { reply_markup: mainKeyboard() });
+            } else if (data === 'report') {
+                await sendMessage(chatId, TEXT_REPORT, { reply_markup: mainKeyboard() });
             }
         }
 
