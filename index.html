@@ -596,60 +596,80 @@ function buildPreviewHtml(data) {
     meetingMapUrl,allPointsMapUrl,coordinates,hasTransport,
     carBrand,carNumber,driverName,driverPhone,routePoints:rp=[]} = data;
 
+  const SEP = '──────────────────';
   let runTime = departureTime||'00:00';
   let locN=1;
-  const emojis=['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+  const nums=['1','2','3','4','5','6','7','8','9','10'];
   let html='';
 
-  html += `<b>📋 ${esc(title||'План')} — ${esc(date||'')}</b>\n`;
-  html += `━━━━━━━━━━━━━━━━━━\n`;
-  if(allPointsMapUrl) html += `🗺 <a href="${allPointsMapUrl}">Все точки на карте</a>\n`;
+  html += `<b>${esc(title||'План')} — ${esc(date||'')}</b>
+`;
+  if(allPointsMapUrl) html += `<a href="${allPointsMapUrl}">Все точки на карте</a>
+`;
+  html += SEP+'
+';
 
   if(hasTransport&&(carBrand||carNumber||driverName)){
-    html+='\n<b>🚘 Транспорт:</b>\n';
-    if(carBrand) html+=`${esc(carBrand)}\n`;
-    if(carNumber) html+=`Номер: <b>${esc(carNumber)}</b>\n`;
-    if(driverName){let dl=`👤 ${esc(driverName)}`;if(driverPhone)dl+=` · ${esc(driverPhone)}`;html+=dl+'\n';}
+    html+=`🚘 <b>Транспорт</b>
+`;
+    let carLine=[carBrand,carNumber].filter(Boolean).map(s=>`<b>${esc(s)}</b>`).join('  ');
+    if(carLine) html+=carLine+'
+';
+    if(driverName){let dl=esc(driverName);if(driverPhone)dl+=`  ${esc(driverPhone)}`;html+=dl+'
+';}
+    html+=SEP+'
+';
   }
 
-  html+=`\n━━━━━━━━━━━━━━━━━━\n`;
-  let sborLine=`🟢 <b>Сбор:</b> `;
-  if(meetingMapUrl) sborLine+=`<a href="${meetingMapUrl}">${esc(meetingPlace||'Место')}</a>`;
-  else sborLine+=`<b>${esc(meetingPlace||'—')}</b>`;
-  sborLine+=` — ${esc(meetingTime||'—')}`;
-  html+=sborLine+'\n';
-  if(meetingAddress) html+=`📌 ${esc(meetingAddress)}\n`;
-  if(coordinates) html+=`📡 <span style="font-family:monospace;font-size:12px;">${esc(coordinates)}</span>\n`;
-  html+=`🔴 <b>Выезд:</b> ${esc(departureTime||'—')}\n\n`;
+  let sborPlace=meetingMapUrl?`<a href="${meetingMapUrl}">${esc(meetingPlace||'Место')}</a>`:esc(meetingPlace||'—');
+  html+=`🟢 <b>Сбор:</b> ${sborPlace} — ${esc(meetingTime||'—')} | 🔴 <b>Выезд:</b> ${esc(departureTime||'—')}
+`;
+  if(meetingAddress) html+=`${esc(meetingAddress)}
+`;
+  if(coordinates) html+=`<span style="font-family:monospace;font-size:12px;">${esc(coordinates)}</span>
+`;
+  html+=SEP+'
+
+';
 
   rp.forEach(point=>{
     const d=parseInt(point.duration)||0;
     if(point.type==='transit'){
-      html+=`   🚗 <i>Переезд</i> ~${dur(d)}\n\n`;
+      html+=`   🚗 Переезд ~${dur(d)}
+
+`;
       runTime=addM(runTime,d);
     } else if(point.type==='lunch'){
       const e=addM(runTime,d);
-      html+=`🍽 <b>Ланч</b> — ${esc(runTime)}–${esc(e)} (${dur(d)})\n\n`;
+      html+=`🍽 Ланч ${esc(runTime)}–${esc(e)} (${dur(d)})
+
+`;
       runTime=e;
     } else if(point.type==='location'){
       const e=addM(runTime,d);
-      const em=emojis[locN-1]||`${locN}.`;
-      let line=`${em} `;
-      if(point.link) line+=`<a href="${point.link}">${esc(point.title||'Локация')}</a>`;
-      else line+=`<b>${esc(point.title||'Локация')}</b>`;
-      line+=` — ${esc(runTime)}–${esc(e)}`;
-      html+=line+'\n';
-      html+=`   ⏱ ${dur(d)}\n`;
-      if(point.mapUrl) html+=`   📍 <a href="${point.mapUrl}">Точка на карте</a>\n`;
-      if(point.coords) html+=`   📡 <span style="font-family:monospace;font-size:12px;">${esc(point.coords)}</span>\n`;
-      html+='\n';
+      const num=nums[locN-1]||String(locN);
+      let titleLine=`${num}  `;
+      if(point.link) titleLine+=`<a href="${point.link}"><b>${esc(point.title||'Локация')}</b></a>`;
+      else titleLine+=`<b>${esc(point.title||'Локация')}</b>`;
+      html+=titleLine+'
+';
+      html+=`🕐 ${esc(runTime)}–${esc(e)} (${dur(d)})
+`;
+      if(point.mapUrl) html+=`📍 <a href="${point.mapUrl}">Точка на карте</a>
+`;
+      if(point.coords) html+=`<span style="font-family:monospace;font-size:12px;">${esc(point.coords)}</span>
+`;
+      html+='
+';
       locN++; runTime=e;
     }
   });
 
-  html+=`━━━━━━━━━━━━━━━━━━\n`;
+  html+=SEP+'
+';
   html+=`🏁 <b>Возвращение: ~${esc(runTime)}</b>`;
-  return html.replace(/\n/g,'<br>');
+  return html.replace(/
+/g,'<br>');
 }
 
 // ── COLLECT PLAN DATA ─────────────────────────────────────────────────────
