@@ -3,10 +3,13 @@ const cors = require('cors');
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '15mb' })); // Немного увеличили лимит под Base64 фото
+app.use(express.json({ limit: '15mb' }));
 
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
+const WEBAPP_URL = process.env.WEBAPP_URL || 'https://photographyroval.github.io/Scout_plan_bot/';
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
+
+// ─── УТИЛИТЫ ──────────────────────────────────────────────────────────────────
 
 function esc(text) {
     if (!text) return '';
@@ -31,6 +34,151 @@ function formatDuration(mins) {
     return `${m} мин`;
 }
 
+// ─── ОТПРАВКА TELEGRAM СООБЩЕНИЙ ─────────────────────────────────────────────
+
+async function tgRequest(method, body) {
+    const res = await fetch(`${TELEGRAM_API}/${method}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!data.ok) console.error(`Telegram ${method} error:`, data.description);
+    return data;
+}
+
+async function sendMessage(chatId, text, extra = {}) {
+    return tgRequest('sendMessage', {
+        chat_id: String(chatId),
+        text,
+        parse_mode: 'HTML',
+        disable_web_page_preview: true,
+        ...extra
+    });
+}
+
+// Кнопки под каждым сообщением бота
+function mainKeyboard() {
+    return {
+        inline_keyboard: [
+            [{ text: '📋 Открыть Scout Planner', web_app: { url: WEBAPP_URL } }],
+            [
+                { text: '❓ Помощь', callback_data: 'help' },
+                { text: 'ℹ️ О боте', callback_data: 'about' }
+            ]
+        ]
+    };
+}
+
+// ─── ТЕКСТЫ СООБЩЕНИЙ ─────────────────────────────────────────────────────────
+
+const TEXT_START = `👋 <b>Привет! Я Scout Planner.</b>
+
+Помогаю организовать скаутинг локаций — быстро, удобно и красиво.
+
+Ты заполняешь информацию о плане, а я формирую готовое сообщение с маршрутом, временем и всеми ссылками — и отправляю прямо в этот чат.
+
+Нажми кнопку ниже чтобы начать 👇`;
+
+const TEXT_HELP = `❓ <b>Как пользоваться Scout Planner</b>
+
+<b>1. Создай проект</b>
+Нажми «+ Создать новый проект» и заполни основную информацию — название, дату, время и место сбора.
+
+<b>2. Добавь транспорт</b> (по желанию)
+Укажи марку авто, номер, имя и телефон водителя. Можно прикрепить фото машины.
+
+<b>3. Составь маршрут</b>
+Добавляй локации, переезды и перерывы на ланч. Перетаскивай карточки чтобы менять порядок. Бот автоматически считает время возвращения.
+
+<b>4. Отправь план</b>
+Нажми «📤 Отправить план в Telegram» — и готовое сообщение со всеми ссылками и временами придёт прямо сюда.
+
+<b>Лимит локаций:</b> до 15 точек маршрута.`;
+
+const TEXT_ABOUT = `ℹ️ <b>Scout Planner</b>
+
+Инструмент для планирования скаутинга локаций для съёмок, мероприятий и продакшена.
+
+<b>Возможности:</b>
+• Создание маршрутных планов с таймингом
+• Автоматический подсчёт времени возвращения
+• Ссылки на карты и фото прямо в сообщении
+• Данные о транспорте и водителе
+• Тёмная и светлая тема
+• Сохранение проектов и черновиков
+
+<b>Версия:</b> 2.0
+<b>Хостинг:</b> GitHub Pages + Railway`;
+
+// ─── WEBHOOK ОБРАБОТЧИК ───────────────────────────────────────────────────────
+
+app.post('/webhook', async (req, res) => {
+    res.sendStatus(200); // Всегда отвечаем 200 сразу
+
+    const update = req.body;
+
+    try {
+        // Обработка обычных сообщений / команд
+        if (update.message) {
+            const msg = update.message;
+            const chatId = msg.chat.id;
+            const text = msg.text || '';
+            const firstName = msg.from?.first_name || 'друг';
+
+            if (text === '/start') {
+                await sendMessage(chatId,
+                    TEXT_START.replace('👋 <b>Привет!', `👋 <b>Привет, ${esc(firstName)}!`),
+                    { reply_markup: mainKeyboard() }
+                );
+            } else if (text === '/help') {
+                await sendMessage(chatId, TEXT_HELP, { reply_markup: mainKeyboard() });
+            } else if (text === '/about') {
+                await sendMessage(chatId, TEXT_ABOUT, { reply_markup: mainKeyboard() });
+            } else if (text === '/plan') {
+                // Быстрый запуск приложения
+                await sendMessage(chatId, '📋 Открываю планировщик...', {
+                    reply_markup: {
+                        inline_keyboard: [[
+                            { text: '📋 Открыть Scout Planner', web_app: { url: WEBAPP_URL } }
+                        ]]
+                    }
+                });
+            } else if (msg.web_app_data) {
+                // Данные из мини-апп (если используется sendData)
+                await sendMessage(chatId, '✅ Данные получены от приложения.');
+            } else {
+                // Любое другое сообщение — показываем кнопки
+                await sendMessage(chatId,
+                    `Используй кнопку ниже чтобы открыть Scout Planner 👇`,
+                    { reply_markup: mainKeyboard() }
+                );
+            }
+        }
+
+        // Обработка нажатий inline-кнопок
+        if (update.callback_query) {
+            const cb = update.callback_query;
+            const chatId = cb.message.chat.id;
+            const data = cb.data;
+
+            // Отвечаем на callback чтобы убрать "часики"
+            await tgRequest('answerCallbackQuery', { callback_query_id: cb.id });
+
+            if (data === 'help') {
+                await sendMessage(chatId, TEXT_HELP, { reply_markup: mainKeyboard() });
+            } else if (data === 'about') {
+                await sendMessage(chatId, TEXT_ABOUT, { reply_markup: mainKeyboard() });
+            }
+        }
+
+    } catch (err) {
+        console.error('Webhook handler error:', err);
+    }
+});
+
+// ─── ПЛАН МАРШРУТА ────────────────────────────────────────────────────────────
+
 function buildMessage(data, includeTransport = true) {
     const {
         title, date, meetingTime, departureTime,
@@ -43,17 +191,15 @@ function buildMessage(data, includeTransport = true) {
     const SEP = '──────────────────';
     const lines = [];
 
-    // Заголовок
     lines.push(`<b>${esc(title || 'План')} — ${esc(date || '')}</b>`);
     if (allPointsMapUrl) {
         lines.push(`<a href="${allPointsMapUrl}">Все точки на карте</a>`);
     }
     lines.push(SEP);
 
-    // Транспорт
     if (includeTransport && hasTransport && (carBrand || carNumber || driverName)) {
         lines.push(`🚘 <b>Транспорт</b>`);
-        let carLine = [carBrand, carNumber].filter(Boolean).map(s => `<b>${esc(s)}</b>`).join('  ');
+        const carLine = [carBrand, carNumber].filter(Boolean).map(s => `<b>${esc(s)}</b>`).join('  ');
         if (carLine) lines.push(carLine);
         if (driverName) {
             let dl = esc(driverName);
@@ -63,15 +209,12 @@ function buildMessage(data, includeTransport = true) {
         lines.push(SEP);
     }
 
-    // Сбор и выезд — на одной строке через |
-    let sborPlace = meetingMapUrl
+    const sborPlace = meetingMapUrl
         ? `<a href="${meetingMapUrl}">${esc(meetingPlace || 'Место')}</a>`
-        : `${esc(meetingPlace || '—')}`;
+        : esc(meetingPlace || '—');
     lines.push(`🟢 <b>Сбор:</b> ${sborPlace} — ${esc(meetingTime || '—')} | 🔴 <b>Выезд:</b> ${esc(departureTime || '—')}`);
 
-    // Адрес — без эмодзи
     if (meetingAddress) lines.push(esc(meetingAddress));
-    // Координаты — кликабельные, без эмодзи
     if (coordinates) lines.push(`<code>${esc(coordinates)}</code>`);
     lines.push(SEP);
 
@@ -83,39 +226,27 @@ function buildMessage(data, includeTransport = true) {
         const dur = parseInt(point.duration) || 0;
 
         if (point.type === 'transit') {
-            // Переезд — смещение + машинка
             lines.push(`   🚗 Переезд ~${formatDuration(dur)}`);
             lines.push('');
             runTime = addMinutes(runTime, dur);
-
         } else if (point.type === 'lunch') {
             const end = addMinutes(runTime, dur);
-            // Ланч — эмодзи, время, длительность
             lines.push(`🍽 Ланч ${esc(runTime)}–${esc(end)} (${formatDuration(dur)})`);
             lines.push('');
             runTime = end;
-
         } else if (point.type === 'location') {
             const end = addMinutes(runTime, dur);
-            const num = nums[locN - 1] || String(locN);
-
-            // Строка 1: номер + название жирное
-            let titleLine = `${num}  `;
+            const em = nums[locN - 1] || `${locN}.`;
+            let locLine = `${em} `;
             if (point.link) {
-                titleLine += `<a href="${point.link}"><b>${esc(point.title || 'Локация')}</b></a>`;
+                locLine += `<a href="${point.link}"><b>${esc(point.title || 'Локация')}</b></a>`;
             } else {
-                titleLine += `<b>${esc(point.title || 'Локация')}</b>`;
+                locLine += `<b>${esc(point.title || 'Локация')}</b>`;
             }
-            lines.push(titleLine);
-
-            // Строка 2: 🕐 время–время (длительность)
+            lines.push(locLine);
             lines.push(`🕐 ${esc(runTime)}–${esc(end)} (${formatDuration(dur)})`);
-
-            // Ссылка на карту точки
             if (point.mapUrl) lines.push(`📍 <a href="${point.mapUrl}">Точка на карте</a>`);
-            // Координаты точки
             if (point.coords) lines.push(`<code>${esc(point.coords)}</code>`);
-
             lines.push('');
             locN++;
             runTime = end;
@@ -131,7 +262,7 @@ function buildMessage(data, includeTransport = true) {
 function buildCarCaption(data) {
     const { carBrand, carNumber, driverName, driverPhone } = data;
     const lines = ['🚘 <b>Транспорт</b>'];
-    let carLine = [carBrand, carNumber].filter(Boolean).map(s => `<b>${esc(s)}</b>`).join('  ');
+    const carLine = [carBrand, carNumber].filter(Boolean).map(s => `<b>${esc(s)}</b>`).join('  ');
     if (carLine) lines.push(carLine);
     if (driverName) {
         let dl = esc(driverName);
@@ -141,13 +272,14 @@ function buildCarCaption(data) {
     return lines.join('\n');
 }
 
-// Надежный метод отправки через встроенный Node.js fetch и стандартный Multipart без багов Blob
 async function sendPhoto(chatId, photoBuffer, caption) {
-    const boundary = `----WebKitFormBoundary${Math.random().toString(36).substring(2)}`;
-    const header = `--${boundary}\r\nContent-Disposition: form-data; name="chat_id"\r\n\r\n${chatId}\r\n` +
-                   `--${boundary}\r\nContent-Disposition: form-data; name="photo"; filename="car.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`;
-    const footer = `\r\n--${boundary}\r\nContent-Disposition: form-data; name="caption"\r\n\r\n${caption}\r\n` +
-                   `--${boundary}\r\nContent-Disposition: form-data; name="parse_mode"\r\n\r\nHTML\r\n--${boundary}--`
+    const boundary = `----FormBoundary${Math.random().toString(36).substring(2)}`;
+    const header =
+        `--${boundary}\r\nContent-Disposition: form-data; name="chat_id"\r\n\r\n${chatId}\r\n` +
+        `--${boundary}\r\nContent-Disposition: form-data; name="photo"; filename="car.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`;
+    const footer =
+        `\r\n--${boundary}\r\nContent-Disposition: form-data; name="caption"\r\n\r\n${caption}\r\n` +
+        `--${boundary}\r\nContent-Disposition: form-data; name="parse_mode"\r\n\r\nHTML\r\n--${boundary}--`;
 
     const bodyBuffer = Buffer.concat([
         Buffer.from(header, 'utf-8'),
@@ -179,6 +311,8 @@ async function sendText(chatId, text) {
     return d;
 }
 
+// ─── ОТПРАВКА ПЛАНА ───────────────────────────────────────────────────────────
+
 app.post('/send-plan', async (req, res) => {
     try {
         const { chatId, data } = req.body;
@@ -199,12 +333,11 @@ app.post('/send-plan', async (req, res) => {
                 console.error('Combined send failed:', r);
             }
 
+            // План длиннее 1024 — фото + данные авто отдельно, потом план без транспорта
             const carCaption = buildCarCaption(data);
             await sendPhoto(chatId, photoBuffer, carCaption);
-
             const planWithoutTransport = buildMessage(data, false);
             await sendText(chatId, planWithoutTransport);
-
             return res.json({ ok: true });
         }
 
@@ -218,7 +351,52 @@ app.post('/send-plan', async (req, res) => {
     }
 });
 
+// ─── УСТАНОВКА WEBHOOK ────────────────────────────────────────────────────────
+
+async function setupWebhook() {
+    if (!BOT_TOKEN) {
+        console.log('BOT_TOKEN не задан — webhook не установлен');
+        return;
+    }
+    const RAILWAY_URL = process.env.RAILWAY_PUBLIC_DOMAIN
+        ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+        : process.env.SERVER_URL || '';
+
+    if (!RAILWAY_URL) {
+        console.log('SERVER_URL не задан — webhook не установлен. Добавь переменную SERVER_URL в Railway.');
+        return;
+    }
+
+    const webhookUrl = `${RAILWAY_URL}/webhook`;
+    const result = await tgRequest('setWebhook', {
+        url: webhookUrl,
+        allowed_updates: ['message', 'callback_query']
+    });
+
+    if (result.ok) {
+        console.log(`✅ Webhook установлен: ${webhookUrl}`);
+    } else {
+        console.error('❌ Webhook error:', result.description);
+    }
+
+    // Устанавливаем команды меню бота
+    await tgRequest('setMyCommands', {
+        commands: [
+            { command: 'start', description: '👋 Начать работу' },
+            { command: 'plan', description: '📋 Открыть планировщик' },
+            { command: 'help', description: '❓ Как пользоваться' },
+            { command: 'about', description: 'ℹ️ О боте' }
+        ]
+    });
+    console.log('✅ Команды меню установлены');
+}
+
+// ─── ЗАПУСК ───────────────────────────────────────────────────────────────────
+
 app.get('/', (req, res) => res.send('Scout Planner Bot — работает ✅'));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, async () => {
+    console.log(`Server running on port ${PORT}`);
+    await setupWebhook();
+});
