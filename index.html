@@ -69,12 +69,14 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 .ic{width:1em;height:1em;display:inline-block;vertical-align:-0.125em;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
 
 /* ── THEME TOGGLE ── */
-.top-bar{display:flex;align-items:center;justify-content:center;margin-bottom:16px;padding:0 44px;min-height:30px;}
+.top-bar{display:flex;align-items:center;justify-content:center;margin-bottom:16px;min-height:30px;}
 .top-bar .header{margin:0;font-size:19px;font-weight:600;text-align:center;}
 /* Свитчер темы — фиксирован в правом верхнем углу, виден на всех экранах. */
 /* Свитчер темы: sticky-полоса поверх контента, прилипает к верху при скролле.
    Не используем position:fixed — он ненадёжен внутри Telegram WebApp и iframe. */
-.theme-toggle{position:fixed;top:16px;right:16px;z-index:9000;display:flex;align-items:center;}
+/* Свитчер темы — обычный элемент в потоке, прижат вправо.
+   Скроллится вместе со страницей и уезжает наверх. */
+.theme-toggle{display:flex;justify-content:flex-end;margin-bottom:10px;}
 .toggle-track{backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
 .toggle-track{width:44px;height:26px;background:var(--bg);border-radius:13px;position:relative;cursor:pointer;transition:background 0.3s,border-color 0.3s;border:1px solid var(--border);user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;}
 .toggle-track.on{background:var(--bg);border-color:var(--border);}
@@ -129,7 +131,7 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
    резервирует место под sticky-свитчер, левый — компенсирует его для центровки. */
 /* Кнопка назад слева, пустышка той же ширины справа — заголовок ровно по центру.
    Свитчер темы лежит поверх (sticky, height:0) и места в потоке не занимает. */
-.screen-header-center{display:grid;grid-template-columns:34px 1fr 34px;align-items:center;gap:0;margin-bottom:6px;padding:0 44px 0 0;}
+.screen-header-center{display:grid;grid-template-columns:34px 1fr 34px;align-items:center;gap:0;margin-bottom:6px;}
 .screen-header-center>*:last-child{width:34px;}
 .screen-header-center .builder-header-title,.screen-header-center .header{grid-column:2;margin:0;text-align:center;}
 .btn-back{background:transparent;border:none;width:34px;height:34px;border-radius:var(--radius);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--accent);padding:0;}
@@ -261,7 +263,7 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 
 /* ── BUILDER ── */
 .builder-header-title{font-size:20px;font-weight:700;text-align:center;margin-bottom:4px;color:var(--text);}
-.builder-header-date{font-size:15px;font-weight:600;text-align:center;color:var(--text2);margin:0 0 14px;padding:0 44px 0 0;}
+.builder-header-date{font-size:15px;font-weight:600;text-align:center;color:var(--text2);margin:0 0 14px;padding:0;}
 /* Визуальное разделение шапки билдера и содержимого. */
 .header-divider{height:1px;background:var(--border);margin:0 0 18px;}
 .section-label{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin:18px 0 9px;text-align:center;}
@@ -406,12 +408,12 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 <symbol id="i-signal" viewBox="0 0 24 24"><path d="M12 18l.01 0"/><path d="M9.172 15.172a4 4 0 0 1 5.656 0"/><path d="M6.343 12.343a8 8 0 0 1 11.314 0"/><path d="M3.515 9.515c4.686 -4.687 12.284 -4.687 17 0"/></symbol>
 </defs>
 </svg>
+<div class="app-wrapper">
 <div class="theme-toggle" id="theme-toggle-fixed">
   <div class="toggle-track" id="theme-toggle-btn">
     <div class="toggle-thumb"><span class="thumb-icon" id="theme-icon"><svg class="ic" aria-hidden="true"><use href="#i-moon"></use></svg></span></div>
   </div>
 </div>
-<div class="app-wrapper">
 
 <!-- ══════════════════════════════════
      ГЛАВНЫЙ ЭКРАН
