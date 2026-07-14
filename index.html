@@ -199,8 +199,6 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 .action-buttons{display:flex;flex-direction:column;gap:8px;margin-top:22px;}
 .form-row{display:flex;gap:10px;width:100%;}
 .form-row .form-group{flex:1;}
-.checkbox-container{display:flex;align-items:center;gap:10px;margin:10px 0;cursor:pointer;}
-.checkbox-container input{width:19px;height:19px;accent-color:var(--accent);flex-shrink:0;}
 
 /* ── CHIP TOGGLES (чекбокс, стилизованный под чипс) ── */
 .chip-toggles{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0;}
@@ -269,7 +267,6 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 .card-action-btn:active{background:var(--accent-bg);}
 .card-action-btn.danger{color:var(--red);}
 .card-action-btn.danger:active{background:var(--red-bg);}
-.card-divider{width:1px;background:var(--border);flex-shrink:0;}
 .empty-state{text-align:center;color:var(--text2);margin:36px 0;font-size:15px;line-height:1.6;}
 
 /* ── CTX MENU ── */
@@ -306,9 +303,7 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 .lightbox-close{position:absolute;top:16px;right:16px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
 .lightbox-close:active{background:rgba(255,255,255,0.3);}
 
-/* ── CENTER CHECKBOX ── */
-.checkbox-center{display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;font-size:15px;font-weight:600;color:var(--text);}
-.checkbox-center input{width:19px;height:19px;accent-color:var(--accent);flex-shrink:0;}
+
 
 /* ── SUMMARY (two-column) ── */
 .summary-section{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:10px;box-shadow:none;transition:background 0.3s;}
@@ -1804,7 +1799,19 @@ function startDrag(dragEl,clientY){
       const newOrder=[...container.querySelectorAll('.route-item')].map(el=>parseInt(el.getAttribute('data-index')));
       const old=[...routePoints];
       routePoints=newOrder.map(i=>old[i]);
+      // Куда приземлилась перетаскиваемая точка — запоминаем ДО renderRoute(),
+      // потому что он пересоздаёт узлы и ссылка на dragEl станет мёртвой.
+      const droppedAt=[...container.querySelectorAll('.route-item')].indexOf(dragEl);
       saveDraft(); renderRoute(); dLock=false;
+      // Анимация «приземления» — вешаем на НОВЫЙ узел, созданный renderRoute().
+      // Класс снимаем по animationend, чтобы он не мешал следующему драгу.
+      if(droppedAt>=0){
+        const fresh=container.querySelectorAll('.route-item')[droppedAt];
+        if(fresh){
+          fresh.classList.add('item-dropped');
+          fresh.addEventListener('animationend',()=>fresh.classList.remove('item-dropped'),{once:true});
+        }
+      }
     },210);
   }
   return {onMove,end};
