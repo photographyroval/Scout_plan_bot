@@ -801,10 +801,6 @@ function applyTheme(theme) {
   if (ic) ic.innerHTML = (theme === 'dark') ? iconSvg('moon') : iconSvg('sun');
   localStorage.setItem('scout_theme', theme);
 }
-$t('theme-toggle-btn','click',function(){
-  const cur = document.documentElement.getAttribute('data-theme');
-  applyTheme(cur === 'dark' ? 'light' : 'dark');
-});
 
 // ── HELPERS ─────────────────────────────────────────────────────────────
 function $(id){return document.getElementById(id);}
@@ -812,6 +808,14 @@ function $t(id,ev,fn){document.getElementById(id).addEventListener(ev,fn);}
 // Иконка интерфейса: inline SVG из спрайта в начале <body>.
 // В сообщениях Telegram по-прежнему используются эмодзи — их не трогаем.
 function iconSvg(name){return '<svg class="ic" aria-hidden="true"><use href="#i-'+name+'"></use></svg>';}
+
+// Слушатель свитчера темы — строго ПОСЛЕ объявления $t (правило 3).
+// Раньше вызов стоял выше и работал только за счёт hoisting'а function-declaration:
+// стоило переписать $t в const/стрелку — и здесь падало «Cannot access before initialization».
+$t('theme-toggle-btn','click',function(){
+  const cur = document.documentElement.getAttribute('data-theme');
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+});
 
 // ── NAVIGATION STACK ─────────────────────────────────────────────────────
 // Поддерживаем стек экранов для корректной навигации назад
