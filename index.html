@@ -863,10 +863,9 @@ function readDur(hoursId,minsId){const h=Math.max(0,parseInt($(hoursId).value)||
 // Лимит точек-локаций (Telegram-нумерация эмодзи 1️⃣–1️⃣5️⃣ + защита от >4096 символов).
 const MAX_LOCATIONS=15;
 function locationCount(){return routePoints.filter(p=>p.type==='location').length;}
-// Время с учётом перехода через полночь. Держим синхронно с server.js (toMinutes/absHHMM/moon).
+// Время с учётом перехода через полночь. Держим синхронно с server.js (toMinutes/absHHMM).
 function toMinM(t){if(!t)return 0;const[h,mm]=String(t).split(':').map(Number);return(isNaN(h)?0:h)*60+(isNaN(mm)?0:mm);}
 function absHHMMm(total){const mm=((total%1440)+1440)%1440;return String(Math.floor(mm/60)).padStart(2,'0')+':'+String(mm%60).padStart(2,'0');}
-function moonM(total){return total>=1440?' 🌑':'';}
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 // Экранирование URL для href="..." — держим синхронно с escAttr() в server.js.
 // Без него кавычка в ссылке ломает предпросмотр и реальное сообщение в Telegram.
@@ -1069,23 +1068,6 @@ function clearInputs(){
 }
 
 // ── BUILD PREVIEW HTML ────────────────────────────────────────────────────
-// Раскладка этапа "время слева / контент справа".
-// СИНХРОН символ-в-символ с pushStage() в server.js buildMessage().
-// Левый столбик всегда 8 символов: "HH:MM"+3пр, "–HH:MM"+2пр, либо 8 пробелов.
-function pushStage(lines, startTime, endTime, content){
-  const pad='        ';
-  const col=t=>{
-    const spaces=t.startsWith('–')?'  ':'   ';
-    return `<b>${t}</b>${spaces}`;
-  };
-  content.forEach((line,i)=>{
-    if(i===0) lines.push(`${col(startTime)}${line}`);
-    else if(i===1) lines.push(`${col(endTime)}${line}`);
-    else lines.push(`${pad}${line}`);
-  });
-  if(content.length===1) lines.push(`${col(endTime)}`);
-}
-
 function buildPreviewHtml(data) {
   const {title,date,meetingTime,departureTime,meetingPlace,meetingAddress,
     meetingMapUrl,allPointsMapUrl,coordinates,hasTransport,
@@ -1118,50 +1100,55 @@ function buildPreviewHtml(data) {
   const sborPlace=meetingMapUrl
     ? `<a href="${escAttr(meetingMapUrl)}">${esc(meetingPlace||'Место')}</a>`
     : esc(meetingPlace||'—');
-  lines.push(`<b>${esc(meetingTime||'—')}</b>   🟢 <b>Сбор:</b> ${sborPlace}`);
-  if(meetingAddress) lines.push(`        • ${esc(meetingAddress)}`);
-  if(coordinates) lines.push(`        <code>${esc(coordinates)}</code>`);
-  lines.push(`<b>${esc(departureTime||'—')}</b>   🔴 <b>Выезд</b>`);
+  lines.push(`🟢 <b>Сбор:</b> ${sborPlace} — ${esc(meetingTime||'—')} | 🔴 <b>Выезд:</b> ${esc(departureTime||'—')}`);
+  if(meetingAddress) lines.push(esc(meetingAddress));
+  if(coordinates) lines.push(`<code>${esc(coordinates)}</code>`);
   lines.push(SEP);
 
   const nums=['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','1️⃣1️⃣','1️⃣2️⃣','1️⃣3️⃣','1️⃣4️⃣','1️⃣5️⃣'];
   let runMin=toMinM(departureTime||'00:00');
   let locN=1;
 
+  // Ширина левой колонки времени: "09:15–10:15" (11 симв) + 2 пробела = 13.
+  // СИНХРОН символ-в-символ с buildMessage() в server.js.
+  const IND='             '; // 13 пробелов
+
   rp.forEach(point=>{
     const d=parseInt(point.duration)||0;
     if(point.type==='transit'){
-      lines.push(`        🚗 Переезд ~${dur(d)}`);
+      lines.push(`${IND}🚗 Переезд ~${dur(d)}`);
       lines.push('');
       runMin+=d;
     } else if(point.type==='lunch'){
       const s=runMin, e=runMin+d;
-      const content=[];
-      content.push(`🍽 <b>Ланч</b> (${dur(d)})`);
-      if(point.mapUrl) content.push(`📍 <a href="${escAttr(point.mapUrl)}">Точка на карте</a>`);
-      if(point.address) content.push(`  • ${esc(point.address)}`);
-      pushStage(lines, absHHMMm(s), `–${absHHMMm(e)}${moonM(e)}`, content);
+      const range=`${absHHMMm(s)}–${absHHMMm(e)}`;
+      lines.push(`${range}  🍽 <b>Ланч</b> · ${dur(d)}`);
+      const tail=[];
+      if(point.address) tail.push(esc(point.address));
+      if(point.mapUrl) tail.push(`<a href="${escAttr(point.mapUrl)}">карта</a>`);
+      if(tail.length) lines.push(`${IND}• ${tail.join(' · ')}`);
       lines.push('');
       runMin=e;
     } else if(point.type==='location'){
       const s=runMin, e=runMin+d;
+      const range=`${absHHMMm(s)}–${absHHMMm(e)}`;
       const em=nums[locN-1]||`${locN}.`;
-      const content=[];
       const name=point.link
         ? `<a href="${escAttr(point.link)}"><b>${esc(point.title||'Локация')}</b></a>`
         : `<b>${esc(point.title||'Локация')}</b>`;
-      content.push(`${em} ${name} (${dur(d)})`);
-      if(point.mapUrl) content.push(`📍 <a href="${escAttr(point.mapUrl)}">Точка на карте</a>`);
-      if(point.address) content.push(`  • ${esc(point.address)}`);
-      if(point.coords) content.push(`  <code>${esc(point.coords)}</code>`);
-      pushStage(lines, absHHMMm(s), `–${absHHMMm(e)}${moonM(e)}`, content);
+      lines.push(`${range}  ${em} ${name} · ${dur(d)}`);
+      const tail=[];
+      if(point.address) tail.push(esc(point.address));
+      if(point.mapUrl) tail.push(`<a href="${escAttr(point.mapUrl)}">карта</a>`);
+      if(tail.length) lines.push(`${IND}• ${tail.join(' · ')}`);
+      if(point.coords) lines.push(`${IND}<code>${esc(point.coords)}</code>`);
       lines.push('');
       locN++; runMin=e;
     }
   });
 
   lines.push(SEP);
-  lines.push(`🏁 <b>Возвращение: ~${absHHMMm(runMin)}${moonM(runMin)}</b>`);
+  lines.push(`🏁 <b>Возвращение: ~${absHHMMm(runMin)}</b>`);
 
   return lines.join('\n').replace(/\n/g,'<br>');
 }
@@ -1172,7 +1159,7 @@ function collectPlanData(){
   const hasAP=$('check-all-points-map').checked;
   let rtMin=toMinM(gDepTime||'00:00');
   routePoints.forEach(p=>{rtMin+=parseInt(p.duration)||0;});
-  const rt=absHHMMm(rtMin)+moonM(rtMin); // строка "HH:MM" (+🌑 если возврат за полночь)
+  const rt=absHHMMm(rtMin); // строка "HH:MM"
   return {
     title:gTitle, date:gDate, meetingTime:gMeetTime, departureTime:gDepTime,
     meetingPlace:gPlace, meetingAddress:gAddress, meetingMapUrl:gMap,
@@ -1687,7 +1674,7 @@ function renderRoute(){
 
     if(p.type==='location'){
       const s0=runMin, e0=runMin+d;
-      const sT=absHHMMm(s0), eT=absHHMMm(e0)+moonM(e0);
+      const sT=absHHMMm(s0), eT=absHHMMm(e0);
       let sub=[];
       if(p.link) sub.push('<span class="tl-tag tag-green">'+iconSvg('photo')+'Фото</span>');
       if(p.mapUrl) sub.push('<span class="tl-tag tag-accent">'+iconSvg('map')+'Карта</span>');
@@ -1718,7 +1705,7 @@ function renderRoute(){
       runMin+=d;
     } else if(p.type==='lunch'){
       const s0=runMin, e0=runMin+d;
-      const sT=absHHMMm(s0), eT=absHHMMm(e0)+moonM(e0);
+      const sT=absHHMMm(s0), eT=absHHMMm(e0);
       let lsub=[];
       if(p.mapUrl) lsub.push('<span class="tl-tag tag-accent">'+iconSvg('map')+'Карта</span>');
       item.innerHTML=
@@ -1747,7 +1734,7 @@ function renderRoute(){
     });
     setupDnD(item); c.appendChild(item);
   });
-  const retStr=absHHMMm(runMin)+moonM(runMin);
+  const retStr=absHHMMm(runMin);
   updateSummary(retStr);
   fin.innerHTML=renderFinishNode(retStr);
 }
