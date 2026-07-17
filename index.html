@@ -1069,6 +1069,23 @@ function clearInputs(){
 }
 
 // ── BUILD PREVIEW HTML ────────────────────────────────────────────────────
+// Раскладка этапа "время слева / контент справа".
+// СИНХРОН символ-в-символ с pushStage() в server.js buildMessage().
+// Левый столбик всегда 8 символов: "HH:MM"+3пр, "–HH:MM"+2пр, либо 8 пробелов.
+function pushStage(lines, startTime, endTime, content){
+  const pad='        ';
+  const col=t=>{
+    const spaces=t.startsWith('–')?'  ':'   ';
+    return `<b>${t}</b>${spaces}`;
+  };
+  content.forEach((line,i)=>{
+    if(i===0) lines.push(`${col(startTime)}${line}`);
+    else if(i===1) lines.push(`${col(endTime)}${line}`);
+    else lines.push(`${pad}${line}`);
+  });
+  if(content.length===1) lines.push(`${col(endTime)}`);
+}
+
 function buildPreviewHtml(data) {
   const {title,date,meetingTime,departureTime,meetingPlace,meetingAddress,
     meetingMapUrl,allPointsMapUrl,coordinates,hasTransport,
@@ -1101,10 +1118,10 @@ function buildPreviewHtml(data) {
   const sborPlace=meetingMapUrl
     ? `<a href="${escAttr(meetingMapUrl)}">${esc(meetingPlace||'Место')}</a>`
     : esc(meetingPlace||'—');
-  lines.push(`🟢 <b>Сбор:</b> ${sborPlace} — ${esc(meetingTime||'—')} | 🔴 <b>Выезд:</b> ${esc(departureTime||'—')}`);
-
-  if(meetingAddress) lines.push(esc(meetingAddress));
-  if(coordinates) lines.push(`<code>${esc(coordinates)}</code>`);
+  lines.push(`<b>${esc(meetingTime||'—')}</b>   🟢 <b>Сбор:</b> ${sborPlace}`);
+  if(meetingAddress) lines.push(`        • ${esc(meetingAddress)}`);
+  if(coordinates) lines.push(`        <code>${esc(coordinates)}</code>`);
+  lines.push(`<b>${esc(departureTime||'—')}</b>   🔴 <b>Выезд</b>`);
   lines.push(SEP);
 
   const nums=['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','1️⃣1️⃣','1️⃣2️⃣','1️⃣3️⃣','1️⃣4️⃣','1️⃣5️⃣'];
@@ -1119,25 +1136,25 @@ function buildPreviewHtml(data) {
       runMin+=d;
     } else if(point.type==='lunch'){
       const s=runMin, e=runMin+d;
-      lines.push(`🍽 Ланч ${absHHMMm(s)}–${absHHMMm(e)}${moonM(e)} (${dur(d)})`);
-      if(point.mapUrl) lines.push(`📍 <a href="${escAttr(point.mapUrl)}">Точка на карте</a>`);
-      if(point.address) lines.push(`• ${esc(point.address)}`);
+      const content=[];
+      content.push(`🍽 <b>Ланч</b> (${dur(d)})`);
+      if(point.mapUrl) content.push(`📍 <a href="${escAttr(point.mapUrl)}">Точка на карте</a>`);
+      if(point.address) content.push(`  • ${esc(point.address)}`);
+      pushStage(lines, absHHMMm(s), `–${absHHMMm(e)}${moonM(e)}`, content);
       lines.push('');
       runMin=e;
     } else if(point.type==='location'){
       const s=runMin, e=runMin+d;
       const em=nums[locN-1]||`${locN}.`;
-      let locLine=`${em} `;
-      if(point.link){
-        locLine+=`<a href="${escAttr(point.link)}"><b>${esc(point.title||'Локация')}</b></a>`;
-      } else {
-        locLine+=`<b>${esc(point.title||'Локация')}</b>`;
-      }
-      lines.push(locLine);
-      lines.push(`🕐 ${absHHMMm(s)}–${absHHMMm(e)}${moonM(e)} (${dur(d)})`);
-      if(point.mapUrl) lines.push(`📍 <a href="${escAttr(point.mapUrl)}">Точка на карте</a>`);
-      if(point.address) lines.push(`• ${esc(point.address)}`);
-      if(point.coords) lines.push(`<code>${esc(point.coords)}</code>`);
+      const content=[];
+      const name=point.link
+        ? `<a href="${escAttr(point.link)}"><b>${esc(point.title||'Локация')}</b></a>`
+        : `<b>${esc(point.title||'Локация')}</b>`;
+      content.push(`${em} ${name} (${dur(d)})`);
+      if(point.mapUrl) content.push(`📍 <a href="${escAttr(point.mapUrl)}">Точка на карте</a>`);
+      if(point.address) content.push(`  • ${esc(point.address)}`);
+      if(point.coords) content.push(`  <code>${esc(point.coords)}</code>`);
+      pushStage(lines, absHHMMm(s), `–${absHHMMm(e)}${moonM(e)}`, content);
       lines.push('');
       locN++; runMin=e;
     }
