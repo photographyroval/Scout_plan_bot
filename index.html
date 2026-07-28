@@ -1115,10 +1115,9 @@ function readDur(hoursId,minsId){const h=Math.max(0,parseInt($(hoursId).value)||
 // Лимит точек-локаций (Telegram-нумерация эмодзи 1️⃣–1️⃣5️⃣ + защита от >4096 символов).
 const MAX_LOCATIONS=15;
 function locationCount(){return routePoints.filter(p=>p.type==='location').length;}
-// Время с учётом перехода через полночь. Держим синхронно с server.js (toMinutes/absHHMM/moon).
+// Время с учётом перехода через полночь. Держим синхронно с server.js (toMinutes/absHHMM).
 function toMinM(t){if(!t)return 0;const[h,mm]=String(t).split(':').map(Number);return(isNaN(h)?0:h)*60+(isNaN(mm)?0:mm);}
 function absHHMMm(total){const mm=((total%1440)+1440)%1440;return String(Math.floor(mm/60)).padStart(2,'0')+':'+String(mm%60).padStart(2,'0');}
-function moonM(total){return total>=1440?' 🌑':'';}
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 // Экранирование URL для href="..." — держим синхронно с escAttr() в server.js.
 // Без него кавычка в ссылке ломает предпросмотр и реальное сообщение в Telegram.
@@ -1398,7 +1397,7 @@ function buildPreviewHtml(data) {
       runMin+=d;
     } else if(point.type==='lunch'){
       const s=runMin, e=runMin+d;
-      lines.push(`🍽 Ланч ${absHHMMm(s)}–${absHHMMm(e)}${moonM(e)} (${dur(d)})`);
+      lines.push(`🍽 Ланч ${absHHMMm(s)}–${absHHMMm(e)} (${dur(d)})`);
       if(point.mapUrl) lines.push(`📍 <a href="${escAttr(point.mapUrl)}">Точка на карте</a>`);
       if(point.address) lines.push(`• ${esc(point.address)}`);
       lines.push('');
@@ -1413,7 +1412,7 @@ function buildPreviewHtml(data) {
         locLine+=`<b>${esc(point.title||'Локация')}</b>`;
       }
       lines.push(locLine);
-      lines.push(`🕐 ${absHHMMm(s)}–${absHHMMm(e)}${moonM(e)} (${dur(d)})`);
+      lines.push(`🕐 ${absHHMMm(s)}–${absHHMMm(e)} (${dur(d)})`);
       if(point.mapUrl) lines.push(`📍 <a href="${escAttr(point.mapUrl)}">Точка на карте</a>`);
       if(point.address) lines.push(`• ${esc(point.address)}`);
       if(point.coords) lines.push(`<code>${esc(point.coords)}</code>`);
@@ -1423,7 +1422,7 @@ function buildPreviewHtml(data) {
   });
 
   lines.push(SEP);
-  lines.push(`🏁 <b>Возвращение: ~${absHHMMm(runMin)}${moonM(runMin)}</b>`);
+  lines.push(`🏁 <b>Возвращение: ~${absHHMMm(runMin)}</b>`);
 
   return lines.join('\n').replace(/\n/g,'<br>');
 }
@@ -1434,7 +1433,7 @@ function collectPlanData(){
   const hasAP=$('check-all-points-map').checked;
   let rtMin=toMinM(gDepTime||'00:00');
   routePoints.forEach(p=>{rtMin+=parseInt(p.duration)||0;});
-  const rt=absHHMMm(rtMin)+moonM(rtMin); // строка "HH:MM" (+🌑 если возврат за полночь)
+  const rt=absHHMMm(rtMin); // строка "HH:MM"; эмодзи сюда не добавляем — поле уходит в returnTime и парсится
   return {
     title:gTitle, date:gDate, meetingTime:gMeetTime, departureTime:gDepTime,
     meetingPlace:gPlace, meetingAddress:gAddress, meetingMapUrl:gMap,
@@ -2360,7 +2359,7 @@ function renderRoute(){
 
     if(p.type==='location'){
       const s0=runMin, e0=runMin+d;
-      const sT=absHHMMm(s0), eT=absHHMMm(e0)+moonM(e0);
+      const sT=absHHMMm(s0), eT=absHHMMm(e0);
       let sub=[];
       if(p.link) sub.push('<span class="tl-tag tag-green">'+iconSvg('photo')+'Фото</span>');
       if(p.mapUrl) sub.push('<span class="tl-tag tag-accent">'+iconSvg('map')+'Карта</span>');
@@ -2391,7 +2390,7 @@ function renderRoute(){
       runMin+=d;
     } else if(p.type==='lunch'){
       const s0=runMin, e0=runMin+d;
-      const sT=absHHMMm(s0), eT=absHHMMm(e0)+moonM(e0);
+      const sT=absHHMMm(s0), eT=absHHMMm(e0);
       let lsub=[];
       if(p.mapUrl) lsub.push('<span class="tl-tag tag-accent">'+iconSvg('map')+'Карта</span>');
       item.innerHTML=
@@ -2420,7 +2419,7 @@ function renderRoute(){
     });
     setupDnD(item); c.appendChild(item);
   });
-  const retStr=absHHMMm(runMin)+moonM(runMin);
+  const retStr=absHHMMm(runMin);
   updateSummary(retStr);
   fin.innerHTML=renderFinishNode(retStr);
 }
