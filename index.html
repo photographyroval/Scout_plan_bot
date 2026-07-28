@@ -305,6 +305,26 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 
 
 
+/* ── CONFIRM DIALOG ── */
+/* Необратимые действия спрашивают подтверждение. Overlay inset:0 накрывает
+   всё окно поверх .app-wrapper — тот же рабочий паттерн, что у .lightbox
+   и #maint-screen (position:fixed здесь надёжен, плавать нечему). */
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99000;display:none;align-items:center;justify-content:center;padding:24px;}
+.confirm-box{background:var(--card);border-radius:var(--radius-lg);border:1px solid var(--border);width:100%;max-width:320px;padding:20px;box-shadow:0 12px 32px rgba(0,0,0,0.18);}
+.confirm-title{font-size:17px;font-weight:600;color:var(--text);margin-bottom:8px;text-align:center;}
+.confirm-text{font-size:14px;color:var(--text2);line-height:1.45;text-align:center;margin-bottom:18px;}
+.confirm-actions{display:flex;flex-direction:column;gap:8px;}
+.confirm-btn-danger{width:100%;background:var(--red);color:#fff;border:none;padding:12px;border-radius:var(--radius-lg);font-size:16px;font-weight:500;cursor:pointer;transition:opacity 0.2s,transform 0.1s;}
+.confirm-btn-danger:active{transform:scale(0.98);opacity:0.9;}
+.confirm-btn-cancel{width:100%;background:transparent;color:var(--accent);border:none;padding:12px;border-radius:var(--radius-lg);font-size:16px;font-weight:500;cursor:pointer;}
+.confirm-btn-cancel:active{background:var(--bg2);}
+
+/* ── CLEAR TRASH ── */
+.btn-clear-trash{display:none;align-items:center;justify-content:center;gap:7px;width:100%;background:transparent;color:var(--red);border:1px solid var(--border);padding:11px;border-radius:var(--radius-lg);font-size:15px;font-weight:500;cursor:pointer;margin-bottom:12px;transition:background 0.15s;}
+.btn-clear-trash:active{background:var(--red-bg);}
+.btn-clear-trash:disabled{opacity:0.5;cursor:not-allowed;}
+.btn-clear-trash .ic{color:var(--red);}
+
 /* ── SUMMARY (two-column) ── */
 .summary-section{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:10px;box-shadow:none;transition:background 0.3s;}
 .summary-two-col{display:flex;gap:14px;}
@@ -482,6 +502,7 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
     <div id="projects-list-archive"></div>
   </div>
   <div id="content-trash" style="display:none;">
+    <button class="btn-clear-trash" id="btn-clear-trash"><svg class="ic" aria-hidden="true"><use href="#i-trash"></use></svg> Очистить корзину</button>
     <div class="empty-state" id="trash-empty-state"><span class="empty-icon"><svg class="ic" aria-hidden="true"><use href="#i-trash"></use></svg></span><div class="empty-title">Корзина пуста</div></div>
     <div id="projects-list-trash"></div>
   </div>
@@ -695,6 +716,18 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
   <div class="ctx-item danger" id="ctx-delete"><svg class="ic" aria-hidden="true"><use href="#i-trash"></use></svg> <span id="ctx-delete-text">Удалить</span></div>
 </div>
 
+<!-- ДИАЛОГ ПОДТВЕРЖДЕНИЯ (необратимые действия) -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirm-title"></div>
+    <div class="confirm-text" id="confirm-text"></div>
+    <div class="confirm-actions">
+      <button class="confirm-btn-danger" id="confirm-ok"></button>
+      <button class="confirm-btn-cancel" id="confirm-cancel">Отмена</button>
+    </div>
+  </div>
+</div>
+
 <!-- ШТОРКА: ЛОКАЦИЯ -->
 <div class="bottom-sheet-overlay" id="overlay-location">
   <div class="bottom-sheet">
@@ -875,6 +908,24 @@ function showStatus(id,type,text){const el=$(id);el.className='send-status '+typ
 
 function openSheet(id){haptic('light');document.body.classList.add('sheet-open');$(id).style.display='block';}
 function closeSheet(id){document.body.classList.remove('sheet-open');$(id).style.display='none';editingIndex=null;}
+
+// ── ДИАЛОГ ПОДТВЕРЖДЕНИЯ ─────────────────────────────────────────────────
+// Спрашиваем перед необратимым действием (удалить навсегда, очистить корзину).
+// Свой диалог, а не tg.showConfirm: тот есть не во всех версиях клиента и
+// возвращает результат колбэком — на старых сборках просто молча не срабатывает.
+let confirmAction=null;
+function showConfirm(opts){
+  $('confirm-title').textContent=opts.title||'';
+  $('confirm-text').textContent=opts.text||'';
+  $('confirm-ok').textContent=opts.okText||'Удалить';
+  confirmAction=opts.onOk||null;
+  $('confirm-overlay').style.display='flex';
+  haptic('medium');
+}
+function closeConfirm(){
+  $('confirm-overlay').style.display='none';
+  confirmAction=null;
+}
 
 // ── STORAGE ──────────────────────────────────────────────────────────────
 // Стабильный идентификатор проекта. Раньше проекты адресовались по позиции
@@ -1278,11 +1329,33 @@ function renderAllProjects(){
       container.appendChild(card);
     });
   });
+  // Кнопка очистки корзины видна, только когда в корзине что-то есть.
+  const clearBtn=$('btn-clear-trash');
+  if(clearBtn) clearBtn.style.display=projects.filter(p=>p.status==='trash').length?'flex':'none';
   try{$('main-draft-banner').style.display=localStorage.getItem('scout_draft')?'flex':'none';}catch(e){}
 }
 
 function changeStatus(id,s){cloudSetStatus(id,s);}
 function deleteForever(id){cloudDeleteProject(id);}
+
+// Очистка корзины целиком. Массового эндпоинта на сервере нет, поэтому удаляем
+// последовательно, по одному запросу на проект. Лимит /projects/* — 60 запросов
+// в минуту: при очень большой корзине часть удалений может не пройти, поэтому
+// считаем неудачи и честно сообщаем результат вибрацией.
+async function clearTrash(){
+  const ids=getProjects().filter(p=>p.status==='trash').map(p=>p.id);
+  if(!ids.length) return;
+  const btn=$('btn-clear-trash');
+  if(btn){btn.disabled=true;btn.textContent='Удаление…';}
+  let failed=0;
+  for(const id of ids){
+    const ok=await cloudDeleteProject(id);
+    if(!ok) failed++;
+  }
+  if(btn){btn.disabled=false;btn.innerHTML=iconSvg('trash')+' Очистить корзину';}
+  hapticN(failed?'error':'success');
+  renderAllProjects();
+}
 
 // ── CTX MENU ──────────────────────────────────────────────────────────────
 function openCtxMenu(id,status,anchor){
@@ -1307,9 +1380,31 @@ $t('ctx-send','click',()=>{closeCtxMenu();sendProjectToTg(ctxProjectId,null);});
 $t('ctx-hide','click',()=>{closeCtxMenu();changeStatus(ctxProjectId,'archive');});
 $t('ctx-restore','click',()=>{closeCtxMenu();changeStatus(ctxProjectId,'active');});
 $t('ctx-delete','click',()=>{
+  const id=ctxProjectId, st=ctxProjectStatus;
   closeCtxMenu();
-  if(ctxProjectStatus==='trash') deleteForever(ctxProjectId);
-  else changeStatus(ctxProjectId,'trash');
+  // «В корзину» обратимо — не спрашиваем. Удаление навсегда спрашиваем всегда.
+  if(st!=='trash'){changeStatus(id,'trash');return;}
+  const projects=getProjects();
+  const proj=projects[idxById(projects,id)];
+  showConfirm({
+    title:'Удалить навсегда?',
+    text:'Проект «'+((proj&&proj.title)||'Без названия')+'» будет удалён без возможности восстановить.',
+    okText:'Удалить',
+    onOk:()=>deleteForever(id)
+  });
+});
+$t('confirm-cancel','click',closeConfirm);
+$t('confirm-ok','click',()=>{const fn=confirmAction;closeConfirm();if(fn)fn();});
+$t('confirm-overlay','click',e=>{if(e.target===$('confirm-overlay'))closeConfirm();});
+$t('btn-clear-trash','click',()=>{
+  const n=getProjects().filter(p=>p.status==='trash').length;
+  if(!n) return;
+  showConfirm({
+    title:'Очистить корзину?',
+    text:'Все проекты в корзине ('+n+') будут удалены навсегда. Восстановить их будет нельзя.',
+    okText:'Очистить',
+    onOk:clearTrash
+  });
 });
 
 // ── OPEN PROJECT FOR EDIT ─────────────────────────────────────────────────
