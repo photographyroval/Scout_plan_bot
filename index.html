@@ -339,8 +339,8 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 @keyframes scoutToast{0%{opacity:0;transform:translateY(8px);}14%{opacity:1;transform:none;}80%{opacity:1;transform:none;}100%{opacity:0;transform:translateY(8px);}}
 .scout-toast{display:none;position:absolute;left:16px;right:16px;bottom:16px;z-index:6;background:var(--text);color:var(--bg);font-size:13px;font-weight:500;text-align:center;padding:11px 14px;border-radius:var(--radius);animation:scoutToast 2.2s ease forwards;}
 /* Только затухание, без вертикального сдвига — сдвиг и читался как «дёрганье». */
-@keyframes scoutSwap{from{opacity:0.25;}to{opacity:1;}}
-.scout-point.sp-swap{animation:scoutSwap 0.18s ease;}
+@keyframes scoutSwap{from{opacity:0.55;}to{opacity:1;}}
+.scout-point.sp-swap{animation:scoutSwap 0.16s ease;}
 @keyframes scoutHint{0%{opacity:0;transform:translateY(-4px);}12%{opacity:1;transform:none;}78%{opacity:1;transform:none;}100%{opacity:0;transform:translateY(-4px);}}
 .scout-min-hint{display:none;position:absolute;top:34px;right:0;background:var(--text);color:var(--bg);font-size:12px;font-weight:500;padding:5px 10px;border-radius:8px;white-space:nowrap;z-index:5;animation:scoutHint 3.6s ease forwards;}
 .scout-fact-hint{display:none;font-size:12px;color:var(--text3);text-align:center;padding:0 4px;margin-bottom:12px;animation:scoutHint 3.6s ease forwards;}
@@ -361,11 +361,13 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 .scout-rail-wrap{overflow-x:auto;overflow-y:hidden;border-bottom:1px solid var(--border);padding:14px 10px 16px;flex-shrink:0;-webkit-overflow-scrolling:touch;}
 .scout-rail-wrap::-webkit-scrollbar{display:none;}
 .scout-rail{display:flex;align-items:flex-start;width:max-content;min-width:100%;justify-content:center;}
-.sr-node{text-align:center;width:84px;flex-shrink:0;cursor:pointer;padding:0 3px;opacity:1;transition:opacity 0.25s ease,width 0.25s ease;}
-.sr-node.sr-cur{width:92px;}
-.sr-dot{width:13px;height:13px;border-radius:50%;margin:0 auto 7px;background:var(--text3);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 0 var(--accent-bg);transition:background 0.25s ease,width 0.25s ease,height 0.25s ease,box-shadow 0.25s ease,margin 0.25s ease;}
+/* Ширина узла постоянна, точка растёт внутри зоны фиксированной высоты —
+   поэтому при переключении ничего не перекладывается и текст не прыгает. */
+.sr-node{text-align:center;width:96px;flex-shrink:0;cursor:pointer;padding:0 4px;opacity:1;transition:opacity 0.25s ease;}
+.sr-dot-box{height:30px;display:flex;align-items:center;justify-content:center;margin-bottom:3px;}
+.sr-dot{width:13px;height:13px;border-radius:50%;background:var(--text3);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 0 var(--accent-bg);transition:background 0.25s ease,width 0.25s ease,height 0.25s ease,box-shadow 0.25s ease;}
 .sr-dot::after{content:'';width:0;height:0;border-radius:50%;background:#fff;transition:width 0.25s ease,height 0.25s ease;}
-.sr-cur .sr-dot{width:26px;height:26px;margin-bottom:6px;box-shadow:0 0 0 5px var(--accent-bg);}
+.sr-cur .sr-dot{width:26px;height:26px;box-shadow:0 0 0 5px var(--accent-bg);}
 .sr-cur .sr-dot::after{width:8px;height:8px;}
 .sr-dot-start{background:var(--green);}
 .sr-dot-location{background:var(--accent);}
@@ -373,11 +375,11 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 .sr-dot-finish{background:var(--purple);}
 .sr-done{opacity:0.4;}
 .sr-done .sr-dot{background:var(--text3)!important;width:9px;height:9px;}
-.sr-name{font-size:12px;font-weight:500;color:var(--text2);line-height:1.25;word-break:break-word;transition:color 0.25s ease,font-size 0.25s ease;}
-.sr-time{font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums;margin-top:2px;transition:color 0.25s ease;}
-.sr-cur .sr-name{font-size:13px;font-weight:700;color:var(--accent);}
-.sr-cur .sr-time{color:var(--accent);font-weight:600;}
-.sr-seg{width:42px;flex-shrink:0;text-align:center;padding-top:3px;color:var(--text3);}
+.sr-name{font-size:12px;font-weight:600;color:var(--text2);line-height:1.25;overflow-wrap:break-word;hyphens:none;transition:color 0.25s ease;}
+.sr-time{font-size:12px;font-weight:600;color:var(--text3);font-variant-numeric:tabular-nums;margin-top:2px;transition:color 0.25s ease;}
+.sr-cur .sr-name{color:var(--accent);}
+.sr-cur .sr-time{color:var(--accent);}
+.sr-seg{width:42px;flex-shrink:0;text-align:center;padding-top:14px;color:var(--text3);}
 .sr-line{height:2px;background:var(--border-strong);margin-bottom:4px;opacity:1;transition:opacity 0.25s ease;}
 .sr-seg.sr-seg-done .sr-line{opacity:0.5;}
 .sr-seg .ic{font-size:15px;}
@@ -1646,7 +1648,6 @@ function scoutFields(st){
   return {link:pt.link||'',coords:pt.coords||'',mapUrl:pt.mapUrl||'',address:pt.address||''};
 }
 function scoutShort(t){t=String(t||'');return t.length>9?t.slice(0,8)+'…':t;}
-function scoutNowMin(){const d=new Date();return d.getHours()*60+d.getMinutes();}
 function scoutHHMM(){const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
 
 // Отклонение живое: пока не приехал — считаем от планового прибытия,
@@ -1657,21 +1658,22 @@ function scoutProgressIdx(){
   for(let i=0;i<scoutStops.length;i++){const f=scoutFacts[i]||{};if(!f.a||!f.d)return i;}
   return scoutStops.length-1;
 }
-function scoutHasFacts(){
-  for(const k in scoutFacts){const f=scoutFacts[k]||{};if(f.a||f.d)return true;}
-  return false;
+// Последняя точка, где хоть что-то отмечено руками или кнопкой.
+function scoutLastFactIdx(){
+  let last=-1;
+  for(let i=0;i<scoutStops.length;i++){const f=scoutFacts[i]||{};if(f.a||f.d)last=i;}
+  return last;
 }
-// Отклонение привязано к ПРОГРЕССУ, а не к тому, какую точку сейчас смотрят.
-// Пока ничего не отмечено, отклонения нет — сравнивать не с чем.
+// Отклонение считается ТОЛЬКО по факту против плана — настенные часы не
+// участвуют. Поставил отбытие 16:35 при плане 16:25 → ровно +10 мин, и цифра
+// не зависит ни от того, какую точку смотрят, ни от того, который сейчас час.
+// Берём самую свежую отметку: если у точки есть отбытие — сравниваем с
+// плановым отбытием, иначе прибытие с плановым прибытием.
 function scoutDev(){
-  if(!scoutHasFacts()) return null;
-  const pi=scoutProgressIdx();
-  const st=scoutStops[pi]; if(!st) return null;
-  const now=scoutNowMin(), f=scoutFacts[pi]||{};
-  let d;
-  if(!f.a) d=now-st.arrive;                          // ещё не доехали — считаем от планового прибытия
-  else if(f.d) d=toMinM(f.d)-st.depart;              // точка закрыта — отклонение фиксируется
-  else d=(now>st.depart)?(now-st.depart):(toMinM(f.a)-st.arrive); // стоим на точке
+  const i=scoutLastFactIdx();
+  if(i<0) return null;
+  const st=scoutStops[i], f=scoutFacts[i]||{};
+  let d=f.d?(toMinM(f.d)-st.depart):(toMinM(f.a)-st.arrive);
   if(d>720)d-=1440; if(d<-720)d+=1440;
   return d;
 }
@@ -1684,7 +1686,7 @@ function scoutBuildRail(){
   scoutStops.forEach((st,i)=>{
     if(i>0) h+='<div class="sr-seg"><div class="sr-line"></div>'+(st.transit?iconSvg('car')+'<div class="sr-seg-t">'+dur(st.transit)+'</div>':'')+'</div>';
     h+='<div class="sr-node" data-i="'+i+'">'+
-       '<div class="sr-dot sr-dot-'+st.kind+'"></div>'+
+       '<div class="sr-dot-box"><div class="sr-dot sr-dot-'+st.kind+'"></div></div>'+
        '<div class="sr-name">'+esc(st.title)+'</div>'+
        '<div class="sr-time">'+absHHMMm(st.arrive)+'</div></div>';
   });
