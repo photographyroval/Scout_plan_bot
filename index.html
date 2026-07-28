@@ -338,14 +338,20 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 /* Подсказки-плашки: показываются вскользь и гаснут сами. */
 @keyframes scoutToast{0%{opacity:0;transform:translateY(8px);}14%{opacity:1;transform:none;}80%{opacity:1;transform:none;}100%{opacity:0;transform:translateY(8px);}}
 .scout-toast{display:none;position:absolute;left:16px;right:16px;bottom:16px;z-index:6;background:var(--text);color:var(--bg);font-size:13px;font-weight:500;text-align:center;padding:11px 14px;border-radius:var(--radius);animation:scoutToast 2.2s ease forwards;}
-@keyframes scoutSwap{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
-.scout-point.sp-swap{animation:scoutSwap 0.24s ease;}
+/* Только затухание, без вертикального сдвига — сдвиг и читался как «дёрганье». */
+@keyframes scoutSwap{from{opacity:0.25;}to{opacity:1;}}
+.scout-point.sp-swap{animation:scoutSwap 0.18s ease;}
 @keyframes scoutHint{0%{opacity:0;transform:translateY(-4px);}12%{opacity:1;transform:none;}78%{opacity:1;transform:none;}100%{opacity:0;transform:translateY(-4px);}}
 .scout-min-hint{display:none;position:absolute;top:34px;right:0;background:var(--text);color:var(--bg);font-size:12px;font-weight:500;padding:5px 10px;border-radius:8px;white-space:nowrap;z-index:5;animation:scoutHint 3.6s ease forwards;}
-.scout-fact-hint{display:none;font-size:12px;color:var(--text2);background:var(--bg2);border-radius:8px;padding:6px 10px;margin-bottom:10px;animation:scoutHint 3.6s ease forwards;}
+.scout-fact-hint{display:none;font-size:12px;color:var(--text3);text-align:center;padding:0 4px;margin-bottom:12px;animation:scoutHint 3.6s ease forwards;}
 .scout-timer-row{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-top:12px;}
 .scout-timer-lbl{font-size:11px;color:var(--text3);margin-bottom:1px;}
+.scout-timer-line{display:flex;align-items:center;gap:8px;}
 .scout-timer{font-size:22px;font-weight:600;line-height:1.1;color:var(--text2);font-variant-numeric:tabular-nums;}
+.scout-timer.tm-paused{opacity:0.5;}
+.scout-timer-btn{background:var(--bg2);border:none;color:var(--text2);width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;font-size:13px;}
+.scout-timer-btn:active{opacity:0.7;}
+.scout-timer-btn.tm-on{background:var(--green-bg);color:var(--green);}
 .scout-dev{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;padding:4px 10px;border-radius:20px;white-space:nowrap;}
 .scout-dev-late{background:var(--yellow-bg);color:var(--yellow-text);}
 .scout-dev-ok{background:var(--green-bg);color:var(--green);}
@@ -384,7 +390,7 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
    Чип корректировки всегда на своей строке, поэтому верстка не «едет»
    между точками с адресом и без. */
 .scout-name{font-size:22px;font-weight:600;color:var(--text);word-break:break-word;margin-bottom:6px;}
-.scout-fact{display:flex;align-items:center;justify-content:center;gap:11px;width:100%;background:var(--bg2);border:none;border-radius:10px;padding:9px 11px;cursor:pointer;margin-bottom:14px;}
+.scout-fact{display:flex;align-items:center;justify-content:center;gap:11px;width:100%;background:var(--bg2);border:none;border-radius:10px;padding:9px 11px;cursor:pointer;margin-bottom:8px;}
 .scout-fact:active{background:var(--border);}
 .sf-col{display:flex;flex-direction:column;align-items:flex-start;}
 .sf-lbl{font-size:9px;color:var(--text3);line-height:1.3;}
@@ -428,6 +434,10 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 .spl-name{font-size:14px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .spl-badge{font-size:10px;background:var(--accent);color:#fff;padding:1px 7px;border-radius:10px;font-weight:500;}
 .spl-sub{font-size:11px;color:var(--text3);margin-top:1px;}
+.spl-tr{display:flex;gap:10px;align-items:center;padding:2px 0 2px;}
+.spl-tr-body{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3);padding-left:4px;flex-wrap:wrap;}
+.spl-tr-body .ic{font-size:14px;}
+.spl-tr-range{font-variant-numeric:tabular-nums;opacity:0.75;}
 .spl-cur .spl-sub{color:var(--accent);}
 
 /* ── CONFIRM DIALOG ── */
@@ -561,7 +571,7 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"/></symbol>
 <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/></symbol>
 <symbol id="i-draft" viewBox="0 0 24 24"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M9 13h6"/><path d="M9 17h3"/></symbol>
-<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5l10 -10"/></symbol><symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4v16l13 -8z"/></symbol><symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M5 12l14 0"/><path d="M5 12l6 6"/><path d="M5 12l6 -6"/></symbol><symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12l14 0"/><path d="M13 18l6 -6"/><path d="M13 6l6 6"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M12 7v5l3 3"/></symbol><symbol id="i-crosshair" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 16 0a8 8 0 1 0 -16 0"/><path d="M12 3v3"/><path d="M12 18v3"/><path d="M3 12h3"/><path d="M18 12h3"/><path d="M10.6 12a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5l10 -10"/></symbol><symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4v16l13 -8z"/></symbol><symbol id="i-pause" viewBox="0 0 24 24"><path d="M6 5h4v14h-4z"/><path d="M14 5h4v14h-4z"/></symbol><symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M5 12l14 0"/><path d="M5 12l6 6"/><path d="M5 12l6 -6"/></symbol><symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12l14 0"/><path d="M13 18l6 -6"/><path d="M13 6l6 6"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M12 7v5l3 3"/></symbol><symbol id="i-crosshair" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 16 0a8 8 0 1 0 -16 0"/><path d="M12 3v3"/><path d="M12 18v3"/><path d="M3 12h3"/><path d="M18 12h3"/><path d="M10.6 12a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0"/></symbol>
 <symbol id="i-eye" viewBox="0 0 24 24"><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/></symbol>
 <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6l-12 12"/><path d="M6 6l12 12"/></symbol>
 <symbol id="i-link" viewBox="0 0 24 24"><path d="M9 15l6 -6"/><path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464"/><path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463"/></symbol>
@@ -860,7 +870,10 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
       <div class="scout-timer-row">
         <div>
           <div class="scout-timer-lbl">В пути</div>
-          <div class="scout-timer" id="scout-timer">00:00:00</div>
+          <div class="scout-timer-line">
+            <span class="scout-timer" id="scout-timer">00:00:00</span>
+            <button class="scout-timer-btn" id="scout-timer-btn" aria-label="Пауза"><svg class="ic" aria-hidden="true"><use href="#i-pause"></use></svg></button>
+          </div>
         </div>
         <div class="scout-dev" id="scout-dev"></div>
       </div>
@@ -870,13 +883,13 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
       <div class="scout-kicker" id="scout-kicker"></div>
       <div class="scout-name" id="scout-name"></div>
       <div class="scout-addr" id="scout-addr"></div>
-      <div class="scout-fact-hint" id="scout-fact-hint">Здесь можно вручную поправить факт прибытия и отбытия</div>
       <button class="scout-fact" id="scout-fact">
         <span class="sf-col"><span class="sf-lbl">приб.</span><span class="sf-val" id="scout-fa">‒‒:‒‒</span></span>
         <span class="sf-div"></span>
         <span class="sf-col"><span class="sf-lbl">отб.</span><span class="sf-val" id="scout-fd">‒‒:‒‒</span></span>
         <svg class="ic" aria-hidden="true"><use href="#i-edit"></use></svg>
       </button>
+      <div class="scout-fact-hint" id="scout-fact-hint">Здесь можно вручную поправить факт прибытия и отбытия</div>
       <div class="scout-acts" id="scout-acts"></div>
     </div>
     <div class="scout-toast" id="scout-toast"></div>
@@ -1582,7 +1595,11 @@ async function clearTrash(){
 // тайминга, факт прибытия/отбытия по каждой точке. Режим только ЧИТАЕТ проект —
 // buildPreviewHtml/buildMessage и отправка плана не затрагиваются.
 const SCOUT_TTL=24*60*60*1000; // факт живёт сутки, потом обнуляется сам
-let scoutProj=null, scoutStops=[], scoutIdx=0, scoutFacts={}, scoutStartedAt=0, scoutTimerId=null;
+let scoutProj=null, scoutStops=[], scoutIdx=0, scoutFacts={}, scoutTimerId=null;
+// Таймер можно ставить на паузу: scoutAccum — уже накопленное время,
+// scoutStartedAt — начало текущего отрезка (0, если стоим на паузе).
+let scoutStartedAt=0, scoutAccum=0, scoutRunning=true;
+function scoutElapsed(){return scoutAccum+((scoutRunning&&scoutStartedAt)?Date.now()-scoutStartedAt:0);}
 
 function scoutKey(id){return 'scout_run_'+id;}
 // В localStorage кладём ТОЛЬКО строки времени — никаких фото (правило 2).
@@ -1595,7 +1612,7 @@ function scoutLoad(id){
 }
 function scoutSave(){
   if(!scoutProj)return;
-  try{localStorage.setItem(scoutKey(scoutProj.id),JSON.stringify({ts:Date.now(),startedAt:scoutStartedAt,facts:scoutFacts}));}catch(e){}
+  try{localStorage.setItem(scoutKey(scoutProj.id),JSON.stringify({ts:Date.now(),startedAt:scoutStartedAt,accum:scoutAccum,running:scoutRunning,facts:scoutFacts}));}catch(e){}
 }
 
 // Плановые времена считаем ТОЙ ЖЕ формулой, что и buildPreviewHtml:
@@ -1712,7 +1729,7 @@ function scoutRenderPoint(animate){
 
 function scoutTick(){
   if(!scoutProj)return;
-  const el=Math.max(0,Math.floor((Date.now()-scoutStartedAt)/1000));
+  const el=Math.max(0,Math.floor(scoutElapsed()/1000));
   $('scout-timer').textContent=[Math.floor(el/3600),Math.floor(el%3600/60),el%60].map(n=>String(n).padStart(2,'0')).join(':');
   const d=scoutDev(), box=$('scout-dev');
   // Отстаём — время «прибавляется» к плану, поэтому знак «+». Опережаем — «−».
@@ -1721,7 +1738,20 @@ function scoutTick(){
   else {box.className='scout-dev scout-dev-early';box.innerHTML=iconSvg('clock')+' −'+dur(-d)+' к плану';}
 }
 
-function scoutRender(){scoutBuildRail();scoutSyncRail(false);scoutRenderPoint();scoutTick();}
+function scoutSyncTimerBtn(){
+  const b=$('scout-timer-btn'), t=$('scout-timer');
+  if(!b||!t)return;
+  b.innerHTML=iconSvg(scoutRunning?'pause':'play');
+  b.className='scout-timer-btn'+(scoutRunning?'':' tm-on');
+  b.setAttribute('aria-label',scoutRunning?'Пауза':'Продолжить');
+  t.className='scout-timer'+(scoutRunning?'':' tm-paused');
+}
+function scoutToggleTimer(){
+  if(scoutRunning){scoutAccum=scoutElapsed();scoutRunning=false;scoutStartedAt=0;}
+  else {scoutStartedAt=Date.now();scoutRunning=true;}
+  scoutSave(); scoutSyncTimerBtn(); scoutTick(); haptic('light');
+}
+function scoutRender(){scoutBuildRail();scoutSyncRail(false);scoutRenderPoint();scoutSyncTimerBtn();scoutTick();}
 // Обновление без пересборки ленты: структура маршрута не изменилась,
 // поменялся только факт по точке.
 function scoutRefresh(){scoutSyncRail(false);scoutRenderPoint();scoutTick();}
@@ -1769,6 +1799,14 @@ function scoutMain(){
 function scoutRenderPlan(){
   let h='';
   scoutStops.forEach((st,i)=>{
+    // Переезд перед точкой — отдельной строкой с длительностью и интервалом.
+    if(i>0&&st.transit){
+      const prev=scoutStops[i-1];
+      h+='<div class="spl-tr'+(i<=scoutIdx?' spl-done':'')+'">'+
+         '<div class="spl-t">'+absHHMMm(prev.depart)+'</div>'+
+         '<div class="spl-tr-body">'+iconSvg('car')+'<span>Переезд ~'+dur(st.transit)+'</span>'+
+         '<span class="spl-tr-range">'+absHHMMm(prev.depart)+'–'+absHHMMm(st.arrive)+'</span></div></div>';
+    }
     const f=scoutFacts[i]||{};
     const cls=i<scoutIdx?'spl-done':(i===scoutIdx?'spl-cur':'');
     let sub;
@@ -1803,8 +1841,10 @@ function scoutStart(id){
   scoutProj=proj;
   scoutStops=scoutBuildStops(proj);
   const saved=scoutLoad(id);
-  scoutStartedAt=(saved&&saved.startedAt)||Date.now();
   scoutFacts=(saved&&saved.facts)||{};
+  scoutAccum=(saved&&saved.accum)||0;
+  scoutRunning=saved?saved.running!==false:true;
+  scoutStartedAt=scoutRunning?((saved&&saved.startedAt)||Date.now()):0;
   scoutIdx=scoutFirstOpen();
   scoutSave();
   $('scout-proj').textContent=proj.title||'Без названия';
@@ -1834,7 +1874,7 @@ function scoutShowHints(){
 // следующем запуске таймер начался с нуля, а не продолжил старый отсчёт.
 function scoutFinish(){
   try{if(scoutProj)localStorage.removeItem(scoutKey(scoutProj.id));}catch(e){}
-  scoutFacts={}; scoutStartedAt=0;
+  scoutFacts={}; scoutStartedAt=0; scoutAccum=0; scoutRunning=true;
   scoutClose();
 }
 function scoutClose(){
@@ -1881,6 +1921,7 @@ $t('ctx-delete','click',()=>{
   });
 });
 $t('scout-close','click',scoutClose);
+$t('scout-timer-btn','click',scoutToggleTimer);
 $t('scout-main','click',scoutMain);
 $t('scout-prev','click',()=>scoutGo(scoutIdx-1));
 $t('scout-next','click',()=>scoutGo(scoutIdx+1));
@@ -1892,7 +1933,11 @@ $t('scout-fact','click',()=>{
   openSheet('overlay-scout-time');
 });
 $t('btn-scout-time-clear','click',()=>{
-  $('scout-t-a').value=''; $('scout-t-d').value=''; haptic('light');
+  // Очистка сразу применяется и сохраняется — отдельно жать «Сохранить» не нужно.
+  $('scout-t-a').value=''; $('scout-t-d').value='';
+  scoutFacts[scoutIdx]={a:'',d:''};
+  scoutSave(); closeSheet('overlay-scout-time'); scoutRefresh();
+  hapticN('success'); scoutToast('Тайминг очищен');
 });
 $t('btn-scout-time-close','click',()=>closeSheet('overlay-scout-time'));
 $t('btn-scout-time-save','click',()=>{
