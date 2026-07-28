@@ -1161,10 +1161,23 @@ function closeConfirm(){
 function newId(){return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
 function getProjects(){
   try{
-    const arr=JSON.parse(localStorage.getItem('scout_projects')||'[]');
-    // Бэкфилл: старым проектам без id выдаём id один раз и сохраняем обратно.
+    const raw=JSON.parse(localStorage.getItem('scout_projects')||'[]');
+    // Санитайзер на единственной точке входа. Битая запись (null в списке или
+    // в routePoints) роняла renderAllProjects целиком — весь список проектов
+    // переставал отрисовываться. Чистим здесь, чтобы прикрыть сразу всех
+    // потребителей: карточки, редактирование, режим скаута.
     let changed=false;
-    arr.forEach(p=>{if(p&&!p.id){p.id=newId();changed=true;}});
+    let arr=Array.isArray(raw)?raw:[];
+    const okArr=arr.filter(p=>p&&typeof p==='object');
+    if(okArr.length!==arr.length){arr=okArr;changed=true;}
+    arr.forEach(p=>{
+      if(!p.id){p.id=newId();changed=true;}
+      if(p.routePoints!==undefined){
+        const src=Array.isArray(p.routePoints)?p.routePoints:[];
+        const clean=src.filter(pt=>pt&&typeof pt==='object');
+        if(!Array.isArray(p.routePoints)||clean.length!==src.length){p.routePoints=clean;changed=true;}
+      }
+    });
     if(changed){try{localStorage.setItem('scout_projects',JSON.stringify(arr));}catch(e){}}
     return arr;
   }catch(e){return[];}
