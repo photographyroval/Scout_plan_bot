@@ -390,14 +390,18 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
    Чип корректировки всегда на своей строке, поэтому верстка не «едет»
    между точками с адресом и без. */
 .scout-name{font-size:22px;font-weight:600;color:var(--text);word-break:break-word;margin-bottom:6px;}
-.scout-fact{display:flex;align-items:center;justify-content:center;gap:11px;width:100%;background:var(--bg2);border:none;border-radius:10px;padding:9px 11px;cursor:pointer;margin-bottom:8px;}
-.scout-fact:active{background:var(--border);}
+.scout-fact{display:flex;align-items:stretch;width:100%;background:var(--bg2);border-radius:10px;overflow:hidden;margin-bottom:8px;}
+.scout-fact-main{flex:1;display:flex;align-items:center;justify-content:center;gap:11px;background:none;border:none;padding:9px 11px;cursor:pointer;}
+.scout-fact-main:active{background:var(--border);}
+.scout-fact-reset{background:none;border:none;border-left:1px solid var(--border);color:var(--text2);width:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;font-size:16px;}
+.scout-fact-reset:active{background:var(--border);}
+.scout-fact-reset:disabled{opacity:0.35;cursor:not-allowed;}
 .sf-col{display:flex;flex-direction:column;align-items:flex-start;}
 .sf-lbl{font-size:9px;color:var(--text3);line-height:1.3;}
 .sf-val{font-size:14px;font-weight:600;line-height:1.1;color:var(--text);font-variant-numeric:tabular-nums;}
 .sf-val.sf-empty{color:var(--text3);}
 .sf-div{width:1px;height:22px;background:var(--border-strong);}
-.scout-fact .ic{font-size:14px;color:var(--accent);}
+.scout-fact-main .ic{font-size:14px;color:var(--accent);}
 .scout-addr{display:flex;align-items:flex-start;gap:6px;font-size:13px;color:var(--text2);line-height:1.4;margin-bottom:12px;}
 .scout-addr .ic{font-size:15px;flex-shrink:0;margin-top:1px;}
 .scout-acts{display:flex;gap:8px;min-height:66px;}
@@ -882,12 +886,15 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
       <div class="scout-kicker" id="scout-kicker"></div>
       <div class="scout-name" id="scout-name"></div>
       <div class="scout-addr" id="scout-addr"></div>
-      <button class="scout-fact" id="scout-fact">
-        <span class="sf-col"><span class="sf-lbl">приб.</span><span class="sf-val" id="scout-fa">‒‒:‒‒</span></span>
-        <span class="sf-div"></span>
-        <span class="sf-col"><span class="sf-lbl">отб.</span><span class="sf-val" id="scout-fd">‒‒:‒‒</span></span>
-        <svg class="ic" aria-hidden="true"><use href="#i-edit"></use></svg>
-      </button>
+      <div class="scout-fact">
+        <button class="scout-fact-main" id="scout-fact">
+          <span class="sf-col"><span class="sf-lbl">приб.</span><span class="sf-val" id="scout-fa">‒‒:‒‒</span></span>
+          <span class="sf-div"></span>
+          <span class="sf-col"><span class="sf-lbl">отб.</span><span class="sf-val" id="scout-fd">‒‒:‒‒</span></span>
+          <svg class="ic" aria-hidden="true"><use href="#i-edit"></use></svg>
+        </button>
+        <button class="scout-fact-reset" id="scout-fact-reset" aria-label="Сбросить тайминг"><svg class="ic" aria-hidden="true"><use href="#i-refresh"></use></svg></button>
+      </div>
       <div class="scout-fact-hint" id="scout-fact-hint">Здесь можно вручную поправить факт прибытия и отбытия</div>
       <div class="scout-acts" id="scout-acts"></div>
     </div>
@@ -920,8 +927,7 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
     <div class="header sheet-title">Правка</div>
     <div class="form-group"><label class="form-label" for="scout-t-a">Прибытие</label><input type="text" id="scout-t-a" class="form-input time-mask-s" placeholder="ЧЧ:ММ" inputmode="numeric" maxlength="5"></div>
     <div class="form-group"><label class="form-label" for="scout-t-d">Отбытие</label><input type="text" id="scout-t-d" class="form-input time-mask-s" placeholder="ЧЧ:ММ" inputmode="numeric" maxlength="5"></div>
-    <button class="btn-outline" id="btn-scout-time-clear"><svg class="ic" aria-hidden="true"><use href="#i-trash"></use></svg> Очистить</button>
-    <button class="btn-primary" id="btn-scout-time-save" style="margin-top:8px;">Сохранить</button>
+    <button class="btn-primary" id="btn-scout-time-save">Сохранить</button>
     <button class="btn-secondary" id="btn-scout-time-close">Отмена</button>
   </div>
 </div>
@@ -1644,12 +1650,27 @@ function scoutHHMM(){const d=new Date();return String(d.getHours()).padStart(2,'
 
 // Отклонение живое: пока не приехал — считаем от планового прибытия,
 // после отметки — от прибытия, а если уже пересидели плановое отбытие, от него.
+// Точка фактического прогресса — первая, где ещё не проставлен полный факт.
+// Просмотр других точек в ленте на неё не влияет.
+function scoutProgressIdx(){
+  for(let i=0;i<scoutStops.length;i++){const f=scoutFacts[i]||{};if(!f.a||!f.d)return i;}
+  return scoutStops.length-1;
+}
+function scoutHasFacts(){
+  for(const k in scoutFacts){const f=scoutFacts[k]||{};if(f.a||f.d)return true;}
+  return false;
+}
+// Отклонение привязано к ПРОГРЕССУ, а не к тому, какую точку сейчас смотрят.
+// Пока ничего не отмечено, отклонения нет — сравнивать не с чем.
 function scoutDev(){
-  const st=scoutStops[scoutIdx]; if(!st) return 0;
-  const now=scoutNowMin(), f=scoutFacts[scoutIdx]||{};
+  if(!scoutHasFacts()) return null;
+  const pi=scoutProgressIdx();
+  const st=scoutStops[pi]; if(!st) return null;
+  const now=scoutNowMin(), f=scoutFacts[pi]||{};
   let d;
-  if(!f.a) d=now-st.arrive;
-  else d=(now>st.depart)?(now-st.depart):(toMinM(f.a)-st.arrive);
+  if(!f.a) d=now-st.arrive;                          // ещё не доехали — считаем от планового прибытия
+  else if(f.d) d=toMinM(f.d)-st.depart;              // точка закрыта — отклонение фиксируется
+  else d=(now>st.depart)?(now-st.depart):(toMinM(f.a)-st.arrive); // стоим на точке
   if(d>720)d-=1440; if(d<-720)d+=1440;
   return d;
 }
@@ -1703,6 +1724,7 @@ function scoutRenderPoint(animate){
   const fa=$('scout-fa'), fd=$('scout-fd');
   fa.textContent=f.a||'‒‒:‒‒'; fa.className='sf-val'+(f.a?'':' sf-empty');
   fd.textContent=f.d||'‒‒:‒‒'; fd.className='sf-val'+(f.d?'':' sf-empty');
+  const rs=$('scout-fact-reset'); if(rs) rs.disabled=!f.a&&!f.d;
   const fl=scoutFields(st), addr=$('scout-addr');
   if(fl.address){addr.innerHTML=iconSvg('pin')+'<span>'+esc(fl.address)+'</span>';addr.style.display='flex';}
   else addr.style.display='none';
@@ -1732,7 +1754,8 @@ function scoutTick(){
   $('scout-timer').textContent=[Math.floor(el/3600),Math.floor(el%3600/60),el%60].map(n=>String(n).padStart(2,'0')).join(':');
   const d=scoutDev(), box=$('scout-dev');
   // Отстаём — время «прибавляется» к плану, поэтому знак «+». Опережаем — «−».
-  if(Math.abs(d)<1){box.className='scout-dev scout-dev-ok';box.innerHTML=iconSvg('clock')+' по плану';}
+  if(d===null){box.className='scout-dev scout-dev-ok';box.innerHTML=iconSvg('clock')+' по плану';}
+  else if(Math.abs(d)<1){box.className='scout-dev scout-dev-ok';box.innerHTML=iconSvg('clock')+' по плану';}
   else if(d>0){box.className='scout-dev scout-dev-late';box.innerHTML=iconSvg('clock')+' +'+dur(d)+' к плану';}
   else {box.className='scout-dev scout-dev-early';box.innerHTML=iconSvg('clock')+' −'+dur(-d)+' к плану';}
 }
@@ -1826,11 +1849,6 @@ function scoutRenderPlan(){
   });
 }
 
-// Первая точка без отметки прибытия — с неё и продолжаем после возврата в режим.
-function scoutFirstOpen(){
-  for(let i=0;i<scoutStops.length;i++){const f=scoutFacts[i]||{};if(!f.a||!f.d)return i;}
-  return scoutStops.length-1;
-}
 
 function scoutStart(id){
   const projects=getProjects(), proj=projects[idxById(projects,id)];
@@ -1842,7 +1860,7 @@ function scoutStart(id){
   scoutAccum=(saved&&saved.accum)||0;
   scoutRunning=saved?saved.running!==false:true;
   scoutStartedAt=scoutRunning?((saved&&saved.startedAt)||Date.now()):0;
-  scoutIdx=scoutFirstOpen();
+  scoutIdx=scoutProgressIdx();
   scoutSave();
   $('scout-proj').textContent=proj.title||'Без названия';
   $('scout-date').textContent=proj.date||'';
@@ -1929,12 +1947,12 @@ $t('scout-fact','click',()=>{
   $('scout-t-a').value=f.a||''; $('scout-t-d').value=f.d||'';
   openSheet('overlay-scout-time');
 });
-$t('btn-scout-time-clear','click',()=>{
-  // Очистка сразу применяется и сохраняется — отдельно жать «Сохранить» не нужно.
-  $('scout-t-a').value=''; $('scout-t-d').value='';
+$t('scout-fact-reset','click',()=>{
+  // Сброс прямо с чипа: чистим, сохраняем и обновляем — без открытия шторки.
+  const f=scoutFacts[scoutIdx]||{};
+  if(!f.a&&!f.d) return;
   scoutFacts[scoutIdx]={a:'',d:''};
-  scoutSave(); closeSheet('overlay-scout-time'); scoutRefresh();
-  hapticN('success'); scoutToast('Тайминг очищен');
+  scoutSave(); scoutRefresh(); hapticN('success'); scoutToast('Тайминг сброшен');
 });
 $t('btn-scout-time-close','click',()=>closeSheet('overlay-scout-time'));
 $t('btn-scout-time-save','click',()=>{
