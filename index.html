@@ -336,7 +336,9 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 .scout-x{background:none;border:none;color:var(--text2);font-size:16px;width:30px;height:30px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
 .scout-x:active{background:var(--bg2);}
 /* Подсказки-плашки: показываются вскользь и гаснут сами. */
-@keyframes scoutSwap{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:none;}}
+@keyframes scoutToast{0%{opacity:0;transform:translateY(8px);}14%{opacity:1;transform:none;}80%{opacity:1;transform:none;}100%{opacity:0;transform:translateY(8px);}}
+.scout-toast{display:none;position:absolute;left:16px;right:16px;bottom:16px;z-index:6;background:var(--text);color:var(--bg);font-size:13px;font-weight:500;text-align:center;padding:11px 14px;border-radius:var(--radius);animation:scoutToast 2.2s ease forwards;}
+@keyframes scoutSwap{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
 .scout-point.sp-swap{animation:scoutSwap 0.24s ease;}
 @keyframes scoutHint{0%{opacity:0;transform:translateY(-4px);}12%{opacity:1;transform:none;}78%{opacity:1;transform:none;}100%{opacity:0;transform:translateY(-4px);}}
 .scout-min-hint{display:none;position:absolute;top:34px;right:0;background:var(--text);color:var(--bg);font-size:12px;font-weight:500;padding:5px 10px;border-radius:8px;white-space:nowrap;z-index:5;animation:scoutHint 3.6s ease forwards;}
@@ -376,7 +378,7 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 .sr-seg-t{font-size:10px;margin-top:1px;}
 
 /* Зона текущей точки */
-.scout-point{padding:16px;border-bottom:1px solid var(--border);}
+.scout-point{padding:16px;border-bottom:1px solid var(--border);min-height:236px;}
 .scout-kicker{font-size:12px;font-weight:600;color:var(--accent);letter-spacing:0.5px;text-align:center;margin-bottom:6px;}
 /* Порядок фиксирован: название → адрес → корректировка → кнопки.
    Чип корректировки всегда на своей строке, поэтому верстка не «едет»
@@ -392,7 +394,7 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 .scout-fact .ic{font-size:14px;color:var(--accent);}
 .scout-addr{display:flex;align-items:flex-start;gap:6px;font-size:13px;color:var(--text2);line-height:1.4;margin-bottom:12px;}
 .scout-addr .ic{font-size:15px;flex-shrink:0;margin-top:1px;}
-.scout-acts{display:flex;gap:8px;}
+.scout-acts{display:flex;gap:8px;min-height:66px;}
 .scout-act{flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 4px;font-size:12px;color:var(--text);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;}
 .scout-act:active{background:var(--bg2);}
 .scout-act .ic{font-size:20px;color:var(--text2);}
@@ -407,8 +409,9 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 .scout-nav span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 /* Экран «Весь план» */
-.scout-plan-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.scout-plan-head{position:relative;padding:14px 44px;border-bottom:1px solid var(--border);flex-shrink:0;text-align:center;}
 .scout-plan-title{font-size:17px;font-weight:600;color:var(--text);}
+.scout-plan-head .scout-x{position:absolute;top:12px;right:14px;}
 .scout-plan-list{padding:6px 16px 20px;}
 .spl-row{display:flex;gap:10px;padding:12px 0;cursor:pointer;}
 .spl-row.spl-done{opacity:0.55;}
@@ -876,6 +879,7 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
       </button>
       <div class="scout-acts" id="scout-acts"></div>
     </div>
+    <div class="scout-toast" id="scout-toast"></div>
     <div class="scout-foot">
       <button class="btn-primary" id="scout-main"></button>
       <div class="scout-nav">
@@ -904,7 +908,8 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
     <div class="header sheet-title">Правка</div>
     <div class="form-group"><label class="form-label" for="scout-t-a">Прибытие</label><input type="text" id="scout-t-a" class="form-input time-mask-s" placeholder="ЧЧ:ММ" inputmode="numeric" maxlength="5"></div>
     <div class="form-group"><label class="form-label" for="scout-t-d">Отбытие</label><input type="text" id="scout-t-d" class="form-input time-mask-s" placeholder="ЧЧ:ММ" inputmode="numeric" maxlength="5"></div>
-    <button class="btn-primary" id="btn-scout-time-save">Сохранить</button>
+    <button class="btn-outline" id="btn-scout-time-clear"><svg class="ic" aria-hidden="true"><use href="#i-trash"></use></svg> Очистить</button>
+    <button class="btn-primary" id="btn-scout-time-save" style="margin-top:8px;">Сохранить</button>
     <button class="btn-secondary" id="btn-scout-time-close">Отмена</button>
   </div>
 </div>
@@ -1727,13 +1732,21 @@ function scoutGo(i){
   scoutSyncRail(true); scoutRenderPoint(changed); scoutTick();
 }
 
+let scoutToastTimer=null;
+function scoutToast(txt){
+  const el=$('scout-toast'); if(!el)return;
+  el.textContent=txt;
+  el.style.display='none'; void el.offsetWidth; el.style.display='block';
+  if(scoutToastTimer)clearTimeout(scoutToastTimer);
+  scoutToastTimer=setTimeout(function(){el.style.display='none';},2200);
+}
 function scoutAct(kind){
   const fl=scoutFields(scoutStops[scoutIdx]||{});
   haptic('light');
   if(kind==='photo'&&fl.link){try{tg.openLink(fl.link);}catch(e){window.open(fl.link,'_blank');}}
   else if(kind==='map'&&fl.mapUrl){try{tg.openLink(fl.mapUrl);}catch(e){window.open(fl.mapUrl,'_blank');}}
   else if(kind==='coords'&&fl.coords){
-    const done=()=>{hapticN('success');};
+    const done=()=>{hapticN('success');scoutToast('Координаты скопированы');};
     try{
       if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(fl.coords).then(done,()=>{});
       else{const ta=document.createElement('textarea');ta.value=fl.coords;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);done();}
@@ -1749,7 +1762,7 @@ function scoutMain(){
   }
   scoutFacts[scoutIdx]={a:f.a,d:f.d||scoutHHMM()};
   scoutSave();
-  if(last){hapticN('success');scoutClose();return;}
+  if(last){hapticN('success');scoutFinish();return;}
   scoutGo(scoutIdx+1);
 }
 
@@ -1817,6 +1830,13 @@ function scoutShowHints(){
   setTimeout(()=>{mh.style.display='none';},3600);
   try{localStorage.setItem('scout_min_hint','1');}catch(e){}
 }
+// «Завершить» закрывает прогон: стираем сохранённое состояние, чтобы при
+// следующем запуске таймер начался с нуля, а не продолжил старый отсчёт.
+function scoutFinish(){
+  try{if(scoutProj)localStorage.removeItem(scoutKey(scoutProj.id));}catch(e){}
+  scoutFacts={}; scoutStartedAt=0;
+  scoutClose();
+}
 function scoutClose(){
   if(scoutTimerId){clearInterval(scoutTimerId);scoutTimerId=null;}
   $('scout-plan-screen').style.display='none';
@@ -1871,6 +1891,9 @@ $t('scout-fact','click',()=>{
   $('scout-t-a').value=f.a||''; $('scout-t-d').value=f.d||'';
   openSheet('overlay-scout-time');
 });
+$t('btn-scout-time-clear','click',()=>{
+  $('scout-t-a').value=''; $('scout-t-d').value=''; haptic('light');
+});
 $t('btn-scout-time-close','click',()=>closeSheet('overlay-scout-time'));
 $t('btn-scout-time-save','click',()=>{
   const re=/^\d{2}:\d{2}$/;
@@ -1880,6 +1903,10 @@ $t('btn-scout-time-save','click',()=>{
 });
 document.querySelectorAll('.time-mask-s').forEach(function(inp){
   inp.addEventListener('input',function(){this.value=maskTimeValue(this.value);});
+  // Тап по заполненному полю ставил каретку в начало — правим в конец.
+  const toEnd=function(){const el=inp,n=el.value.length;setTimeout(function(){try{el.setSelectionRange(n,n);}catch(e){}},0);};
+  inp.addEventListener('focus',toEnd);
+  inp.addEventListener('click',toEnd);
 });
 $t('confirm-cancel','click',closeConfirm);
 $t('confirm-ok','click',()=>{const fn=confirmAction;closeConfirm();if(fn)fn();});
