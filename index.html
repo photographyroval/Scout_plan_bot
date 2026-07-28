@@ -29,6 +29,8 @@
   --yellow-bg: rgba(217,122,26,0.10);
   --yellow-text: #8a4f0b;
   --input-border: rgba(0,0,0,0.12);
+  --purple: #7c5cd6;
+  --purple-bg: rgba(124,92,214,0.10);
   --radius: 10px;
   --radius-lg: 12px;
 }
@@ -54,6 +56,8 @@
   --yellow-bg: rgba(232,155,74,0.13);
   --yellow-text: #e89b4a;
   --input-border: rgba(255,255,255,0.14);
+  --purple: #a78bfa;
+  --purple-bg: rgba(167,139,250,0.12);
 }
 /* body — неподвижная рамка во всю высоту экрана. Скроллится .app-wrapper внутри неё.
    Благодаря этому position:fixed у свитчера привязан к неподвижному контейнеру
@@ -240,28 +244,31 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 .project-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:10px;box-shadow:0 1px 2px rgba(0,0,0,0.05),0 4px 12px rgba(0,0,0,0.05);overflow:hidden;transition:box-shadow 0.2s,transform 0.12s,background 0.3s;}
 [data-theme="dark"] .project-card{box-shadow:0 1px 2px rgba(0,0,0,0.3),0 4px 14px rgba(0,0,0,0.25);}
 .project-card:active{transform:translateY(1px);box-shadow:0 1px 2px rgba(0,0,0,0.06);}
-.project-card-body{padding:13px 34px 12px 13px;cursor:pointer;position:relative;}
-.pc-menu-btn{position:absolute;top:9px;right:6px;background:none;border:none;color:var(--text3);font-size:16px;font-weight:400;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;padding:0;line-height:1;}
+.project-card-body{padding:15px 15px 14px;cursor:pointer;position:relative;}
+.pc-menu-btn{position:absolute;top:11px;right:8px;background:none;border:none;color:var(--text3);font-size:16px;font-weight:400;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;padding:0;line-height:1;}
 .pc-menu-btn:active{background:var(--bg2);}
-.pc-header{margin-bottom:10px;}
-.project-card-title{font-weight:700;font-size:17px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.pc-title-date{font-weight:700;color:var(--text);}
-.pc-times{display:flex;gap:5px;margin-top:9px;}
-.pc-t{flex:1;min-width:0;display:flex;align-items:baseline;justify-content:center;gap:5px;padding:4px 6px;border-radius:7px;border:1px solid transparent;}
-.pc-t-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;opacity:0.7;}
-.pc-t-val{font-size:13px;font-weight:700;white-space:nowrap;}
-.pc-t-meet{background:var(--green-bg);color:var(--green);border-color:var(--green);}
-.pc-t-dep{background:var(--red-bg);color:var(--red);border-color:var(--red);}
-/* Финиш — фон «финишной клетки» поверх подложки, чтобы текст читался. */
-.pc-t-ret{color:var(--purple);border-color:var(--purple);background-color:var(--purple-bg);background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMiIgaGVpZ2h0PSIxMiIgdmlld0JveD0iMCAwIDEyIDEyIj48cmVjdCB3aWR0aD0iNiIgaGVpZ2h0PSI2IiB4PSIwIiB5PSIwIiBmaWxsPSJyZ2JhKDEyNCw5MiwyMTQsMC4xMCkiLz48cmVjdCB3aWR0aD0iNiIgaGVpZ2h0PSI2IiB4PSI2IiB5PSI2IiBmaWxsPSJyZ2JhKDEyNCw5MiwyMTQsMC4xMCkiLz48L3N2Zz4=");background-size:12px 12px;}
-[data-theme="dark"] .pc-t-ret{background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMiIgaGVpZ2h0PSIxMiIgdmlld0JveD0iMCAwIDEyIDEyIj48cmVjdCB3aWR0aD0iNiIgaGVpZ2h0PSI2IiB4PSIwIiB5PSIwIiBmaWxsPSJyZ2JhKDE2NywxMzksMjUwLDAuMTIpIi8+PHJlY3Qgd2lkdGg9IjYiIGhlaWdodD0iNiIgeD0iNiIgeT0iNiIgZmlsbD0icmdiYSgxNjcsMTM5LDI1MCwwLjEyKSIvPjwvc3ZnPg==");}
-.pc-t-ret .pc-t-lbl,.pc-t-ret .pc-t-val{position:relative;}
-.pc-chips{display:flex;gap:6px;flex-wrap:wrap;}
-.pc-chip{border-radius:20px;padding:4px 10px;font-size:13px;font-weight:400;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:inline-flex;align-items:center;gap:5px;}
-.pc-chip .ic{font-size:14px;}
-.pc-chip-loc{background:var(--accent-bg);color:var(--accent);}
-.pc-chip-neutral{background:var(--bg);color:var(--text2);}
-[data-theme="dark"] .pc-chip-neutral{background:var(--bg2);}
+.pc-header{margin-bottom:13px;}
+/* Заголовок переносится, а не обрезается: дата вынесена в отдельную строку,
+   поэтому длинное название больше не съедает дату многоточием. */
+.project-card-title{font-weight:600;font-size:17px;color:var(--text);line-height:1.3;padding-right:26px;word-break:break-word;}
+.pc-date{font-size:13px;color:var(--text2);margin-top:3px;}
+/* Тайминги — единый мягкий блок из трёх колонок, без рамок вокруг каждой. */
+.pc-times{display:flex;background:var(--bg);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;}
+[data-theme="dark"] .pc-times{background:var(--bg2);}
+.pc-t{flex:1;min-width:0;padding:8px 6px;text-align:center;}
+.pc-t + .pc-t{border-left:1px solid var(--border);}
+.pc-t-lbl{display:block;font-size:10px;color:var(--text3);margin-bottom:2px;}
+.pc-t-val{display:block;font-size:16px;font-weight:600;white-space:nowrap;}
+.pc-t-meet .pc-t-val{color:var(--green);}
+.pc-t-dep .pc-t-val{color:var(--red);}
+.pc-t-ret .pc-t-val{color:var(--purple);}
+/* Состав маршрута — строкой, без «гроздей» пилюль. Локации акцентом. */
+.pc-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;color:var(--text2);}
+.pc-meta-item{display:inline-flex;align-items:center;gap:4px;min-width:0;}
+.pc-meta-item .ic{font-size:15px;flex-shrink:0;}
+.pc-meta-loc{color:var(--accent);}
+.pc-meta-car{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pc-meta-sep{color:var(--text3);}
 .project-card-actions{border-top:1px solid var(--border);display:flex;align-items:stretch;}
 .card-action-btn{flex:1;background:none;border:none;padding:12px;font-size:15px;font-weight:600;color:var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;}
 .card-action-btn:active{background:var(--accent-bg);}
@@ -1263,6 +1270,13 @@ async function saveProjectToStorage(data){
   }
 }
 
+// Длительность плана: от сбора до возвращения, с учётом перехода через полночь.
+function planDuration(proj){
+  if(!proj.meetingTime||!proj.returnTime) return '';
+  let d=toMinM(proj.returnTime)-toMinM(proj.meetingTime);
+  if(d<0) d+=1440;
+  return d>0?dur(d):'';
+}
 function pluralRu(n,f1,f2,f5){n=Math.abs(n)%100;const n1=n%10;if(n>10&&n<20)return f5;if(n1>1&&n1<5)return f2;if(n1===1)return f1;return f5;}
 
 // ── RENDER PROJECTS ───────────────────────────────────────────────────────
@@ -1288,29 +1302,33 @@ function renderAllProjects(){
       const rp=proj.routePoints||[];
       const counts={location:0,transit:0,lunch:0};
       rp.forEach(p=>{if(counts[p.type]!==undefined)counts[p.type]++;});
-      const chips=[];
-      if(counts.location) chips.push('<div class="pc-chip pc-chip-loc">'+iconSvg('pin')+counts.location+' '+pluralRu(counts.location,'локация','локации','локаций')+'</div>');
-      if(counts.transit) chips.push('<div class="pc-chip pc-chip-neutral">'+iconSvg('car')+counts.transit+' '+pluralRu(counts.transit,'переезд','переезда','переездов')+'</div>');
-      if(counts.lunch) chips.push('<div class="pc-chip pc-chip-neutral">'+iconSvg('lunch')+'Ланч</div>');
-      if(proj.hasTransport&&proj.carBrand) chips.push('<div class="pc-chip pc-chip-neutral">'+iconSvg('car')+esc(proj.carBrand)+'</div>');
-      else if(proj.hasTransport) chips.push('<div class="pc-chip pc-chip-neutral">'+iconSvg('car')+'Транспорт</div>');
+      // Состав маршрута одной строкой: локации акцентом, остальное приглушённо.
+      const meta=[];
+      if(counts.location) meta.push('<span class="pc-meta-item pc-meta-loc">'+iconSvg('pin')+counts.location+' '+pluralRu(counts.location,'локация','локации','локаций')+'</span>');
+      if(counts.transit) meta.push('<span class="pc-meta-item">'+iconSvg('car')+counts.transit+' '+pluralRu(counts.transit,'переезд','переезда','переездов')+'</span>');
+      if(counts.lunch) meta.push('<span class="pc-meta-item">'+iconSvg('lunch')+'Ланч</span>');
+      if(proj.hasTransport&&proj.carBrand) meta.push('<span class="pc-meta-item pc-meta-car">'+iconSvg('car')+esc(proj.carBrand)+'</span>');
+      else if(proj.hasTransport) meta.push('<span class="pc-meta-item">'+iconSvg('car')+'Транспорт</span>');
       const tMeet=proj.meetingTime||'—', tDep=proj.departureTime||'—', tRet=proj.returnTime||'—';
       const timeHtml=
         '<div class="pc-times">'+
-          '<div class="pc-t pc-t-meet"><span class="pc-t-lbl">Сбор</span><span class="pc-t-val">'+esc(tMeet)+'</span></div>'+
-          '<div class="pc-t pc-t-dep"><span class="pc-t-lbl">Выезд</span><span class="pc-t-val">'+esc(tDep)+'</span></div>'+
-          '<div class="pc-t pc-t-ret"><span class="pc-t-lbl">Финиш</span><span class="pc-t-val">~'+esc(tRet)+'</span></div>'+
+          '<div class="pc-t pc-t-meet"><span class="pc-t-lbl">сбор</span><span class="pc-t-val">'+esc(tMeet)+'</span></div>'+
+          '<div class="pc-t pc-t-dep"><span class="pc-t-lbl">выезд</span><span class="pc-t-val">'+esc(tDep)+'</span></div>'+
+          '<div class="pc-t pc-t-ret"><span class="pc-t-lbl">финиш</span><span class="pc-t-val">~'+esc(tRet)+'</span></div>'+
         '</div>';
+      // Дата и общая длительность дня — отдельной строкой под заголовком.
+      const dLine=[proj.date?esc(proj.date):'', planDuration(proj)].filter(Boolean).join(' · ');
       const card=document.createElement('div');
       card.className='project-card';
       card.innerHTML=
         '<div class="project-card-body">'+
           '<button class="pc-menu-btn" data-action="menu" aria-label="Меню проекта"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12l0 .01"/><path d="M12 12l0 .01"/><path d="M19 12l0 .01"/></svg></button>'+
           '<div class="pc-header">'+
-            '<div class="project-card-title">'+esc(proj.title||'Без названия')+(proj.date?' <span class="pc-title-date">— '+esc(proj.date)+'</span>':'')+'</div>'+
-            timeHtml+
+            '<div class="project-card-title">'+esc(proj.title||'Без названия')+'</div>'+
+            (dLine?'<div class="pc-date">'+dLine+'</div>':'')+
           '</div>'+
-          (chips.length?'<div class="pc-chips">'+chips.join('')+'</div>':'')+
+          timeHtml+
+          (meta.length?'<div class="pc-meta">'+meta.join('<span class="pc-meta-sep">·</span>')+'</div>':'')+
         '</div>'+
         '<div class="project-card-actions">'+
           (status==='active'?'<button class="card-action-btn" data-action="send">'+iconSvg('send')+'Отправить план</button>':'')+
