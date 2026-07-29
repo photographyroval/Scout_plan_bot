@@ -2424,6 +2424,9 @@ document.querySelectorAll('.bottom-sheet-overlay').forEach(ov=>{
 
 ['active','archive','trash'].forEach(t=>{
   $('tab-'+t).addEventListener('click',function(){
+    // Повторный тап по уже активной вкладке — без отклика: ничего не меняется.
+    if(this.classList.contains('active')) return;
+    haptic('light');
     ['active','archive','trash'].forEach(x=>{$('tab-'+x).classList.remove('active');$('content-'+x).style.display='none';});
     this.classList.add('active'); $('content-'+t).style.display='block';
   });
