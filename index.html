@@ -1772,8 +1772,25 @@ function renderAllProjects(){
   selSyncBar();
 }
 
-function changeStatus(id,s){cloudSetStatus(id,s);}
-function deleteForever(id){cloudDeleteProject(id);}
+// Одиночные действия тоже оптимистичны: сначала применяем локально и рисуем,
+// запрос уходит следом. Иначе список ждал ответа сервера — при удалении
+// нескольких проектов подряд это читалось как «исчезают по очереди».
+// При неудаче перечитываем правду из облака.
+function selFallback(ok){
+  if(ok) return;
+  hapticN('error');
+  if(typeof loadProjectsFromCloud==='function') loadProjectsFromCloud();
+}
+function changeStatus(id,s){
+  const projects=getProjects(), i=idxById(projects,id);
+  if(i!==-1){projects[i].status=s;saveProjects(projects);renderAllProjects();}
+  cloudSetStatus(id,s,true).then(selFallback);
+}
+function deleteForever(id){
+  saveProjects(getProjects().filter(p=>p.id!==id));
+  renderAllProjects();
+  cloudDeleteProject(id,true).then(selFallback);
+}
 
 // Очистка корзины целиком. Массового эндпоинта на сервере нет, поэтому удаляем
 // последовательно, по одному запросу на проект. Лимит /projects/* — 60 запросов
