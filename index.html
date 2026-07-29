@@ -165,8 +165,11 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 
 /* ── TABS ── */
 .tabs-container{display:flex;background:var(--bg2);padding:3px;border-radius:var(--radius);margin-bottom:18px;}
-.tab{flex:1;text-align:center;padding:8px 0;font-size:14px;font-weight:500;color:var(--text2);border-radius:8px;cursor:pointer;transition:all 0.2s;}
-.tab.active{background:var(--card);color:var(--text);font-weight:500;border:1px solid var(--border);}
+/* Рамка есть ВСЕГДА, у неактивной вкладки она прозрачная. Иначе появление
+   border у активной меняло размер коробки, и при transition:all все три
+   вкладки заметно дёргались. Переходим только по цвету — вёрстка неподвижна. */
+.tab{flex:1;text-align:center;padding:8px 0;font-size:14px;font-weight:500;color:var(--text2);border:1px solid transparent;border-radius:8px;cursor:pointer;transition:background-color 0.2s ease,color 0.2s ease,border-color 0.2s ease;}
+.tab.active{background:var(--card);color:var(--text);font-weight:500;border-color:var(--border);}
 .tab-count{color:var(--text3);font-weight:400;margin-left:2px;}
 .tab.active .tab-count{color:var(--text2);}
 
@@ -365,16 +368,19 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
    поэтому при переключении ничего не перекладывается и текст не прыгает. */
 .sr-node{text-align:center;width:96px;flex-shrink:0;cursor:pointer;padding:0 4px;opacity:1;transition:opacity 0.25s ease;}
 .sr-dot-box{height:30px;display:flex;align-items:center;justify-content:center;margin-bottom:3px;}
-.sr-dot{width:13px;height:13px;border-radius:50%;background:var(--text3);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 0 var(--accent-bg);transition:background 0.25s ease,width 0.25s ease,height 0.25s ease,box-shadow 0.25s ease;}
-.sr-dot::after{content:'';width:0;height:0;border-radius:50%;background:#fff;transition:width 0.25s ease,height 0.25s ease;}
-.sr-cur .sr-dot{width:26px;height:26px;box-shadow:0 0 0 5px var(--accent-bg);}
-.sr-cur .sr-dot::after{width:8px;height:8px;}
+/* Размер меняем через transform, а не width/height: transform считает
+   композитор, вёрстка при этом не пересчитывается. Точка всегда 26px и
+   ужимается масштабом — так переход остаётся плавным на слабых телефонах. */
+.sr-dot{width:26px;height:26px;border-radius:50%;background:var(--text3);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 0 var(--accent-bg);transform:scale(0.5);transition:background 0.25s ease,transform 0.25s ease,box-shadow 0.25s ease;}
+.sr-dot::after{content:'';width:8px;height:8px;border-radius:50%;background:#fff;opacity:0;transition:opacity 0.2s ease;}
+.sr-cur .sr-dot{transform:scale(1);box-shadow:0 0 0 5px var(--accent-bg);}
+.sr-cur .sr-dot::after{opacity:1;}
 .sr-dot-start{background:var(--green);}
 .sr-dot-location{background:var(--accent);}
 .sr-dot-lunch{background:var(--orange);}
 .sr-dot-finish{background:var(--purple);}
 .sr-done{opacity:0.4;}
-.sr-done .sr-dot{background:var(--text3)!important;width:9px;height:9px;}
+.sr-done .sr-dot{background:var(--text3)!important;transform:scale(0.35);}
 .sr-name{font-size:12px;font-weight:600;color:var(--text2);line-height:1.25;overflow-wrap:break-word;hyphens:none;transition:color 0.25s ease;}
 .sr-time{font-size:12px;font-weight:600;color:var(--text3);font-variant-numeric:tabular-nums;margin-top:2px;transition:color 0.25s ease;}
 .sr-cur .sr-name{color:var(--accent);}
@@ -1099,6 +1105,7 @@ function iconSvg(name){return '<svg class="ic" aria-hidden="true"><use href="#i-
 // Раньше вызов стоял выше и работал только за счёт hoisting'а function-declaration:
 // стоило переписать $t в const/стрелку — и здесь падало «Cannot access before initialization».
 $t('theme-toggle-btn','click',function(){
+  haptic('light');
   const cur = document.documentElement.getAttribute('data-theme');
   applyTheme(cur === 'dark' ? 'light' : 'dark');
 });
@@ -1125,6 +1132,8 @@ function showScreen(id, pushToStack=true) {
 }
 
 function goBack() {
+  // Отклик НЕ здесь: обе ветки ниже уже дают его сами (inline или через
+  // showScreen). Добавка на входе давала две вибрации на один жест.
   if (screenStack.length > 1) {
     screenStack.pop();
     const prev = screenStack[screenStack.length-1];
@@ -2172,11 +2181,11 @@ function openCtxMenu(id,status,anchor){
 }
 function closeCtxMenu(){$('ctx-menu').style.display='none';$('ctx-overlay').style.display='none';}
 
-$t('ctx-overlay','click',closeCtxMenu);
+$t('ctx-overlay','click',()=>{haptic('light');closeCtxMenu();});
 $t('ctx-open','click',()=>{closeCtxMenu();openProjectForEdit(ctxProjectId);});
 $t('ctx-send','click',()=>{closeCtxMenu();sendProjectToTg(ctxProjectId,null);});
-$t('ctx-hide','click',()=>{closeCtxMenu();changeStatus(ctxProjectId,'archive');});
-$t('ctx-restore','click',()=>{closeCtxMenu();changeStatus(ctxProjectId,'active');});
+$t('ctx-hide','click',()=>{closeCtxMenu();hapticN('success');changeStatus(ctxProjectId,'archive');});
+$t('ctx-restore','click',()=>{closeCtxMenu();hapticN('success');changeStatus(ctxProjectId,'active');});
 $t('ctx-delete','click',()=>{
   const id=ctxProjectId, st=ctxProjectStatus;
   closeCtxMenu();
@@ -2191,14 +2200,14 @@ $t('ctx-delete','click',()=>{
     onOk:()=>deleteForever(id)
   });
 });
-$t('scout-close','click',scoutClose);
+$t('scout-close','click',()=>{haptic('light');scoutClose();});
 $t('scout-timer-btn','click',scoutToggleTimer);
 $t('scout-timer-reset','click',scoutResetTimer);
 $t('scout-main','click',scoutMain);
 $t('scout-prev','click',()=>scoutGo(scoutIdx-1));
 $t('scout-next','click',()=>scoutGo(scoutIdx+1));
 $t('scout-plan-btn','click',()=>{haptic('light');scoutRenderPlan();$('scout-plan-screen').style.display='block';});
-$t('scout-plan-close','click',()=>{$('scout-plan-screen').style.display='none';});
+$t('scout-plan-close','click',()=>{haptic('light');$('scout-plan-screen').style.display='none';});
 $t('scout-fact','click',()=>{
   const f=scoutFacts[scoutIdx]||{};
   $('scout-t-a').value=f.a||''; $('scout-t-d').value=f.d||'';
@@ -2230,9 +2239,9 @@ $t('sel-all','click',()=>{
   getProjects().filter(p=>p.status===selStatus).forEach(p=>{selIds[p.id]=1;});
   haptic('light'); selSyncCards();
 });
-$t('confirm-cancel','click',closeConfirm);
+$t('confirm-cancel','click',()=>{haptic('light');closeConfirm();});
 $t('confirm-ok','click',()=>{const fn=confirmAction;closeConfirm();if(fn)fn();});
-$t('confirm-overlay','click',e=>{if(e.target===$('confirm-overlay'))closeConfirm();});
+$t('confirm-overlay','click',e=>{if(e.target===$('confirm-overlay')){haptic('light');closeConfirm();}});
 $t('btn-clear-trash','click',()=>{
   const n=getProjects().filter(p=>p.status==='trash').length;
   if(!n) return;
@@ -2455,6 +2464,7 @@ $('car-photo-input').addEventListener('change',function(e){
   r.readAsDataURL(f);
 });
 $t('btn-delete-photo','click',function(e){
+  haptic('light');
   e.preventDefault();uploadedCarPhotoBase64='';editingCarPhotoUrl='';
   $('car-photo-input').value='';$('car-photo-preview').src='';
   $('car-photo-preview-wrap').style.display='none';saveDraft();
@@ -2462,6 +2472,7 @@ $t('btn-delete-photo','click',function(e){
 
 // ── STEP 1 → STEP 2 ──────────────────────────────────────────────────────
 $t('btn-submit-step1','click',()=>{
+  haptic('light');
   forceT($('time-meeting')); forceT($('time-departure'));
   gTitle=$('project-title').value||'Проект';
   gDate=$('project-date').value||'';
@@ -2550,6 +2561,7 @@ function openLightbox(src){
   haptic('light');
 }
 function closeLightbox(){
+  haptic('light');
   const lb=$('lightbox');
   lb.style.display='none';
   $('lightbox-img').setAttribute('src','');
@@ -2824,12 +2836,12 @@ $t('btn-sheet-loc-save','click',()=>{
     address:$('sheet-loc-check-address').checked?$('sheet-loc-address').value:'',
     duration:readDur('sheet-loc-hours','sheet-loc-mins')};
   if(editingIndex!==null)routePoints[editingIndex]=pd;else routePoints.push(pd);
-  closeSheet('overlay-location');saveDraft();renderRoute();
+  hapticN('success');closeSheet('overlay-location');saveDraft();renderRoute();
 });
 $t('btn-sheet-transit-save','click',()=>{
   const d=readDur('sheet-transit-hours','sheet-transit-mins');
   if(editingIndex!==null)routePoints[editingIndex].duration=d;else routePoints.push({type:'transit',title:'🚗 Переезд',duration:d});
-  closeSheet('overlay-transit');saveDraft();renderRoute();
+  hapticN('success');closeSheet('overlay-transit');saveDraft();renderRoute();
 });
 $t('btn-sheet-lunch-save','click',()=>{
   const d=readDur('sheet-lunch-hours','sheet-lunch-mins');
@@ -2842,7 +2854,7 @@ $t('btn-sheet-lunch-save','click',()=>{
   } else {
     routePoints.push({type:'lunch',title:'🍽 Ланч',duration:d,mapUrl,address});
   }
-  closeSheet('overlay-lunch');saveDraft();renderRoute();
+  hapticN('success');closeSheet('overlay-lunch');saveDraft();renderRoute();
 });
 $t('btn-add-location','click',()=>{
   if(locationCount()>=MAX_LOCATIONS){
