@@ -462,6 +462,11 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 .sel-actions button:disabled{opacity:0.5;cursor:not-allowed;}
 .sel-actions .sel-danger{color:var(--red);border-color:var(--red);}
 
+/* Согласованный уход карточек. Логика удаляет их одномоментно, но резкое
+   схлопывание вёрстки читается глазом как «исчезают по очереди». Гасим все
+   выбранные ОДНОВРЕМЕННО одной анимацией — уход становится осознанным. */
+.project-card.pc-leaving{opacity:0;transform:scale(0.96);pointer-events:none;transition:opacity 0.17s ease,transform 0.17s ease;}
+
 /* Карточка в режиме выделения */
 .project-card.sel-on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg);}
 .pc-row{display:flex;align-items:flex-start;gap:11px;}
@@ -1607,6 +1612,18 @@ function selSyncBar(){
   });
 }
 
+// Вешаем класс на все карточки в ОДНОМ кадре, поэтому гаснут они синхронно.
+function selAnimateOut(ids){
+  const nodes=[];
+  ids.forEach(id=>{
+    const n=document.querySelector('.project-card[data-pid="'+id+'"]');
+    if(n) nodes.push(n);
+  });
+  if(!nodes.length) return Promise.resolve();
+  nodes.forEach(n=>n.classList.add('pc-leaving'));
+  return new Promise(r=>setTimeout(r,180));
+}
+
 function selApply(kind){
   const ids=Object.keys(selIds);
   if(!ids.length)return;
@@ -1632,6 +1649,7 @@ function selApply(kind){
 async function selRun(kind,ids){
   const box=$('sel-actions');
   box.querySelectorAll('button').forEach(b=>b.disabled=true);
+  await selAnimateOut(ids);
   const projects=getProjects();
   saveProjects(kind==='delete'
     ? projects.filter(p=>ids.indexOf(p.id)===-1)
@@ -1781,12 +1799,14 @@ function selFallback(ok){
   hapticN('error');
   if(typeof loadProjectsFromCloud==='function') loadProjectsFromCloud();
 }
-function changeStatus(id,s){
+async function changeStatus(id,s){
+  await selAnimateOut([id]);
   const projects=getProjects(), i=idxById(projects,id);
   if(i!==-1){projects[i].status=s;saveProjects(projects);renderAllProjects();}
   cloudSetStatus(id,s,true).then(selFallback);
 }
-function deleteForever(id){
+async function deleteForever(id){
+  await selAnimateOut([id]);
   saveProjects(getProjects().filter(p=>p.id!==id));
   renderAllProjects();
   cloudDeleteProject(id,true).then(selFallback);
@@ -1803,6 +1823,7 @@ async function clearTrash(){
   if(btn){btn.disabled=true;btn.textContent='Удаление…';}
   // Как и в массовых действиях: сначала локально и одна перерисовка,
   // потом параллельные запросы в фоне.
+  await selAnimateOut(ids);
   saveProjects(getProjects().filter(p=>p.status!=='trash'));
   renderAllProjects();
   hapticN('success');
