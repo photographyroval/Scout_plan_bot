@@ -445,6 +445,32 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 .spl-tr-body .ic{font-size:14px;}
 .spl-cur .spl-sub{color:var(--accent);}
 
+/* ── МУЛЬТИВЫБОР ── */
+/* Панель в потоке, НЕ fixed: нижняя панель соседствует со скроллом и плавает
+   в Telegram WebApp (см. грабли). Действия лежат в той же панели сверху,
+   чтобы до них не пришлось прокручивать длинный список обратно вверх. */
+.sel-bar{display:none;background:var(--accent-bg);border:1px solid var(--accent);border-radius:var(--radius-lg);padding:10px 12px;margin-bottom:14px;}
+.sel-bar-top{display:flex;align-items:center;gap:10px;}
+.sel-x{background:none;border:none;color:var(--accent);font-size:15px;width:26px;height:26px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;}
+.sel-x:active{background:var(--card);}
+.sel-count{font-size:14px;font-weight:600;color:var(--accent);}
+.sel-all{margin-left:auto;background:none;border:none;color:var(--accent);font-size:13px;font-weight:500;padding:3px 5px;cursor:pointer;flex-shrink:0;}
+.sel-all:active{opacity:0.6;}
+.sel-actions{display:flex;gap:8px;margin-top:10px;}
+.sel-actions button{flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:11px 6px;font-size:13px;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;min-width:0;}
+.sel-actions button:active{background:var(--bg2);}
+.sel-actions button:disabled{opacity:0.5;cursor:not-allowed;}
+.sel-actions .sel-danger{color:var(--red);border-color:var(--red);}
+
+/* Карточка в режиме выделения */
+.project-card.sel-on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg);}
+.pc-row{display:flex;align-items:flex-start;gap:11px;}
+.pc-row-body{flex:1;min-width:0;}
+.pc-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--border-strong);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:2px;transition:background 0.15s,border-color 0.15s;}
+.sel-on .pc-check{background:var(--accent);border-color:var(--accent);}
+.pc-check .ic{font-size:12px;color:#fff;opacity:0;transition:opacity 0.15s;}
+.sel-on .pc-check .ic{opacity:1;}
+
 /* ── CONFIRM DIALOG ── */
 /* Необратимые действия спрашивают подтверждение. Overlay inset:0 накрывает
    всё окно поверх .app-wrapper — тот же рабочий паттерн, что у .lightbox
@@ -617,6 +643,14 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
     <div class="tab active" id="tab-active">Активные <span class="tab-count" id="tab-count-active"></span></div>
     <div class="tab" id="tab-archive">Скрытые <span class="tab-count" id="tab-count-archive"></span></div>
     <div class="tab" id="tab-trash">Корзина <span class="tab-count" id="tab-count-trash"></span></div>
+  </div>
+  <div class="sel-bar" id="sel-bar">
+    <div class="sel-bar-top">
+      <button class="sel-x" id="sel-cancel" aria-label="Отмена"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
+      <span class="sel-count" id="sel-count">Выбрано: 0</span>
+      <button class="sel-all" id="sel-all">Выбрать все</button>
+    </div>
+    <div class="sel-actions" id="sel-actions"></div>
   </div>
   <div id="content-active">
     <div class="draft-banner" id="main-draft-banner">
@@ -1512,6 +1546,114 @@ function planDuration(proj){
 }
 function pluralRu(n,f1,f2,f5){n=Math.abs(n)%100;const n1=n%10;if(n>10&&n<20)return f5;if(n1>1&&n1<5)return f2;if(n1===1)return f1;return f5;}
 
+// ── МУЛЬТИВЫБОР ───────────────────────────────────────────────────────────
+// Включается долгим нажатием по телу карточки. Выделение привязано к ОДНОЙ
+// вкладке (selStatus): у активных, скрытых и корзины разные наборы действий,
+// и смешивать их нельзя. Пока режим включён, вкладки скрыты — переключиться
+// на другую, не выйдя из выделения, невозможно.
+let selMode=false, selStatus=null, selIds={};
+
+const SEL_ACTIONS={
+  active:[{k:'archive',t:'Скрыть',i:'hide'},{k:'trash',t:'В корзину',i:'trash'}],
+  archive:[{k:'active',t:'Восстановить',i:'restore'},{k:'trash',t:'В корзину',i:'trash'}],
+  trash:[{k:'active',t:'Восстановить',i:'restore'},{k:'delete',t:'Удалить навсегда',i:'trash',danger:true}]
+};
+
+function selCount(){return Object.keys(selIds).length;}
+
+function setSelMode(on,status){
+  selMode=!!on; selStatus=on?status:null;
+  if(!on) selIds={};
+  $('sel-bar').style.display=on?'block':'none';
+  // Прячем всё, что в режиме выделения только мешает.
+  const tabs=document.querySelector('.tabs-container');
+  if(tabs) tabs.style.display=on?'none':'';
+  $('btn-create-project').style.display=on?'none':'';
+  renderAllProjects();
+}
+
+function toggleSel(id){
+  if(selIds[id]) delete selIds[id]; else selIds[id]=1;
+  haptic('light');
+  if(!selCount()){setSelMode(false);return;}
+  renderAllProjects();
+}
+
+function selSyncBar(){
+  if(!selMode)return;
+  $('sel-count').textContent='Выбрано: '+selCount();
+  const box=$('sel-actions');
+  box.innerHTML=(SEL_ACTIONS[selStatus]||[]).map(a=>
+    '<button data-k="'+a.k+'"'+(a.danger?' class="sel-danger"':'')+'>'+iconSvg(a.i)+a.t+'</button>').join('');
+  box.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click',()=>selApply(b.getAttribute('data-k')));
+  });
+}
+
+function selApply(kind){
+  const ids=Object.keys(selIds);
+  if(!ids.length)return;
+  // Спрашиваем только на необратимом. Остальное откатывается тем же
+  // мультивыбором в пару тапов, лишний диалог только раздражал бы.
+  if(kind==='delete'){
+    showConfirm({
+      title:'Удалить навсегда?',
+      text:'Выбранные проекты ('+ids.length+') будут удалены без возможности восстановить.',
+      okText:'Удалить',
+      onOk:()=>selRun(kind,ids)
+    });
+    return;
+  }
+  selRun(kind,ids);
+}
+
+// Массового эндпоинта нет — шлём последовательно, как в очистке корзины.
+// Лимит /projects/* — 60 запросов в минуту, неудачи считаем и сообщаем вибрацией.
+async function selRun(kind,ids){
+  const box=$('sel-actions');
+  box.querySelectorAll('button').forEach(b=>b.disabled=true);
+  let failed=0;
+  for(const id of ids){
+    const ok = (kind==='delete') ? await cloudDeleteProject(id) : await cloudSetStatus(id,kind);
+    if(!ok) failed++;
+  }
+  hapticN(failed?'error':'success');
+  setSelMode(false);
+}
+
+// Долгое нажатие: 500 мс без заметного сдвига пальца. Сдвиг = человек скроллит,
+// а не удерживает — тогда отменяем.
+//
+// Флаг подавления клика — на уровне модуля, а НЕ в замыкании элемента.
+// Причина: срабатывание вызывает setSelMode → renderAllProjects, который
+// ПЕРЕСОЗДАЁТ карточку. Отпускание пальца даёт click уже по новому узлу, у
+// которого своё пустое замыкание — и клик тут же снимал бы только что
+// поставленное выделение. Метка времени переживает пересоздание DOM.
+let lpSuppressUntil=0;
+function lpSuppressed(){return Date.now()<lpSuppressUntil;}
+
+function attachLongPress(el,pid,status){
+  let timer=null, sx=0, sy=0;
+  const cancel=()=>{ if(timer){clearTimeout(timer);timer=null;} };
+  const start=(x,y)=>{
+    if(selMode) return;
+    sx=x; sy=y;
+    timer=setTimeout(()=>{
+      timer=null; haptic('medium'); lpSuppressUntil=Date.now()+700;
+      selIds={}; selIds[pid]=1; setSelMode(true,status);
+    },500);
+  };
+  const move=(x,y)=>{ if(timer&&(Math.abs(x-sx)>10||Math.abs(y-sy)>10)) cancel(); };
+  el.addEventListener('touchstart',e=>start(e.touches[0].clientX,e.touches[0].clientY),{passive:true});
+  el.addEventListener('touchmove',e=>move(e.touches[0].clientX,e.touches[0].clientY),{passive:true});
+  el.addEventListener('touchend',cancel);
+  el.addEventListener('touchcancel',cancel);
+  el.addEventListener('mousedown',e=>start(e.clientX,e.clientY));
+  el.addEventListener('mousemove',e=>move(e.clientX,e.clientY));
+  el.addEventListener('mouseup',cancel);
+  el.addEventListener('mouseleave',cancel);
+}
+
 // ── RENDER PROJECTS ───────────────────────────────────────────────────────
 function renderAllProjects(){
   const projects=getProjects();
@@ -1551,24 +1693,38 @@ function renderAllProjects(){
         '</div>';
       // Дата и общая длительность дня — отдельной строкой под заголовком.
       const dLine=[proj.date?esc(proj.date):'', planDuration(proj)].filter(Boolean).join(' · ');
+      const inSel=selMode&&status===selStatus;
+      const picked=!!selIds[pid];
+      const inner=
+        '<div class="pc-header">'+
+          '<div class="project-card-title">'+esc(proj.title||'Без названия')+'</div>'+
+          (dLine?'<div class="pc-date">'+dLine+'</div>':'')+
+        '</div>'+
+        timeHtml+
+        (meta.length?'<div class="pc-meta">'+meta.join('<span class="pc-meta-sep">·</span>')+'</div>':'');
       const card=document.createElement('div');
-      card.className='project-card';
+      card.className='project-card'+(inSel&&picked?' sel-on':'');
       card.innerHTML=
         '<div class="project-card-body">'+
-          '<button class="pc-menu-btn" data-action="menu" aria-label="Меню проекта"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12l0 .01"/><path d="M12 12l0 .01"/><path d="M19 12l0 .01"/></svg></button>'+
-          '<div class="pc-header">'+
-            '<div class="project-card-title">'+esc(proj.title||'Без названия')+'</div>'+
-            (dLine?'<div class="pc-date">'+dLine+'</div>':'')+
-          '</div>'+
-          timeHtml+
-          (meta.length?'<div class="pc-meta">'+meta.join('<span class="pc-meta-sep">·</span>')+'</div>':'')+
+          (inSel?'':'<button class="pc-menu-btn" data-action="menu" aria-label="Меню проекта"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12l0 .01"/><path d="M12 12l0 .01"/><path d="M19 12l0 .01"/></svg></button>')+
+          (inSel
+            ? '<div class="pc-row"><span class="pc-check">'+iconSvg('check')+'</span><div class="pc-row-body">'+inner+'</div></div>'
+            : inner)+
         '</div>'+
+        // В режиме выделения кнопки прячем: они не нужны и мешают попасть по карточке.
+        (inSel?'':
         '<div class="project-card-actions">'+
           (status==='active'?'<button class="card-action-btn" data-action="send">'+iconSvg('send')+'Отправить план</button>':'')+
           (status==='active'?'<button class="card-action-btn act-go" data-action="scout">'+iconSvg('play')+'Поехали</button>':'')+
           (status!=='active'?'<button class="card-action-btn" data-action="restore">'+iconSvg('restore')+'Восстановить</button>':'')+
-        '</div>';
-      card.querySelector('.project-card-body').addEventListener('click',()=>openProjectForEdit(pid));
+        '</div>');
+      const body=card.querySelector('.project-card-body');
+      attachLongPress(body,pid,status);
+      body.addEventListener('click',()=>{
+        if(lpSuppressed())return;                      // это было долгое нажатие
+        if(selMode){ if(status===selStatus) toggleSel(pid); return; }
+        openProjectForEdit(pid);
+      });
       card.querySelectorAll('.card-action-btn,.pc-menu-btn').forEach(btn=>{
         btn.addEventListener('click',e=>{
           e.stopPropagation();
@@ -1582,10 +1738,12 @@ function renderAllProjects(){
       container.appendChild(card);
     });
   });
-  // Кнопка очистки корзины видна, только когда в корзине что-то есть.
+  // Кнопка очистки корзины видна, только когда в корзине что-то есть
+  // и мы не в режиме выделения.
   const clearBtn=$('btn-clear-trash');
-  if(clearBtn) clearBtn.style.display=projects.filter(p=>p.status==='trash').length?'flex':'none';
-  try{$('main-draft-banner').style.display=localStorage.getItem('scout_draft')?'flex':'none';}catch(e){}
+  if(clearBtn) clearBtn.style.display=(!selMode&&projects.filter(p=>p.status==='trash').length)?'flex':'none';
+  try{$('main-draft-banner').style.display=(!selMode&&localStorage.getItem('scout_draft'))?'flex':'none';}catch(e){}
+  selSyncBar();
 }
 
 function changeStatus(id,s){cloudSetStatus(id,s);}
@@ -1999,6 +2157,11 @@ document.querySelectorAll('.time-mask-s').forEach(function(inp){
   const toEnd=function(){const el=inp,n=el.value.length;setTimeout(function(){try{el.setSelectionRange(n,n);}catch(e){}},0);};
   inp.addEventListener('focus',toEnd);
   inp.addEventListener('click',toEnd);
+});
+$t('sel-cancel','click',()=>{haptic('light');setSelMode(false);});
+$t('sel-all','click',()=>{
+  getProjects().filter(p=>p.status===selStatus).forEach(p=>{selIds[p.id]=1;});
+  haptic('light'); renderAllProjects();
 });
 $t('confirm-cancel','click',closeConfirm);
 $t('confirm-ok','click',()=>{const fn=confirmAction;closeConfirm();if(fn)fn();});
