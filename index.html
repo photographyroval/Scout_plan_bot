@@ -1304,7 +1304,11 @@ async function cloudSaveProject(project, silent){
 }
 
 // Сменить статус проекта в облаке.
-async function cloudSetStatus(id, status){
+// quiet=true — не трогать локальное состояние и не перерисовывать список.
+// Нужен для массовых операций: там локальные данные уже применены оптимистично
+// и ОДНА перерисовка сделана заранее. Иначе на каждый успешный ответ шёл бы
+// полный renderAllProjects() — отсюда и задержка, и дёрганость.
+async function cloudSetStatus(id, status, quiet){
   const initData=getInitData();
   if(!initData) return false;
   try{
@@ -1315,9 +1319,11 @@ async function cloudSetStatus(id, status){
     if(!res.ok) throw new Error('status failed '+res.status);
     const r=await res.json();
     if(!r.ok) throw new Error(r.error||'status failed');
-    const projects=getProjects();const i=idxById(projects,id);
-    if(i!==-1){projects[i].status=status;saveProjects(projects);}
-    renderAllProjects();
+    if(!quiet){
+      const projects=getProjects();const i=idxById(projects,id);
+      if(i!==-1){projects[i].status=status;saveProjects(projects);}
+      renderAllProjects();
+    }
     return true;
   }catch(e){
     console.error('cloudSetStatus failed:',e.message);
@@ -1326,7 +1332,7 @@ async function cloudSetStatus(id, status){
 }
 
 // Удалить проект из облака навсегда.
-async function cloudDeleteProject(id){
+async function cloudDeleteProject(id, quiet){
   const initData=getInitData();
   if(!initData) return false;
   try{
@@ -1337,9 +1343,10 @@ async function cloudDeleteProject(id){
     if(!res.ok) throw new Error('delete failed '+res.status);
     const r=await res.json();
     if(!r.ok) throw new Error(r.error||'delete failed');
-    const projects=getProjects().filter(p=>p.id!==id);
-    saveProjects(projects);
-    renderAllProjects();
+    if(!quiet){
+      saveProjects(getProjects().filter(p=>p.id!==id));
+      renderAllProjects();
+    }
     return true;
   }catch(e){
     console.error('cloudDeleteProject failed:',e.message);
@@ -1576,7 +1583,17 @@ function toggleSel(id){
   if(selIds[id]) delete selIds[id]; else selIds[id]=1;
   haptic('light');
   if(!selCount()){setSelMode(false);return;}
-  renderAllProjects();
+  selSyncCards();
+}
+
+// Переключаем только классы на уже существующих карточках. Полная пересборка
+// списка на каждый тап давала дёрганость и убивала CSS-переход у галочки:
+// узел пересоздавался, и transition не успевал сработать.
+function selSyncCards(){
+  document.querySelectorAll('.project-card[data-pid]').forEach(c=>{
+    c.classList.toggle('sel-on', !!selIds[c.getAttribute('data-pid')]);
+  });
+  const n=$('sel-count'); if(n) n.textContent='Выбрано: '+selCount();
 }
 
 function selSyncBar(){
@@ -1607,18 +1624,26 @@ function selApply(kind){
   selRun(kind,ids);
 }
 
-// Массового эндпоинта нет — шлём последовательно, как в очистке корзины.
-// Лимит /projects/* — 60 запросов в минуту, неудачи считаем и сообщаем вибрацией.
+// Массового эндпоинта на сервере нет, но ждать N ответов, глядя на неподвижный
+// экран, незачем: применяем изменение локально сразу, рисуем ОДИН раз, а запросы
+// шлём параллельно в фоне. Если хоть один не прошёл — локальные данные разошлись
+// с облаком, поэтому перечитываем правду с сервера.
+// Лимит /projects/* — 60 запросов в минуту; пачка из десятка укладывается.
 async function selRun(kind,ids){
   const box=$('sel-actions');
   box.querySelectorAll('button').forEach(b=>b.disabled=true);
-  let failed=0;
-  for(const id of ids){
-    const ok = (kind==='delete') ? await cloudDeleteProject(id) : await cloudSetStatus(id,kind);
-    if(!ok) failed++;
-  }
-  hapticN(failed?'error':'success');
+  const projects=getProjects();
+  saveProjects(kind==='delete'
+    ? projects.filter(p=>ids.indexOf(p.id)===-1)
+    : projects.map(p=>ids.indexOf(p.id)===-1?p:Object.assign({},p,{status:kind})));
   setSelMode(false);
+  hapticN('success');
+  const res=await Promise.all(ids.map(id=>
+    kind==='delete' ? cloudDeleteProject(id,true) : cloudSetStatus(id,kind,true)));
+  if(res.some(r=>!r)){
+    hapticN('error');
+    if(typeof loadProjectsFromCloud==='function') loadProjectsFromCloud();
+  }
 }
 
 // Долгое нажатие: 500 мс без заметного сдвига пальца. Сдвиг = человек скроллит,
@@ -1704,6 +1729,7 @@ function renderAllProjects(){
         (meta.length?'<div class="pc-meta">'+meta.join('<span class="pc-meta-sep">·</span>')+'</div>':'');
       const card=document.createElement('div');
       card.className='project-card'+(inSel&&picked?' sel-on':'');
+      card.setAttribute('data-pid',pid);
       card.innerHTML=
         '<div class="project-card-body">'+
           (inSel?'':'<button class="pc-menu-btn" data-action="menu" aria-label="Меню проекта"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12l0 .01"/><path d="M12 12l0 .01"/><path d="M19 12l0 .01"/></svg></button>')+
@@ -1758,14 +1784,17 @@ async function clearTrash(){
   if(!ids.length) return;
   const btn=$('btn-clear-trash');
   if(btn){btn.disabled=true;btn.textContent='Удаление…';}
-  let failed=0;
-  for(const id of ids){
-    const ok=await cloudDeleteProject(id);
-    if(!ok) failed++;
-  }
-  if(btn){btn.disabled=false;btn.innerHTML=iconSvg('trash')+' Очистить корзину';}
-  hapticN(failed?'error':'success');
+  // Как и в массовых действиях: сначала локально и одна перерисовка,
+  // потом параллельные запросы в фоне.
+  saveProjects(getProjects().filter(p=>p.status!=='trash'));
   renderAllProjects();
+  hapticN('success');
+  const res=await Promise.all(ids.map(id=>cloudDeleteProject(id,true)));
+  if(btn){btn.disabled=false;btn.innerHTML=iconSvg('trash')+' Очистить корзину';}
+  if(res.some(r=>!r)){
+    hapticN('error');
+    if(typeof loadProjectsFromCloud==='function') loadProjectsFromCloud();
+  }
 }
 
 // ── РЕЖИМ СКАУТА ──────────────────────────────────────────────────────────
@@ -2161,7 +2190,7 @@ document.querySelectorAll('.time-mask-s').forEach(function(inp){
 $t('sel-cancel','click',()=>{haptic('light');setSelMode(false);});
 $t('sel-all','click',()=>{
   getProjects().filter(p=>p.status===selStatus).forEach(p=>{selIds[p.id]=1;});
-  haptic('light'); renderAllProjects();
+  haptic('light'); selSyncCards();
 });
 $t('confirm-cancel','click',closeConfirm);
 $t('confirm-ok','click',()=>{const fn=confirmAction;closeConfirm();if(fn)fn();});
