@@ -397,7 +397,7 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 /* Порядок фиксирован: название → адрес → корректировка → кнопки.
    Чип корректировки всегда на своей строке, поэтому верстка не «едет»
    между точками с адресом и без. */
-.scout-name{font-size:22px;font-weight:600;color:var(--text);word-break:break-word;margin-bottom:3px;}
+.scout-name{font-size:22px;font-weight:600;color:var(--text);word-break:break-word;margin-bottom:5px;}
 .scout-times{margin-bottom:10px;}
 .scout-pl-plan{font-size:13px;color:var(--text3);line-height:1.4;}
 .scout-pl-fcast{font-size:13px;color:var(--accent);line-height:1.4;}
@@ -413,7 +413,7 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 .sf-val.sf-empty{color:var(--text3);}
 .sf-div{width:1px;height:22px;background:var(--border-strong);}
 .scout-fact-main .ic{font-size:14px;color:var(--accent);}
-.scout-addr{display:flex;align-items:flex-start;gap:6px;font-size:13px;color:var(--text2);line-height:1.4;margin-bottom:12px;}
+.scout-addr{display:flex;align-items:flex-start;gap:6px;font-size:13px;color:var(--text2);line-height:1.4;margin-bottom:4px;}
 .scout-addr .ic{font-size:15px;flex-shrink:0;margin-top:1px;}
 .scout-acts{display:flex;gap:8px;min-height:66px;}
 .scout-act{flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 4px;font-size:12px;color:var(--text);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;}
@@ -939,8 +939,8 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
     <div class="scout-point">
       <div class="scout-kicker" id="scout-kicker"></div>
       <div class="scout-name" id="scout-name"></div>
-      <div class="scout-times" id="scout-times"></div>
       <div class="scout-addr" id="scout-addr"></div>
+      <div class="scout-times" id="scout-times"></div>
       <div class="scout-fact">
         <button class="scout-fact-main" id="scout-fact">
           <span class="sf-col"><span class="sf-lbl">приб.</span><span class="sf-val" id="scout-fa">‒‒:‒‒</span></span>
@@ -1943,10 +1943,11 @@ function scoutFcast(i){
   const st=scoutStops[i]; if(!st) return null;
   return st.arrive+dv;
 }
-// План-окно точки: прибытие–отбытие, у возвращения (приб.=отб.) одно время.
+// План-окно точки: прибытие–отбытие + длительность в скобках.
+// У возвращения (приб.=отб.) — одно время без скобок.
 function scoutPlanWindow(st){
   if(st.kind==='finish'||st.arrive===st.depart) return absHHMMm(st.arrive);
-  return absHHMMm(st.arrive)+'–'+absHHMMm(st.depart);
+  return absHHMMm(st.arrive)+'–'+absHHMMm(st.depart)+' ('+dur(st.depart-st.arrive)+')';
 }
 // Опорное время слева: у отмеченных точек — факт прибытия, иначе прогноз
 // (с тильдой) либо план. {txt, tilde}.
