@@ -397,7 +397,10 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 /* Порядок фиксирован: название → адрес → корректировка → кнопки.
    Чип корректировки всегда на своей строке, поэтому верстка не «едет»
    между точками с адресом и без. */
-.scout-name{font-size:22px;font-weight:600;color:var(--text);word-break:break-word;margin-bottom:6px;}
+.scout-name{font-size:22px;font-weight:600;color:var(--text);word-break:break-word;margin-bottom:3px;}
+.scout-times{margin-bottom:10px;}
+.scout-pl-plan{font-size:13px;color:var(--text3);line-height:1.4;}
+.scout-pl-fcast{font-size:13px;color:var(--accent);line-height:1.4;}
 .scout-fact{display:flex;align-items:stretch;width:100%;background:var(--bg2);border-radius:10px;overflow:hidden;margin-bottom:8px;}
 .scout-fact-main{flex:1;display:flex;align-items:center;justify-content:center;gap:11px;background:none;border:none;padding:9px 11px;cursor:pointer;}
 .scout-fact-main:active{background:var(--border);}
@@ -445,11 +448,14 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 .spl-body{flex:1;min-width:0;}
 .spl-name{font-size:14px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .spl-badge{font-size:10px;background:var(--accent);color:#fff;padding:1px 7px;border-radius:10px;font-weight:500;}
-.spl-sub{font-size:11px;color:var(--text3);margin-top:1px;}
+.spl-plan{font-size:11px;color:var(--text3);margin-top:2px;}
+.spl-fact{font-size:11px;color:var(--text2);margin-top:1px;}
+.spl-fcast{font-size:11px;color:var(--accent);margin-top:1px;}
 .spl-tr{display:flex;gap:10px;align-items:center;padding:2px 0 2px;}
 .spl-tr-body{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3);padding-left:4px;flex-wrap:wrap;}
 .spl-tr-body .ic{font-size:14px;}
-.spl-cur .spl-sub{color:var(--accent);}
+.spl-cur .spl-plan{color:var(--accent);}
+.spl-cur .spl-fact{color:var(--accent);}
 
 /* ── МУЛЬТИВЫБОР ── */
 /* Панель в потоке, НЕ fixed: нижняя панель соседствует со скроллом и плавает
@@ -933,6 +939,7 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
     <div class="scout-point">
       <div class="scout-kicker" id="scout-kicker"></div>
       <div class="scout-name" id="scout-name"></div>
+      <div class="scout-times" id="scout-times"></div>
       <div class="scout-addr" id="scout-addr"></div>
       <div class="scout-fact">
         <button class="scout-fact-main" id="scout-fact">
@@ -1924,6 +1931,33 @@ function scoutDev(){
   return d;
 }
 
+// ── Прогноз (display-only) ──────────────────────────────────────────────────
+// Опорный план (st.arrive/depart) НЕ трогаем — на нём держится scoutDev().
+// Прогноз = план + текущее отклонение, только для БУДУЩИХ (после последней
+// отмеченной) точек и только при ненулевом отклонении. Идём ровно по плану —
+// прогноз совпадает с планом и не показывается. Возвращает минуты или null.
+function scoutFcast(i){
+  const dv=scoutDev();
+  if(dv===null||dv===0) return null;
+  if(i<=scoutLastFactIdx()) return null;
+  const st=scoutStops[i]; if(!st) return null;
+  return st.arrive+dv;
+}
+// План-окно точки: прибытие–отбытие, у возвращения (приб.=отб.) одно время.
+function scoutPlanWindow(st){
+  if(st.kind==='finish'||st.arrive===st.depart) return absHHMMm(st.arrive);
+  return absHHMMm(st.arrive)+'–'+absHHMMm(st.depart);
+}
+// Опорное время слева: у отмеченных точек — факт прибытия, иначе прогноз
+// (с тильдой) либо план. {txt, tilde}.
+function scoutWhen(i){
+  const f=scoutFacts[i]||{};
+  if(f.a) return {txt:f.a,tilde:false};
+  const fc=scoutFcast(i);
+  if(fc!==null) return {txt:absHHMMm(fc),tilde:true};
+  return {txt:absHHMMm((scoutStops[i]||{}).arrive||0),tilde:false};
+}
+
 // Лента строится ОДИН раз за сессию. При смене точки только переключаем
 // классы — иначе пересборка innerHTML убивает CSS-переходы и переключение
 // выглядит дёрганым.
@@ -1947,6 +1981,9 @@ function scoutSyncRail(smooth){
     const i=parseInt(n.getAttribute('data-i'))||0;
     n.classList.toggle('sr-done',i<scoutIdx);
     n.classList.toggle('sr-cur',i===scoutIdx);
+    // Время под точкой: факт/прогноз, пересчитывается без пересборки узла.
+    const t=n.querySelector('.sr-time');
+    if(t){const w=scoutWhen(i);t.textContent=(w.tilde?'~':'')+w.txt;}
   });
   rail.querySelectorAll('.sr-seg').forEach((sg,k)=>{sg.classList.toggle('sr-seg-done',k+1<=scoutIdx);});
   scoutCenterRail(smooth);
@@ -1969,6 +2006,11 @@ function scoutRenderPoint(animate){
   const kick={start:'СБОР',location:'ЛОКАЦИЯ',lunch:'ЛАНЧ',finish:'ВОЗВРАЩЕНИЕ'}[st.kind]||'ТОЧКА';
   $('scout-kicker').textContent=kick+' · ТОЧКА '+(scoutIdx+1)+' ИЗ '+scoutStops.length;
   $('scout-name').textContent=st.title;
+  // План-окно всегда, прогноз прибытия — только при отклонении на будущей точке.
+  let th='<div class="scout-pl-plan">План\u00a0\u00a0'+scoutPlanWindow(st)+'</div>';
+  const pfc=scoutFcast(scoutIdx);
+  if(pfc!==null) th+='<div class="scout-pl-fcast">Прогноз прибытия\u00a0\u00a0~'+absHHMMm(pfc)+'</div>';
+  $('scout-times').innerHTML=th;
   const f=scoutFacts[scoutIdx]||{};
   const fa=$('scout-fa'), fd=$('scout-fd');
   fa.textContent=f.a||'‒‒:‒‒'; fa.className='sf-val'+(f.a?'':' sf-empty');
@@ -2094,16 +2136,19 @@ function scoutRenderPlan(){
     }
     const f=scoutFacts[i]||{};
     const cls=i<scoutIdx?'spl-done':(i===scoutIdx?'spl-cur':'');
-    let sub;
-    if(f.a&&f.d) sub='факт '+esc(f.a)+' → '+esc(f.d);
-    else if(f.a) sub='факт '+esc(f.a);
-    else sub='по плану';
+    const w=scoutWhen(i);
+    // Третья строка: факт у отмеченных, иначе прогноз (только при отклонении).
+    let third='';
+    if(f.a&&f.d) third='<div class="spl-fact">Факт\u00a0\u00a0'+esc(f.a)+' → '+esc(f.d)+'</div>';
+    else if(f.a) third='<div class="spl-fact">Факт\u00a0\u00a0'+esc(f.a)+'</div>';
+    else{const fc=scoutFcast(i);if(fc!==null)third='<div class="spl-fcast">Прогноз\u00a0\u00a0~'+absHHMMm(fc)+'</div>';}
     h+='<div class="spl-row '+cls+'" data-i="'+i+'">'+
-       '<div class="spl-t">'+absHHMMm(st.arrive)+'</div>'+
+       '<div class="spl-t">'+(w.tilde?'~':'')+w.txt+'</div>'+
        '<div class="spl-rail"><div class="spl-dot sr-dot-'+st.kind+'">'+(i<scoutIdx?iconSvg('check'):'')+'</div>'+
        (i<scoutStops.length-1?'<div class="spl-line"></div>':'')+'</div>'+
        '<div class="spl-body"><div class="spl-name">'+esc(st.title)+(i===scoutIdx?'<span class="spl-badge">вы здесь</span>':'')+'</div>'+
-       '<div class="spl-sub">'+sub+'</div></div></div>';
+       '<div class="spl-plan">План\u00a0\u00a0'+scoutPlanWindow(st)+'</div>'+
+       third+'</div></div>';
   });
   $('scout-plan-list').innerHTML=h;
   $('scout-plan-list').querySelectorAll('.spl-row').forEach(r=>{
