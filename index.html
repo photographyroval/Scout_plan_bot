@@ -1550,7 +1550,8 @@ function buildPreviewHtml(data) {
   const sborPlace=meetingMapUrl
     ? `<a href="${escAttr(meetingMapUrl)}">${esc(meetingPlace||'Место')}</a>`
     : esc(meetingPlace||'—');
-  lines.push(`🟢 <b>Сбор:</b> ${sborPlace} — ${esc(meetingTime||'—')} | 🔴 <b>Выезд:</b> ${esc(departureTime||'—')}`);
+  lines.push(`🟢 <b>Сбор:</b> ${sborPlace} — ${esc(meetingTime||'—')}`);
+  lines.push(`🔴 <b>Выезд:</b> ${esc(departureTime||'—')}`);
 
   if(meetingAddress) lines.push(esc(meetingAddress));
   if(coordinates) lines.push(`<code>${esc(coordinates)}</code>`);
