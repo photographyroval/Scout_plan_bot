@@ -101,7 +101,10 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
    Не используем position:fixed — он ненадёжен внутри Telegram WebApp и iframe. */
 /* Свитчер темы — обычный элемент в потоке, прижат вправо.
    Скроллится вместе со страницей и уезжает наверх. */
-.theme-toggle{display:flex;justify-content:flex-end;margin-bottom:10px;}
+.theme-toggle{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-bottom:10px;}
+.profile-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--bg);color:var(--text2);display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.profile-btn:active{background:var(--bg2);}
+.profile-btn .ic{width:20px;height:20px;}
 .toggle-track{backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
 .toggle-track{width:44px;height:26px;background:var(--bg);border-radius:13px;position:relative;cursor:pointer;transition:background 0.3s,border-color 0.3s;border:1px solid var(--border);user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;}
 .toggle-track.on{background:var(--bg);border-color:var(--border);}
@@ -326,6 +329,43 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
    открывалась поверх режима. */
 .scout-screen{position:fixed;inset:0;background:var(--bg);z-index:90000;display:none;}
 #scout-plan-screen{z-index:90100;}
+/* Экран профиля — тот же полноэкранный паттерн, что у scout/maint. */
+#profile-screen{position:fixed;inset:0;background:var(--bg);z-index:90000;display:none;}
+.pf-inner{width:100%;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;}
+.pf-head{position:relative;display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.pf-title{position:absolute;left:0;right:0;text-align:center;font-size:19px;font-weight:700;color:var(--text);pointer-events:none;}
+.pf-back{position:relative;z-index:1;width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:none;color:var(--text2);display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;}
+.pf-back:active{background:var(--bg2);}
+.pf-x{position:relative;z-index:1;margin-left:auto;width:34px;height:34px;border-radius:50%;border:none;background:none;color:var(--text2);display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;}
+.pf-x:active{background:var(--bg2);}
+.pf-body{padding:24px 18px;}
+.pf-top{display:flex;align-items:center;gap:10px;margin-bottom:24px;}
+.pf-idcol{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:10px;width:150px;}
+.pf-avatar{width:100px;height:100px;border-radius:50%;background:var(--accent-bg);display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:700;color:var(--accent);overflow:hidden;}
+.pf-avatar img{width:100%;height:100%;object-fit:cover;}
+.pf-name{font-size:18px;font-weight:600;color:var(--text);text-align:center;line-height:1.25;word-break:break-word;}
+.pf-nick{font-size:14px;color:var(--text2);text-align:center;margin-top:2px;}
+.pf-meta{flex:1 1 auto;border-collapse:collapse;}
+.pf-meta-row{}
+.pf-meta-ic{padding:6px 0;color:var(--text2);vertical-align:middle;white-space:nowrap;}
+.pf-meta-ic .ic{width:18px;height:18px;vertical-align:-4px;margin-right:9px;}
+.pf-meta-lbl{padding:6px 0;font-size:15px;color:var(--text2);vertical-align:middle;white-space:nowrap;}
+.pf-meta-col{padding:6px 12px;font-size:15px;color:var(--text2);vertical-align:middle;}
+.pf-meta-val{padding:6px 0;font-size:15px;color:var(--text);vertical-align:middle;white-space:nowrap;}
+.pf-meta-val.trial{color:var(--orange);}
+.pf-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--border);padding-top:20px;}
+.pf-stat{background:var(--bg2);border-radius:var(--radius-lg);padding:18px 12px;text-align:center;}
+.pf-stat-lbl{font-size:13px;color:var(--text2);margin-bottom:8px;}
+.pf-stat-num{font-size:26px;font-weight:700;color:var(--text);line-height:1;}
+/* Спиннер загрузки цифр — три гео-пина, подпрыгивают по очереди. */
+.pf-spin{display:inline-flex;gap:6px;align-items:flex-end;height:26px;}
+.pf-spin .ic{width:16px;height:16px;color:var(--accent);opacity:0.3;}
+@media (prefers-reduced-motion: no-preference){
+  @keyframes pfPin{0%,80%,100%{opacity:0.3;transform:translateY(0);}40%{opacity:1;transform:translateY(-4px);}}
+  .pf-spin .ic{animation:pfPin 1.2s infinite ease-in-out;}
+  .pf-spin .ic:nth-child(2){animation-delay:0.2s;}
+  .pf-spin .ic:nth-child(3){animation-delay:0.4s;}
+}
 .scout-inner{width:100%;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;}
 .scout-head{padding:14px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
 /* Название и дата по центру; крестик лежит поверх, не сдвигая их. */
@@ -627,6 +667,9 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
 <symbol id="i-signal" viewBox="0 0 24 24"><path d="M12 18l.01 0"/><path d="M9.172 15.172a4 4 0 0 1 5.656 0"/><path d="M6.343 12.343a8 8 0 0 1 11.314 0"/><path d="M3.515 9.515c4.686 -4.687 12.284 -4.687 17 0"/></symbol>
 <symbol id="i-tool" viewBox="0 0 24 24"><path d="M7 10h3v-3l-3.5 -3.5a6 6 0 0 1 8 8l6 6a2 2 0 0 1 -3 3l-6 -6a6 6 0 0 1 -8 -8l3.5 3.5"/></symbol>
 <symbol id="i-bell" viewBox="0 0 24 24"><path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"/><path d="M16 3v4"/><path d="M8 3v4"/><path d="M4 11h16"/></symbol>
+<symbol id="i-crown" viewBox="0 0 24 24"><path d="M12 6l3 4l5 -3l-2.5 11h-11l-2.5 -11l5 3z"/></symbol>
 </defs>
 </svg>
 <div id="maint-screen">
@@ -647,6 +690,7 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
   <div class="toggle-track" id="theme-toggle-btn">
     <div class="toggle-thumb"><span class="thumb-icon" id="theme-icon"><svg class="ic" aria-hidden="true"><use href="#i-moon"></use></svg></span></div>
   </div>
+  <button class="profile-btn" id="profile-btn" aria-label="Профиль"><svg class="ic" aria-hidden="true"><use href="#i-user"></use></svg></button>
 </div>
 
 <!-- ══════════════════════════════════
@@ -984,6 +1028,52 @@ body.sheet-open .app-wrapper{overflow:hidden!important;}
     <div class="form-group"><label class="form-label" for="scout-t-d">Отбытие</label><input type="text" id="scout-t-d" class="form-input time-mask-s" placeholder="ЧЧ:ММ" inputmode="numeric" maxlength="5"></div>
     <button class="btn-primary" id="btn-scout-time-save">Сохранить</button>
     <button class="btn-secondary" id="btn-scout-time-close">Отмена</button>
+  </div>
+</div>
+
+<!-- ЭКРАН ПРОФИЛЯ -->
+<div id="profile-screen">
+  <div class="pf-inner">
+    <div class="pf-head">
+      <button class="pf-back" id="profile-back" aria-label="Назад"><svg class="ic" aria-hidden="true"><use href="#i-arrow-left"></use></svg></button>
+      <div class="pf-title">Профиль</div>
+      <button class="pf-x" id="profile-close" aria-label="Закрыть"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
+    </div>
+    <div class="pf-body">
+      <div class="pf-top">
+        <div class="pf-idcol">
+          <div class="pf-avatar" id="pf-avatar"></div>
+          <div>
+            <div class="pf-name" id="pf-name"></div>
+            <div class="pf-nick" id="pf-nick"></div>
+          </div>
+        </div>
+        <table class="pf-meta">
+          <tr class="pf-meta-row">
+            <td class="pf-meta-ic"><svg class="ic" aria-hidden="true"><use href="#i-calendar"></use></svg></td>
+            <td class="pf-meta-lbl">В боте с</td>
+            <td class="pf-meta-col">:</td>
+            <td class="pf-meta-val" id="pf-since">‒‒</td>
+          </tr>
+          <tr class="pf-meta-row">
+            <td class="pf-meta-ic"><svg class="ic" aria-hidden="true"><use href="#i-crown"></use></svg></td>
+            <td class="pf-meta-lbl">Подписка</td>
+            <td class="pf-meta-col">:</td>
+            <td class="pf-meta-val trial">Триал</td>
+          </tr>
+        </table>
+      </div>
+      <div class="pf-stats">
+        <div class="pf-stat">
+          <div class="pf-stat-lbl">Создано планов</div>
+          <div class="pf-stat-num" id="pf-created"><span class="pf-spin"><svg class="ic" aria-hidden="true"><use href="#i-pin"></use></svg><svg class="ic" aria-hidden="true"><use href="#i-pin"></use></svg><svg class="ic" aria-hidden="true"><use href="#i-pin"></use></svg></span></div>
+        </div>
+        <div class="pf-stat">
+          <div class="pf-stat-lbl">Отправлено планов</div>
+          <div class="pf-stat-num" id="pf-sent"><span class="pf-spin"><svg class="ic" aria-hidden="true"><use href="#i-pin"></use></svg><svg class="ic" aria-hidden="true"><use href="#i-pin"></use></svg><svg class="ic" aria-hidden="true"><use href="#i-pin"></use></svg></span></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2210,6 +2300,81 @@ function scoutClose(){
   scoutProj=null;
 }
 
+// ── ПРОФИЛЬ ───────────────────────────────────────────────────────────────
+// Данные пользователя берём из initDataUnsafe (имя, ник, фото — их отдаёт
+// Telegram). Счётчики и дату регистрации тянем с сервера (/profile/stats),
+// который сам проверяет подпись initData. Экран — независимое перекрытие,
+// как scout/maint, а не элемент screenStack.
+const PF_MONTHS=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+function pfFormatDate(iso){
+  if(!iso) return '—';
+  const d=new Date(iso);
+  if(isNaN(d.getTime())) return '—';
+  return d.getDate()+' '+PF_MONTHS[d.getMonth()]+' '+d.getFullYear();
+}
+function pfInitials(first,last){
+  const a=(first||'').trim(), b=(last||'').trim();
+  let r=(a?a[0]:'')+(b?b[0]:'');
+  if(!r) r=a?a.slice(0,2):'';
+  return r.toUpperCase();
+}
+function pfSpinnerHtml(){
+  return '<span class="pf-spin"><svg class="ic" aria-hidden="true"><use href="#i-pin"></use></svg><svg class="ic" aria-hidden="true"><use href="#i-pin"></use></svg><svg class="ic" aria-hidden="true"><use href="#i-pin"></use></svg></span>';
+}
+function openProfile(){
+  const u=(tg.initDataUnsafe&&tg.initDataUnsafe.user)?tg.initDataUnsafe.user:{};
+  const first=u.first_name||'', last=u.last_name||'';
+  const fullName=(first+' '+last).trim()||'Пользователь';
+  $('pf-name').textContent=fullName;
+  $('pf-nick').textContent=u.username?('@'+u.username):'';
+  $('pf-nick').style.display=u.username?'block':'none';
+  // Аватар: фото из Telegram, иначе инициалы.
+  const av=$('pf-avatar');
+  if(u.photo_url){
+    av.innerHTML='<img alt="" src="'+u.photo_url+'">';
+    // Если фото не загрузится — падаем обратно на инициалы.
+    const img=av.querySelector('img');
+    if(img) img.onerror=function(){av.textContent=pfInitials(first,last);};
+  }else{
+    av.textContent=pfInitials(first,last);
+  }
+  // Цифры и дата — спиннеры, пока грузятся.
+  $('pf-created').innerHTML=pfSpinnerHtml();
+  $('pf-sent').innerHTML=pfSpinnerHtml();
+  $('pf-since').textContent='‒‒';
+  $('profile-screen').style.display='block';
+  // Запрос статистики.
+  const initData=getInitData();
+  if(!initData){
+    // Вне Telegram (или нет подписи) — сервер всё равно отклонит.
+    $('pf-created').textContent='0';
+    $('pf-sent').textContent='0';
+    $('pf-since').textContent='—';
+    return;
+  }
+  fetch(BACKEND_URL+'/profile/stats',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData})})
+    .then(r=>r.json())
+    .then(d=>{
+      if(d&&d.ok){
+        $('pf-created').textContent=String(d.created||0);
+        $('pf-sent').textContent=String(d.sent||0);
+        $('pf-since').textContent=pfFormatDate(d.firstSeenAt);
+      }else{
+        $('pf-created').textContent='—';
+        $('pf-sent').textContent='—';
+        $('pf-since').textContent='—';
+      }
+    })
+    .catch(()=>{
+      $('pf-created').textContent='—';
+      $('pf-sent').textContent='—';
+      $('pf-since').textContent='—';
+    });
+}
+function profileClose(){
+  $('profile-screen').style.display='none';
+}
+
 // ── CTX MENU ──────────────────────────────────────────────────────────────
 function openCtxMenu(id,status,anchor){
   ctxProjectId=id; ctxProjectStatus=status;
@@ -2247,6 +2412,9 @@ $t('ctx-delete','click',()=>{
   });
 });
 $t('scout-close','click',()=>{haptic('light');scoutClose();});
+$t('profile-btn','click',()=>{haptic('light');openProfile();});
+$t('profile-back','click',()=>{haptic('light');profileClose();});
+$t('profile-close','click',()=>{haptic('light');profileClose();});
 $t('scout-timer-btn','click',scoutToggleTimer);
 $t('scout-timer-reset','click',scoutResetTimer);
 $t('scout-main','click',scoutMain);
