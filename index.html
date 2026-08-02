@@ -1282,7 +1282,7 @@ function maskTimeValue(raw){
   if(v.length>=3&&parseInt(v[2])>5)v=v.slice(0,2);
   return v.length>2?v.slice(0,2)+':'+v.slice(2):v;
 }
-function showStatus(id,type,text){const el=$(id);el.className='send-status '+type;el.textContent=text;if(type!=='loading')setTimeout(()=>{el.style.display='none';},4000);}
+function showStatus(id,type,text,sticky){const el=$(id);el.className='send-status '+type;el.textContent=text;el.style.display='';if(type!=='loading'&&!sticky)setTimeout(()=>{el.style.display='none';},4000);}
 
 function openSheet(id){haptic('light');document.body.classList.add('sheet-open');$(id).style.display='block';}
 function closeSheet(id){document.body.classList.remove('sheet-open');$(id).style.display='none';editingIndex=null;}
@@ -3147,6 +3147,7 @@ async function doSend(data,statusId,btnEl){
   try{
     const res=await fetch(BACKEND_URL+'/send-plan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData,data})});
     const r=await res.json();
+    if(r&&r.needsStart){showStatus(statusId,'error','⚠️ Бот не может отправить вам план. Сначала отправьте боту @Scout_plan_bot команду /start, затем отправьте план снова.',true);hapticN('error');if(btnEl)btnEl.disabled=false;return;}
     if(!r.ok) throw new Error(r.error||'Ошибка сервера');
     await saveProjectToStorage(data);
     localStorage.removeItem('scout_draft');
