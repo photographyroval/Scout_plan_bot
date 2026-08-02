@@ -1596,6 +1596,10 @@ function buildPreviewHtml(data) {
   lines.push(SEP);
   lines.push(`🏁 <b>Возвращение: ~${absHHMMm(runMin)}</b>`);
 
+  lines.push('');
+  lines.push('');
+  lines.push('<i>План создан в @Scout_plan_bot</i>');
+
   return lines.join('\n').replace(/\n/g,'<br>');
 }
 
